@@ -75,13 +75,13 @@ Everything downstream needs a buildable repo. We deliberately stop at "default p
 
 - [x] `.env.example` — `DATABASE_URL`, `ANTHROPIC_API_KEY`, `LOG_LEVEL=info`
 - [ ] `.env.local` populated locally with real `ANTHROPIC_API_KEY` (user-side)
-- [x] `.gitignore` updated to allow `.env.example`
+- [x] `.gitignore` updated to allow `.env.example` while ignoring local secrets, agent state, build output, test reports, and skill run artifacts
 - [x] `README.md` quickstart written
 
 ### Git
 
-- [ ] `git init` (user-side decision)
-- [ ] First commit: `chore: bootstrap Next.js + TS + Tailwind + shadcn + Prisma + docker-compose` (user-side)
+- [x] `git init` — repo initialized on `main`
+- [x] First commit: `chore: bootstrap paper collection system` (`400fab3`)
 
 ## Files created in this phase
 
@@ -119,14 +119,14 @@ tests/e2e/.gitkeep
 - [x] `npm run build` exits 0
 - [x] `npm test` exits 0
 - [x] `npx prisma generate` exits 0
-- [ ] `git status` clean after final commit; `doc/` and `.omc/` still present (git not yet init'd)
+- [x] `git status` clean after initial commit; `doc/` committed and `.omc/` preserved locally but ignored
 - [ ] `src/lib/env.ts` throws a readable error when `DATABASE_URL` is missing (manual check pending)
 - [ ] `plan/STATE.md` updated to point to the next phase (Phase 0.5)
 - [x] New entry appended at top of today's `plan/log/2026-05-07.md`
 
 ## Exit criteria
 
-All checkboxes above are ticked. Phase 0 is **~80% complete**; remaining items are user-side (start Docker, browser check, git init, populate `.env.local`).
+All checkboxes above are ticked. Phase 0 is **~85% complete**; remaining items are user-side/runtime checks (start Docker, browser check, populate `.env.local`, verify missing-env error).
 
 ## Risks / pitfalls
 
