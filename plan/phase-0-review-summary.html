@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phase 0 / 0.5 Review Summary</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f8fb;
+        --panel: #ffffff;
+        --ink: #17202a;
+        --muted: #5f6b7a;
+        --line: #d8dee8;
+        --critical: #b42318;
+        --warning: #b54708;
+        --note: #175cd3;
+        --ok: #067647;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 48px 24px 64px;
+      }
+
+      header {
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 34px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        max-width: 780px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin: 28px 0;
+      }
+
+      .summary-card,
+      .issue-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+      }
+
+      .summary-card {
+        padding: 18px;
+      }
+
+      .summary-card strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 22px;
+      }
+
+      .summary-card span {
+        color: var(--muted);
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 0 0 20px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 4px 10px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+
+      .p1 {
+        background: var(--critical);
+      }
+
+      .p2 {
+        background: var(--warning);
+      }
+
+      .p3 {
+        background: var(--note);
+      }
+
+      .issue-list {
+        display: grid;
+        gap: 16px;
+      }
+
+      .issue-card {
+        overflow: hidden;
+      }
+
+      .issue-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        padding: 18px 20px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.3;
+        letter-spacing: 0;
+      }
+
+      .meta {
+        margin-top: 5px;
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .priority {
+        flex: 0 0 auto;
+        border-radius: 999px;
+        padding: 4px 10px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .priority.p1 {
+        background: var(--critical);
+      }
+
+      .priority.p2 {
+        background: var(--warning);
+      }
+
+      .priority.p3 {
+        background: var(--note);
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+      }
+
+      .column {
+        min-height: 150px;
+        padding: 18px 20px 20px;
+      }
+
+      .column + .column {
+        border-left: 1px solid var(--line);
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      .recommendation {
+        border-top: 1px solid var(--line);
+        background: #fbfcff;
+        padding: 14px 20px;
+      }
+
+      .recommendation strong {
+        color: var(--ok);
+      }
+
+      code {
+        border-radius: 4px;
+        background: #eef2f7;
+        padding: 1px 5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.92em;
+      }
+
+      @media (max-width: 860px) {
+        main {
+          padding: 32px 16px 48px;
+        }
+
+        .summary,
+        .columns {
+          grid-template-columns: 1fr;
+        }
+
+        .column + .column {
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+
+        .issue-head {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Phase 0 / 0.5 Review Summary</h1>
+        <p class="subtitle">
+          This page explains the planning issues in plain terms. Each item shows
+          the issue, the expected state, and the current state so the next action
+          is easier to decide.
+        </p>
+      </header>
+
+      <section class="summary" aria-label="Review summary">
+        <div class="summary-card">
+          <strong>5</strong>
+          <span>Total findings across Phase 0, Phase 0.5, STATE, and log files.</span>
+        </div>
+        <div class="summary-card">
+          <strong>2 P1</strong>
+          <span>Must resolve before treating Phase 0.5 as a passed gate.</span>
+        </div>
+        <div class="summary-card">
+          <strong>Core risk</strong>
+          <span>The plan says “GO”, but the DB ingest round-trip is not proven yet.</span>
+        </div>
+      </section>
+
+      <div class="legend" aria-label="Priority legend">
+        <span class="pill"><span class="dot p1"></span>P1: blocks phase truth</span>
+        <span class="pill"><span class="dot p2"></span>P2: creates follow-up risk</span>
+        <span class="pill"><span class="dot p3"></span>P3: documentation mismatch</span>
+      </div>
+
+      <section class="issue-list" aria-label="Findings">
+        <article class="issue-card">
+          <div class="issue-head">
+            <div>
+              <h2>Exit criteria contradicts deferred R4</h2>
+              <div class="meta">plan/phase-0.5-poc/README.md:150-152</div>
+            </div>
+            <span class="priority p1">P1</span>
+          </div>
+          <div class="columns">
+            <div class="column">
+              <h3>Issue</h3>
+              <p>
+                Phase 0.5 says it exits only when all five pass bars are green,
+                but R4 is marked deferred because Docker was unavailable.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Expect</h3>
+              <p>
+                The document should choose one truth: either Phase 0.5 remains
+                open, or it is a conditional GO with R4 explicitly carried as a
+                blocking follow-up.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Current</h3>
+              <p>
+                The plan currently reads like Phase 0.5 is complete, while one
+                required pass bar is still untested.
+              </p>
+            </div>
+          </div>
+          <div class="recommendation">
+            <strong>Recommendation:</strong> Rewrite the exit criteria as
+            “Conditional GO; R4 must close before Phase 1 is considered complete.”
+          </div>
+        </article>
+
+        <article class="issue-card">
+          <div class="issue-head">
+            <div>
+              <h2>R4 pass bar disagrees with ingest behavior</h2>
+              <div class="meta">plan/phase-0.5-poc/README.md:25</div>
+            </div>
+            <span class="priority p1">P1</span>
+          </div>
+          <div class="columns">
+            <div class="column">
+              <h3>Issue</h3>
+              <p>
+                The pass bar says a re-run should show <code>0 new rows</code>,
+                but <code>scripts/ingest.ts</code> rejects re-ingesting the same
+                run directory unless <code>--force</code> is used.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Expect</h3>
+              <p>
+                The test should match the implemented contract: first ingest
+                succeeds; same run directory fails with an idempotency message.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Current</h3>
+              <p>
+                The plan expects “0 new rows,” while the code intentionally
+                exits non-zero to prevent accidental duplicate run ingestion.
+              </p>
+            </div>
+          </div>
+          <div class="recommendation">
+            <strong>Recommendation:</strong> Update R4 to assert the error on
+            same-dir re-run, plus optionally test a different run dir with the
+            same papers to verify existing-paper dedup.
+          </div>
+        </article>
+
+        <article class="issue-card">
+          <div class="issue-head">
+            <div>
+              <h2>Phase 0 is not actually closed</h2>
+              <div class="meta">plan/phase-0-bootstrap/README.md:114-124</div>
+            </div>
+            <span class="priority p2">P2</span>
+          </div>
+          <div class="columns">
+            <div class="column">
+              <h3>Issue</h3>
+              <p>
+                Several Phase 0 verification items are unchecked, including
+                Docker health, psql connection, dev-server browser check, env
+                failure behavior, git cleanliness, and STATE transition.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Expect</h3>
+              <p>
+                Phase 0 should either be closed only after those checks pass, or
+                the remaining checks should be explicitly moved into a tracked
+                backlog with owners and blocking status.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Current</h3>
+              <p>
+                The plan is moving forward even though the same Docker gap
+                already blocked the Phase 0.5 ingest proof.
+              </p>
+            </div>
+          </div>
+          <div class="recommendation">
+            <strong>Recommendation:</strong> Make Docker and DB verification a
+            named prerequisite before Phase 1 is marked complete.
+          </div>
+        </article>
+
+        <article class="issue-card">
+          <div class="issue-head">
+            <div>
+              <h2>Backlog depends on ignored run artifacts</h2>
+              <div class="meta">plan/STATE.md:35-42</div>
+            </div>
+            <span class="priority p2">P2</span>
+          </div>
+          <div class="columns">
+            <div class="column">
+              <h3>Issue</h3>
+              <p>
+                The R4 closure command points at
+                <code>data/runs/2026-05-08-1743/</code>, but
+                <code>/data/runs/</code> is gitignored.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Expect</h3>
+              <p>
+                A future agent or fresh checkout should be able to close R4
+                using committed fixtures, without relying on local-only run
+                output.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Current</h3>
+              <p>
+                The command works only if that ignored local run directory still
+                exists on this machine.
+              </p>
+            </div>
+          </div>
+          <div class="recommendation">
+            <strong>Recommendation:</strong> Close R4 against
+            <code>data/sample/</code> first, then optionally repeat with the real
+            run directory when it is present.
+          </div>
+        </article>
+
+        <article class="issue-card">
+          <div class="issue-head">
+            <div>
+              <h2>Checked box says pending</h2>
+              <div class="meta">plan/log/2026-05-09.md:49</div>
+            </div>
+            <span class="priority p3">P3</span>
+          </div>
+          <div class="columns">
+            <div class="column">
+              <h3>Issue</h3>
+              <p>
+                A decision-write-up checkbox is marked complete while the text
+                beside it says the <code>plan/README.md</code> update is still
+                pending.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Expect</h3>
+              <p>
+                The checkbox should remain unchecked until the top-level
+                progress and decision log are actually updated.
+              </p>
+            </div>
+            <div class="column">
+              <h3>Current</h3>
+              <p>
+                The log claims completion and pending status at the same time,
+                which makes the phase handoff harder to trust.
+              </p>
+            </div>
+          </div>
+          <div class="recommendation">
+            <strong>Recommendation:</strong> Untick this item or immediately add
+            the missing Phase 0.5 transition entry to <code>plan/README.md</code>.
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

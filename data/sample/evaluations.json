@@ -1,0 +1,96 @@
+[
+  {
+    "joinKey": {
+      "source": "ARXIV",
+      "sourcePaperId": "2605.12345"
+    },
+    "evaluationStage": "FULL_PDF",
+    "scores": {
+      "novelty": 16,
+      "methodologicalRigor": 19,
+      "experimentalQuality": 16,
+      "venueSourceCredibility": 9,
+      "authorInstitutionReputation": 9,
+      "total": 69
+    },
+    "summary": "ViT-Lite proposes progressive token merging within vision transformers, achieving a 3x FLOPs reduction while matching or beating standard ViT baselines across classification, detection, and segmentation.",
+    "recommendationReason": "Solid efficiency contribution with comprehensive cross-task evaluation and released code; incremental novelty over prior token-pruning work but well-executed.",
+    "keyContribution": "A learnable token-merging operator applied progressively across transformer layers, parameterized by importance scores derived from attention norms.",
+    "methodologySummary": "Extends ViT with a per-layer token-merge operator: at each layer, tokens are scored by attention norms; the bottom-k are merged with their nearest neighbors via a weighted sum. Trained on ImageNet-1k with no extra supervision; downstream tasks fine-tune the standard heads.",
+    "strengths": [
+      "Clear FLOPs/accuracy tradeoff with results on three diverse benchmarks",
+      "Code and pretrained models released for reproducibility",
+      "Ablations on merge schedule, k-values, and merge position"
+    ],
+    "weaknesses": [
+      "Comparison limited to ViT-family baselines; no comparison vs. recent SSM- or Mamba-based architectures",
+      "Latency results omitted on consumer hardware; FLOPs reduction may not translate to wall-clock speedup",
+      "Limited discussion of failure modes (e.g. small-object detection)"
+    ],
+    "tags": ["vision-transformer", "efficiency", "token-merging"],
+    "rankingExplanation": "Strong methodology and breadth of experiments; novelty is incremental over prior token-pruning work but the cross-task validation and reproducibility lift the score into recommend territory.",
+    "recommendationDecision": "RECOMMEND",
+    "pdfAnalysisStatus": "SUCCESS",
+    "tableFigureAnalysis": null
+  },
+  {
+    "joinKey": {
+      "source": "HUGGINGFACE",
+      "sourcePaperId": "2605.09876"
+    },
+    "evaluationStage": "FULL_PDF",
+    "scores": {
+      "novelty": 21,
+      "methodologicalRigor": 20,
+      "experimentalQuality": 17,
+      "venueSourceCredibility": 11,
+      "authorInstitutionReputation": 12,
+      "total": 81
+    },
+    "summary": "DiffSeg shows that pretrained text-to-image diffusion models can perform open-vocabulary segmentation without any segmentation supervision, achieving SOTA zero-shot results across three benchmarks.",
+    "recommendationReason": "Genuinely novel reuse of generative models for discriminative segmentation. The boundary-aware refinement closes a known gap in prior diffusion-based segmentation approaches.",
+    "keyContribution": "A boundary-aware refinement module operating on cross-attention maps from pretrained diffusion models, enabling supervision-free open-vocabulary segmentation.",
+    "methodologySummary": "Extracts cross-attention maps between text tokens and image patches at multiple diffusion timesteps, aggregates them, and applies a boundary-aware module that uses gradient information from the diffusion latent space to sharpen segmentation boundaries. No segmentation labels are used at any stage.",
+    "strengths": [
+      "Genuinely novel reuse of generative pretraining for a discriminative task",
+      "Strong zero-shot results on three diverse benchmarks (VOC, COCO, ADE20K)",
+      "Scaling analysis showing segmentation quality improves with diffusion model size",
+      "Clear ablation on the boundary-aware refinement component"
+    ],
+    "weaknesses": [
+      "Inference is slow due to multi-timestep cross-attention extraction",
+      "Limited comparison to recent SAM-based zero-shot baselines"
+    ],
+    "tags": ["diffusion", "segmentation", "open-vocabulary", "vision-language-model"],
+    "rankingExplanation": "Top score driven by novelty and rigor: opens a clear new direction (generative-pretraining → discriminative tasks) with credible empirical evidence and a thoughtful boundary-aware refinement.",
+    "recommendationDecision": "RECOMMEND",
+    "pdfAnalysisStatus": "SUCCESS",
+    "tableFigureAnalysis": null
+  },
+  {
+    "joinKey": {
+      "source": "OPENREVIEW",
+      "sourcePaperId": "cv-sparse-recon-2026"
+    },
+    "evaluationStage": "ABSTRACT_SCREENING",
+    "scores": {
+      "novelty": 14,
+      "methodologicalRigor": 15,
+      "experimentalQuality": 13,
+      "venueSourceCredibility": 13,
+      "authorInstitutionReputation": 8,
+      "total": 63
+    },
+    "summary": "Self-supervised geometric consistency loss for sparse-view 3D reconstruction, with reported PSNR improvements over recent NeRF and Gaussian-Splatting baselines on DTU and BlendedMVS.",
+    "recommendationReason": "Reasonable contribution to sparse-view reconstruction with CVPR venue credibility. Stage-1 score did not make the top-15 cutoff for full-PDF analysis.",
+    "keyContribution": null,
+    "methodologySummary": null,
+    "strengths": null,
+    "weaknesses": null,
+    "tags": ["3d-reconstruction", "self-supervised", "sparse-view", "novel-view-synthesis"],
+    "rankingExplanation": "Stage-1 abstract-only assessment. Promising direction with moderate venue credibility; full-PDF analysis not attempted because Stage-1 score fell outside the top-15 cutoff.",
+    "recommendationDecision": "STORE_ONLY",
+    "pdfAnalysisStatus": null,
+    "tableFigureAnalysis": null
+  }
+]

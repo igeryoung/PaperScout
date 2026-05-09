@@ -1,0 +1,47 @@
+[
+  {
+    "title": "ViT-Lite: Compact Vision Transformers via Token Merging",
+    "authors": ["Lin Chen", "Sara Ahmed", "Wei Zhang"],
+    "abstract": "We introduce ViT-Lite, a family of vision transformer variants that achieve a 3x reduction in compute by progressively merging tokens at each layer. Across ImageNet-1k, COCO detection, and ADE20K segmentation, ViT-Lite matches or outperforms standard ViT baselines while using 60% fewer FLOPs. We further analyze how the optimal merge schedule varies with task and provide pretrained checkpoints. Code and pretrained models are released.",
+    "venue": null,
+    "publishedDate": "2026-05-06",
+    "sourceUrl": "https://arxiv.org/abs/2605.12345",
+    "pdfUrl": "https://arxiv.org/pdf/2605.12345",
+    "sourcePaperId": "2605.12345",
+    "source": "ARXIV",
+    "codeUrls": ["https://github.com/example-org/vit-lite"],
+    "additionalSources": []
+  },
+  {
+    "title": "DiffSeg: Diffusion Models for Open-Vocabulary Segmentation",
+    "authors": ["Alex Park", "Maria Chen", "Tom Williams", "Yuki Tanaka"],
+    "abstract": "We present DiffSeg, a framework that repurposes pretrained text-to-image diffusion models for open-vocabulary semantic segmentation without any segmentation supervision. By extracting cross-attention maps at multiple diffusion timesteps and applying a novel boundary-aware refinement that uses latent-space gradient information, DiffSeg outperforms prior zero-shot baselines on PASCAL VOC, COCO, and ADE20K. We further show that segmentation quality scales with diffusion model capacity, suggesting a path to even stronger zero-shot segmentation as base models improve.",
+    "venue": null,
+    "publishedDate": "2026-05-05",
+    "sourceUrl": "https://huggingface.co/papers/2605.09876",
+    "pdfUrl": "https://arxiv.org/pdf/2605.09876",
+    "sourcePaperId": "2605.09876",
+    "source": "HUGGINGFACE",
+    "codeUrls": ["https://github.com/example-org/diffseg"],
+    "additionalSources": [
+      {
+        "source": "ARXIV",
+        "sourceUrl": "https://arxiv.org/abs/2605.09876",
+        "sourcePaperId": "2605.09876"
+      }
+    ]
+  },
+  {
+    "title": "Robust 3D Reconstruction from Sparse Views via Geometric Self-Supervision",
+    "authors": ["Jordan Lee", "Priya Patel"],
+    "abstract": "Sparse-view 3D reconstruction remains challenging due to depth ambiguity and limited multi-view geometric constraints. We propose a self-supervised geometric consistency loss that enforces multi-view agreement at both feature and depth levels, enabling reconstruction from as few as 3 input views. Experiments on DTU and BlendedMVS show consistent improvements over recent NeRF-based and Gaussian-Splatting baselines under sparse-view settings, with PSNR gains of 1.2-2.4 dB.",
+    "venue": "CVPR 2026 (under review)",
+    "publishedDate": "2026-05-04",
+    "sourceUrl": "https://openreview.net/forum?id=cv-sparse-recon-2026",
+    "pdfUrl": "https://openreview.net/pdf?id=cv-sparse-recon-2026",
+    "sourcePaperId": "cv-sparse-recon-2026",
+    "source": "OPENREVIEW",
+    "codeUrls": [],
+    "additionalSources": []
+  }
+]

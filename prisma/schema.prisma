@@ -1,0 +1,249 @@
+// PaperScout CV — Prisma schema
+// 9 entities per PRD §15-16. Used by scripts/ingest.ts and the read-only UI.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------- Enums --------
+
+enum Source {
+  ARXIV
+  OPENREVIEW
+  HUGGINGFACE
+}
+
+enum RunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum TriggerType {
+  ON_DEMAND
+  SCHEDULED
+}
+
+enum CollectionStatus {
+  NEW
+  EXISTING
+  DUPLICATE
+}
+
+enum EvaluationStage {
+  ABSTRACT_SCREENING
+  FULL_PDF
+}
+
+enum RecommendationDecision {
+  RECOMMEND
+  STORE_ONLY
+  LOW_QUALITY
+}
+
+enum PdfAnalysisStatus {
+  SUCCESS
+  FAILED
+  UNAVAILABLE
+}
+
+enum TagSource {
+  LLM_GENERATED
+  USER_GENERATED
+}
+
+enum MatchMethod {
+  ARXIV_ID
+  OPENREVIEW_ID
+  SOURCE_URL
+  NORMALIZED_TITLE
+  FUZZY_TITLE
+  PDF_URL
+}
+
+// -------- Models --------
+
+model Paper {
+  id                   String    @id @default(uuid()) @db.Uuid
+  title                String
+  normalizedTitle      String    @map("normalized_title")
+  authors              Json
+  abstract             String?
+  venue                String?
+  publishedDate        DateTime? @map("published_date") @db.Date
+  pdfUrl               String?   @map("pdf_url")
+  primarySource        Source    @map("primary_source")
+  duplicateFingerprint String    @unique @map("duplicate_fingerprint")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  sources     PaperSource[]
+  runResults  PaperRunResult[]
+  evaluations PaperEvaluation[]
+  feedback    PaperFeedback[]
+  tags        PaperTag[]
+  codeLinks   PaperCodeLink[]
+  asCanonical PaperDuplicate[]  @relation("Canonical")
+  asDuplicate PaperDuplicate[]  @relation("Duplicate")
+
+  @@index([normalizedTitle])
+  @@index([primarySource, publishedDate])
+  @@map("papers")
+}
+
+model PaperSource {
+  id            String   @id @default(uuid()) @db.Uuid
+  paperId       String   @map("paper_id") @db.Uuid
+  source        Source
+  sourceUrl     String   @map("source_url")
+  sourcePaperId String?  @map("source_paper_id")
+  pdfUrl        String?  @map("pdf_url")
+  metadata      Json?
+  collectedAt   DateTime @default(now()) @map("collected_at")
+
+  paper Paper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@unique([source, sourcePaperId])
+  @@index([paperId])
+  @@index([sourceUrl])
+  @@map("paper_sources")
+}
+
+model DailyRun {
+  id               String      @id @default(uuid()) @db.Uuid
+  userId           String?     @map("user_id") @db.Uuid
+  domain           String      @default("computer_vision")
+  runDate          DateTime    @map("run_date") @db.Date
+  triggerType      TriggerType @default(ON_DEMAND) @map("trigger_type")
+  candidateCount   Int         @default(30) @map("candidate_count")
+  recommendedCount Int         @default(10) @map("recommended_count")
+  status           RunStatus   @default(RUNNING)
+  ingestSourceDir  String?     @unique @map("ingest_source_dir")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  completedAt      DateTime?   @map("completed_at")
+
+  results     PaperRunResult[]
+  evaluations PaperEvaluation[]
+  feedback    PaperFeedback[]
+
+  @@index([runDate])
+  @@index([status])
+  @@map("daily_runs")
+}
+
+model PaperRunResult {
+  id               String           @id @default(uuid()) @db.Uuid
+  runId            String           @map("run_id") @db.Uuid
+  paperId          String           @map("paper_id") @db.Uuid
+  candidateRank    Int?             @map("candidate_rank")
+  finalRank        Int?             @map("final_rank")
+  isRecommended    Boolean          @default(false) @map("is_recommended")
+  collectionStatus CollectionStatus @map("collection_status")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  run   DailyRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  paper Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, paperId])
+  @@index([runId, finalRank])
+  @@index([runId, isRecommended])
+  @@map("paper_run_results")
+}
+
+model PaperEvaluation {
+  id                               String                 @id @default(uuid()) @db.Uuid
+  paperId                          String                 @map("paper_id") @db.Uuid
+  runId                            String                 @map("run_id") @db.Uuid
+  evaluationStage                  EvaluationStage        @map("evaluation_stage")
+  llmModel                         String                 @map("llm_model")
+  llmPromptVersion                 String                 @map("llm_prompt_version")
+  summary                          String?
+  keyContribution                  String?                @map("key_contribution")
+  methodologySummary               String?                @map("methodology_summary")
+  strengths                        Json?
+  weaknesses                       Json?
+  noveltyScore                     Int                    @map("novelty_score")
+  methodologicalRigorScore         Int                    @map("methodological_rigor_score")
+  experimentalQualityScore         Int                    @map("experimental_quality_score")
+  venueSourceCredibilityScore      Int                    @map("venue_source_credibility_score")
+  authorInstitutionReputationScore Int                    @map("author_institution_reputation_score")
+  totalScore                       Int                    @map("total_score")
+  rankingExplanation               String?                @map("ranking_explanation")
+  recommendationDecision           RecommendationDecision @map("recommendation_decision")
+  pdfAnalysisStatus                PdfAnalysisStatus?     @map("pdf_analysis_status")
+  tableFigureAnalysis              Json?                  @map("table_figure_analysis")
+  createdAt                        DateTime               @default(now()) @map("created_at")
+
+  paper Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  run   DailyRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([paperId, runId, evaluationStage])
+  @@index([paperId, llmPromptVersion])
+  @@map("paper_evaluations")
+}
+
+model PaperFeedback {
+  id         String   @id @default(uuid()) @db.Uuid
+  paperId    String   @map("paper_id") @db.Uuid
+  runId      String?  @map("run_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  starRating Int      @map("star_rating")
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  paper Paper     @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  run   DailyRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@unique([paperId, runId, userId])
+  @@index([paperId])
+  @@map("paper_feedback")
+}
+
+model PaperTag {
+  id        String    @id @default(uuid()) @db.Uuid
+  paperId   String    @map("paper_id") @db.Uuid
+  tag       String
+  source    TagSource
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  paper Paper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@unique([paperId, tag, source])
+  @@index([tag])
+  @@map("paper_tags")
+}
+
+model PaperCodeLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  paperId   String   @map("paper_id") @db.Uuid
+  codeUrl   String   @map("code_url")
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  paper Paper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@unique([paperId, codeUrl])
+  @@map("paper_code_links")
+}
+
+model PaperDuplicate {
+  id               String      @id @default(uuid()) @db.Uuid
+  canonicalPaperId String      @map("canonical_paper_id") @db.Uuid
+  duplicatePaperId String      @map("duplicate_paper_id") @db.Uuid
+  matchMethod      MatchMethod @map("match_method")
+  confidence       Float
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  canonical Paper @relation("Canonical", fields: [canonicalPaperId], references: [id], onDelete: Cascade)
+  duplicate Paper @relation("Duplicate", fields: [duplicatePaperId], references: [id], onDelete: Cascade)
+
+  @@index([canonicalPaperId])
+  @@index([duplicatePaperId])
+  @@map("paper_duplicates")
+}
