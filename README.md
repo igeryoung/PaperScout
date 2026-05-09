@@ -13,7 +13,7 @@ docker compose ps                # postgres should be healthy
 
 # 2. Env
 cp .env.example .env.local
-# fill in ANTHROPIC_API_KEY in .env.local
+# edit DATABASE_URL only if your local Postgres settings differ
 
 # 3. Install + run
 npm install

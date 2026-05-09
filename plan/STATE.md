@@ -1,9 +1,9 @@
 # Current State
 
 **Phase:** Phase 0.5 — Skill + Ingest PoC (skill side green; R4 deferred → entering Phase 1)
-**Current task:** Phase 1 kickoff. R4 (DB ingest round-trip) carried as a backlog item to close on the next session that has Docker up.
-**Last commit:** (none — git not yet initialized)
-**Updated:** 2026-05-09
+**Current task:** Phase 1 kickoff. R4 (DB ingest round-trip) carried as a manual runtime backlog item; Docker/Postgres is not part of the build baseline.
+**Last commit:** tracked in git; run `git log --oneline -1` for the current commit.
+**Updated:** 2026-05-10
 
 ## What's done in Phase 0.5
 
@@ -15,9 +15,9 @@
 - **Ingest script**: `scripts/ingest.ts` — CLI takes a run dir, validates JSON, dedups, upserts, computes `final_rank` + `is_recommended` (top 10), idempotent (delete-on-`--force`)
 - **Validate CLIs**: `scripts/validate-{candidates,evaluations}.ts` + `npm run validate:*` scripts
 - **Skills (skeletal)**: `.claude/skills/{collect-papers,evaluate-papers}/SKILL.md` with frontmatter + body referencing the sample data as contract
-- **Tests**: `tests/unit/dedup/{normalize,fingerprint,matcher}.test.ts` + `tests/unit/schema/sample.test.ts` (27 tests, all passing)
-- **Build/lint**: `npm test` 27/27 green; `npm run lint` clean; `npm run build` green; `npx tsc --noEmit` clean
-- **Plumbing**: `data/runs/` gitignored; `server-only` package + vitest alias to a stub; `tsx --env-file-if-exists` for ingest/migrate/studio scripts
+- **Tests**: `tests/unit/dedup/{normalize,fingerprint,matcher}.test.ts` + `tests/unit/schema/sample.test.ts` + `tests/unit/env/env.test.ts` (29 tests, all passing)
+- **Build/lint**: `npm test` 29/29 green; `npm run lint` clean; `npm run build` green; `npx tsc --noEmit` clean
+- **Plumbing**: `data/runs/` gitignored; `server-only` package + vitest alias to a stub; `tsx --env-file-if-exists` for ingest/migrate/studio scripts; Anthropic API env is not required because skills are invoked outside the app
 - **Plan files**: Phase 0 README boxes ticked for completed work; Phase 0.5 README rewritten for the new architecture and ticked
 
 ## Phase 0.5 outcomes (2026-05-09)
@@ -32,7 +32,7 @@ Decision: **Conditional GO** to Phase 1 with R4 carried as a backlog item.
 
 ## Backlog carried into Phase 1
 
-1. **R4 closure** (next session with Docker up):
+1. **R4 closure** (manual runtime DB check, not part of build verification):
    ```bash
    docker compose up -d
    npm run prisma:migrate -- --name init

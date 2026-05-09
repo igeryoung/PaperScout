@@ -6,11 +6,6 @@ const EnvSchema = z.object({
     .string()
     .min(1, 'DATABASE_URL is required (see .env.example)')
     .url('DATABASE_URL must be a valid URL'),
-  ANTHROPIC_API_KEY: z
-    .string()
-    .min(1, 'ANTHROPIC_API_KEY is required for LLM calls (see .env.example)')
-    .optional()
-    .default(''),
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
     .optional()
