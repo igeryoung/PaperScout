@@ -19,7 +19,7 @@ describe('env', () => {
   it('does not require an Anthropic API key', async () => {
     vi.stubEnv(
       'DATABASE_URL',
-      'postgresql://paperscout:paperscout@localhost:5432/paperscout?schema=public',
+      'postgresql://paperscout:paperscout@localhost:5435/paperscout?schema=public',
     );
     vi.stubEnv('LOG_LEVEL', 'debug');
     vi.resetModules();

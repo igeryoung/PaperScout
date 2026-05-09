@@ -9,7 +9,7 @@ V1 is a local single-user web app. See `doc/PRD_v1.md` for the full product requ
 ```bash
 # 1. Database
 docker compose up -d
-docker compose ps                # postgres should be healthy
+docker compose ps                # postgres should be healthy; host port is 5435
 
 # 2. Env
 cp .env.example .env.local

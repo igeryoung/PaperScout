@@ -32,9 +32,9 @@ Everything downstream needs a buildable repo. We deliberately stop at "default p
 
 ### Postgres via Docker (manual runtime check)
 
-- [x] Write `docker-compose.yml` with one service: `postgres:16-alpine`, port `5432`, healthcheck, named volume `pgdata`
+- [x] Write `docker-compose.yml` with one service: `postgres:16-alpine`, host port `5435`, healthcheck, named volume `pgdata`
 - [ ] Manual/runtime: `docker compose up -d` → `docker compose ps` shows healthy (not required for build verification)
-- [ ] Manual/runtime: `psql postgres://paperscout:paperscout@localhost:5432/paperscout -c 'SELECT 1'` connects (not required for build verification)
+- [ ] Manual/runtime: `psql postgres://paperscout:paperscout@localhost:5435/paperscout -c 'SELECT 1'` connects (not required for build verification)
 
 ### Prisma init
 

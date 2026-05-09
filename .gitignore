@@ -40,6 +40,9 @@
 /.claude/settings.local.json
 /.omc/
 
+# Local runtime services
+/.local/
+
 # Skill outputs. Committed samples live in data/sample/.
 /data/runs/
 
