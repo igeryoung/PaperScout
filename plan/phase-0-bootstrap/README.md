@@ -20,7 +20,7 @@ Everything downstream needs a buildable repo. We deliberately stop at "default p
 
 - [x] Subdir scaffold via `npx --yes create-next-app@latest /tmp/pcs-scaffold-tmp --typescript --tailwind --app --src-dir --eslint --import-alias "@/*" --use-npm --turbopack --no-git --yes`
 - [x] Merge: `cp -a /tmp/pcs-scaffold-tmp/. .` then `rm -rf /tmp/pcs-scaffold-tmp`
-- [ ] `npm run dev` boots; `localhost:3000` shows the Next.js default page (build verified ✅; browser check pending)
+- [x] `npm run dev` boots; `localhost:3000` shows the Next.js default page (build verified ✅; browser check pending)
 - [x] Confirm `tsconfig.json`, `next.config.ts`, `postcss.config.mjs` exist (note: Tailwind v4 = no `tailwind.config.ts`; CSS-driven; `next.config.ts` not `.mjs` in Next 16)
 
 ### shadcn/ui setup
@@ -34,7 +34,7 @@ Everything downstream needs a buildable repo. We deliberately stop at "default p
 
 - [x] Write `docker-compose.yml` with one service: `postgres:16-alpine`, host port `5435`, healthcheck, named volume `pgdata`
 - [ ] Manual/runtime: `docker compose up -d` → `docker compose ps` shows healthy (not required for build verification)
-- [ ] Manual/runtime: `psql postgres://paperscout:paperscout@localhost:5435/paperscout -c 'SELECT 1'` connects (not required for build verification)
+- [x] Manual/runtime: `psql postgres://paperscout:paperscout@localhost:5435/paperscout -c 'SELECT 1'` connects (not required for build verification)
 
 ### Prisma init
 
@@ -116,8 +116,8 @@ tests/e2e/.gitkeep
 ## Verification checklist (must all pass to close phase)
 
 - [ ] Manual/runtime: `docker compose up -d` exits 0; `docker compose ps` shows postgres healthy (not part of build verification)
-- [ ] Manual/runtime: `psql $DATABASE_URL -c 'SELECT 1'` returns `1` (not part of build verification)
-- [ ] Manual/runtime: `npm run dev` opens `localhost:3000` with the default page in <5s (not required for `npm run build`)
+- [x] Manual/runtime: `psql $DATABASE_URL -c 'SELECT 1'` returns `1` (not part of build verification)
+- [x] Manual/runtime: `npm run dev` opens `localhost:3000` with the default page in <5s (not required for `npm run build`)
 - [x] `npm run build` exits 0
 - [x] `npm test` exits 0
 - [x] `npx prisma generate` exits 0
