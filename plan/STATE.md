@@ -1,7 +1,7 @@
 # Current State
 
-**Phase:** Phase 0.5 — Skill + Ingest PoC (skill side green; R4 deferred → entering Phase 1)
-**Current task:** Phase 1 kickoff. R4 (DB ingest round-trip) carried as a manual runtime backlog item; Docker/Postgres is not part of the build baseline.
+**Phase:** Phase 2 — Source collection (closed 2026-05-10 → Phase 2.5)
+**Current task:** Phase 2.5 kickoff (prompt harness). Phase 2 deliverables landed end-to-end.
 **Last commit:** tracked in git; run `git log --oneline -1` for the current commit.
 **Updated:** 2026-05-10
 
@@ -25,34 +25,44 @@
 - **R1 ✓** sample tests
 - **R2 ✓** real `collect-papers` produced 5/5 valid arXiv records (`data/runs/2026-05-08-1743/candidates.json`)
 - **R3 ✓** real `evaluate-papers` produced 5 evals; ActCam (top 1) Stage 2 SUCCESS with 4 strengths + 4 weaknesses
-- **R4 DEFERRED** — Docker daemon was not running; ingest not exercised
+- **R4 ✓** (closed 2026-05-10) `npm run ingest data/sample/` → 3 papers, 3 recommended, exit 0; second invocation exited 1 with idempotency message. Required removing `import 'server-only'` from db, env, 9 repos, and 3 dedup files (see plan/README.md decision log).
 - **R5 ✓** wall-clock 8m 39s; tokens far under $2
 
-Decision: **Conditional GO** to Phase 1 with R4 carried as a backlog item.
+Decision: **GO** to Phase 1.
 
-## Backlog carried into Phase 1
+## Phase 1 outcomes (2026-05-10)
 
-1. **R4 closure** (manual runtime DB check, not part of build verification):
-   ```bash
-   docker compose up -d
-   npm run prisma:migrate -- --name init
-   npm run ingest data/runs/2026-05-08-1743/   # must exit 0
-   npm run ingest data/runs/2026-05-08-1743/   # must error on idempotency
-   ```
-   Then tick the R4 box in `plan/phase-0.5-poc/README.md` and append a "R4 closed" note to a future log entry.
-2. **SKILL.md authoring iteration** (before Phase 2):
-   - Recommend Python `xml.etree.ElementTree` snippet in `collect-papers/SKILL.md` (xmllint hint alone proved insufficient).
-   - Note in `evaluate-papers/SKILL.md` that mixed academic+industry rosters should be scored on the median, not the maximum.
-3. **`plan/README.md` decision-log entry** for Phase 0.5 → Phase 1 transition.
+- **Seed**: `prisma/seed.ts` inserts 5 papers across ARXIV/OPENREVIEW/HUGGINGFACE plus a near-duplicate pair (same normalized title, different first authors / arXiv ids → distinct fingerprints). Idempotent (`findByFingerprint` short-circuit). `package.json` `prisma.seed` config wired.
+- **Repo**: `papersRepo.listLibrary({ limit, cursor })` added — id-as-cursor pagination shape so Phase 4/5 can extend without reshape.
+- **Library page**: `src/app/library/page.tsx` — Server Component, `dynamic = 'force-dynamic'`, renders title/authors/source/publishedDate/createdAt; empty state when zero rows. Verified `GET /library` HTTP 200 with all rows + source badges.
+- **Backlog cleared**: `collect-papers/SKILL.md` now ships a working `python3 xml.etree.ElementTree` snippet for arXiv Atom; `evaluate-papers/SKILL.md` adds the median-not-max note for mixed academic+industry rosters.
+- **Scope decisions**: dropped `scripts/ingest-test.ts` (superseded by Phase 0.5 R4); skipped `src/types/domain.ts` (Prisma types suffice).
+
+Decision: **GO** to Phase 2.
+
+## Phase 2 outcomes (2026-05-10)
+
+- **Source clients**: `src/server/sources/{arxiv,openreview,huggingface}.ts` each export a pure parser (`parseArxivAtom` / `parseOpenReview` / `parseHuggingFace`) and a `fetch*(deps?)` wrapper that takes an injected `fetch` for tests. CandidateRecord shape is reused from `src/server/schema/candidate.ts` (no new types file).
+- **Aggregator**: `src/server/sources/index.ts` runs `Promise.allSettled` over the three clients, collapses cross-source duplicates by arXiv id / OpenReview id / normalized title (priority `ARXIV > OPENREVIEW > HUGGINGFACE`), unions `codeUrls`, applies quotas 15/10/5 with overflow refill, trims to 30. Continues on per-source failure with logged error.
+- **Pipeline**: `src/server/pipeline/{collect,persist,runner}.ts`. `persist` mirrors `scripts/ingest.ts:111-222` plus a `seenPaperId` guard against fuzzy-match collisions in a single batch.
+- **API**: `POST /api/runs` returns 202 + `{ id, status: 'RUNNING' }`, schedules `runCollectionInBackground(id)` via `after()` from `next/server`. `GET /api/runs/[id]` returns status + persisted count. `runsRepo.findById` and a `string|null` `ingestSourceDir` were added.
+- **Tests**: `tests/unit/sources/{arxiv,openreview,huggingface,index}.test.ts` (29 tests) + `tests/integration/collect-persist.test.ts` (1 test, env-gated by `DATABASE_URL_TEST`, schema = `paperscout_test`). `npm test` excludes integration; `npm run test:integration` runs only it. Total `npm test` count: 58/58.
+- **Live smoke**: first `POST /api/runs` against the dev DB → COMPLETED in ~1s, persisted new=26 / existing=4 / skipped=0 (4 fuzzy-matched seed/sample rows). Second POST → 0 new / 30 existing — full cross-run dedup. `/library` lists 38 papers (8 prior + 30 new), all with distinct `duplicate_fingerprint`.
+- **Bug fixed during smoke**: `mergeAdditional` was pushing `other.additionalSources` entries that duplicated the primary's identity, causing `Unique constraint failed on (source, source_paper_id)` when persist created the additional source row. Fix: track the primary's identity in the seen-set before merging.
+- **Live-captured fixtures**: `scripts/capture-source-fixtures.ts` (re-runnable) wrote `tests/fixtures/sources/{arxiv.xml,openreview.json,huggingface.json}` (123 KB / 113 KB / 273 KB).
+- **Build/lint**: `npm test` 58/58 green; `npm run test:integration` 1/1 green (with DB) or 1 skipped (without); `npm run lint` clean; `npm run build` succeeds with `/api/runs` and `/api/runs/[id]` registered as dynamic routes.
+- **README supersedes**: see `plan/phase-2-sources/README.md` § "Supersedes / resolutions" — README's `'collecting'`/`'completed'` lowercase, standalone `CandidateRecord` type, detached-Promise pattern, abs→pdf URL swap, OpenReview venue allowlist, and 48h API filter were all replaced with what actually shipped.
+
+Decision: **GO** to Phase 2.5.
 
 ## Open questions for the user
 
-- (none) — Phase 0.5 closed conditionally; ready for Phase 1 scoping.
+- (none) — Phase 2 closed; ready for Phase 2.5 (prompt harness) scoping.
 
 ## Read order for new agents
 
 1. This file (`plan/STATE.md`)
-2. Current phase README — `plan/phase-0.5-poc/README.md`
+2. Current phase README — `plan/phase-2.5-prompt-harness/README.md`
 3. Newest 1–2 files in `plan/log/` (sorted desc)
 4. `~/.claude/plans/base-on-doc-prd-v1-md-build-serialized-sedgewick.md` (strategic plan with full architecture rationale)
 5. `doc/PRD_v1.md` only when stuck on a requirement

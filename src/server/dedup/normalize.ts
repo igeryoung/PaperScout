@@ -1,5 +1,3 @@
-import 'server-only';
-
 /**
  * Normalize a paper title for fingerprinting and fuzzy matching.
  *

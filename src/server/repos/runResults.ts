@@ -1,4 +1,3 @@
-import 'server-only';
 import { db } from '@/lib/db';
 import type { CollectionStatus } from '@prisma/client';
 

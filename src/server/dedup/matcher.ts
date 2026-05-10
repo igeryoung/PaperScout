@@ -1,4 +1,3 @@
-import 'server-only';
 import { distance } from 'fastest-levenshtein';
 import type { MatchMethod } from '@prisma/client';
 import { normalizeTitle, normalizeAuthor } from './normalize';

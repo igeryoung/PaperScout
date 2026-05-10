@@ -28,9 +28,9 @@ Local, actionable plan with checkbox tracking per phase. The full approved narra
 ## Overall progress
 
 - [ ] **Phase 0 — Bootstrap** → [phase-0-bootstrap/](./phase-0-bootstrap/README.md)
-- [ ] **Phase 0.5 — PoC (decision gate)** → [phase-0.5-poc/](./phase-0.5-poc/README.md)
-- [ ] **Phase 1 — Collection database** → [phase-1-collection-db/](./phase-1-collection-db/README.md)
-- [ ] **Phase 2 — Source collection** → [phase-2-sources/](./phase-2-sources/README.md)
+- [x] **Phase 0.5 — PoC (decision gate)** → [phase-0.5-poc/](./phase-0.5-poc/README.md)
+- [x] **Phase 1 — Collection database** → [phase-1-collection-db/](./phase-1-collection-db/README.md)
+- [x] **Phase 2 — Source collection** → [phase-2-sources/](./phase-2-sources/README.md)
 - [ ] **Phase 2.5 — Prompt harness** → [phase-2.5-prompt-harness/](./phase-2.5-prompt-harness/README.md)
 - [ ] **Phase 3 — Ranking pipeline** → [phase-3-ranking/](./phase-3-ranking/README.md)
 - [ ] **Phase 4 — Recommendation UI** → [phase-4-ui/](./phase-4-ui/README.md)
@@ -74,7 +74,7 @@ Multi-domain search • user-defined topics • automatic scheduled runs • per
 
 ## Conventions
 
-- **File-scoped server-only**: most files under `src/server/` start with `import 'server-only'`. **Exception**: `src/server/schema/*.ts` are pure zod (no DB, no env) and are imported by validate CLIs running under tsx — they omit the directive deliberately.
+- **File-scoped server-only**: pages, route handlers, and server components start with `import 'server-only'`. **Exception**: code that is imported by tsx CLIs omits the directive — `server-only`'s default export throws at module load under plain Node (no `react-server` condition). This covers `src/server/schema/*.ts` (validate CLIs), and `src/lib/db.ts`, `src/lib/env.ts`, `src/server/repos/*.ts`, `src/server/dedup/*.ts` (`scripts/ingest.ts`).
 - **Prompt version**: `llm_prompt_version` in `paper_evaluations` is set by `scripts/ingest.ts` to `evaluate-papers:<sha256(SKILL.md body)>[:12]`. Prior rows with old hashes stay valid but won't be reused.
 - **Prisma**: no Prisma calls outside `src/server/repos/`. Ingest calls repos, repos call Prisma.
 - **Skills produce JSON, not DB writes.** The ingest script is the only DB writer. Re-running ingest on the same run dir is rejected unless `--force`.
@@ -90,3 +90,5 @@ Append-only. Date format YYYY-MM-DD.
 - 2026-05-07 — Pinned Prisma to v6 (v7 dropped datasource `url` → too disruptive for V1).
 - 2026-05-08 — Architecture pivot: server-side LLM pipeline → manual Claude Code skills + ingest script. Strategic plan rewritten; per-phase READMEs updated.
 - 2026-05-08 — Phase 0.5 deliverables built (DB-side complete; awaiting Docker for migrations + real-skill PoC).
+- 2026-05-10 — R4 closed. `npm run ingest data/sample/` succeeded (3 papers, 3 recommended); second invocation exited 1 with idempotency message. Required removing `import 'server-only'` from `src/lib/db.ts`, `src/lib/env.ts`, `src/server/repos/*.ts` (9 files), and `src/server/dedup/*.ts` (3 files) — the directive throws under tsx because `server-only` resolves its default export when no `react-server` condition is present. Convention note in §Conventions extended.
+- 2026-05-10 — Phase 0.5 → Phase 1 transition. Schema, init migration, 9 repos, dedup primitives, and unit tests pulled forward in 0.5; Phase 1 limited to the seed + `papersRepo.listLibrary` + `/library` skeleton + STATE.md backlog (SKILL.md tweaks). `scripts/ingest-test.ts` dropped (superseded by R4); `src/types/domain.ts` skipped (Prisma types suffice).

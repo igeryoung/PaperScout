@@ -1,4 +1,3 @@
-import 'server-only';
 import { db } from '@/lib/db';
 import type { Source } from '@prisma/client';
 
@@ -21,6 +20,24 @@ export const sourcesRepo = {
 
   exists: async (paperId: string, source: Source) =>
     !!(await db.paperSource.findFirst({ where: { paperId, source }, select: { id: true } })),
+
+  existsIdentity: async (input: {
+    paperId: string;
+    source: Source;
+    sourcePaperId: string | null;
+    sourceUrl: string;
+  }) =>
+    !!(await db.paperSource.findFirst({
+      where: {
+        paperId: input.paperId,
+        source: input.source,
+        OR: [
+          ...(input.sourcePaperId ? [{ sourcePaperId: input.sourcePaperId }] : []),
+          { sourceUrl: input.sourceUrl },
+        ],
+      },
+      select: { id: true },
+    })),
 
   create: (input: {
     paperId: string;

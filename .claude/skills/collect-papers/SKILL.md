@@ -66,7 +66,37 @@ If the same arXiv id appears in arXiv AND HF feeds:
 
 1. **Read `data/sample/candidates.json`** to lock the output shape into memory.
 2. Compute the run dir: `RUN_DIR=data/runs/$(date -u +%Y-%m-%d-%H%M)`. Create with `mkdir -p $RUN_DIR`.
-3. Fetch from each source. Parse responses (XML for arXiv via `xmllint` or by hand; JSON for HF/OpenReview).
+3. Fetch from each source. Parse responses (JSON for HF/OpenReview directly; XML for arXiv via Python — `xmllint` alone has proven insufficient for the Atom namespace handling). Use:
+
+   ```bash
+   python3 - <<'PY' < arxiv_response.xml
+   import sys, json, xml.etree.ElementTree as ET
+   ATOM = '{http://www.w3.org/2005/Atom}'
+   ARXIV = '{http://arxiv.org/schemas/atom}'
+   root = ET.parse(sys.stdin).getroot()
+   out = []
+   for entry in root.findall(f'{ATOM}entry'):
+       arxiv_url = entry.findtext(f'{ATOM}id', '')                # e.g. http://arxiv.org/abs/2604.12345v1
+       arxiv_id = arxiv_url.rsplit('/', 1)[-1].split('v')[0]
+       pdf = next((l.get('href') for l in entry.findall(f'{ATOM}link') if l.get('type') == 'application/pdf'), None)
+       out.append({
+           'title': ' '.join((entry.findtext(f'{ATOM}title') or '').split()),
+           'authors': [a.findtext(f'{ATOM}name') for a in entry.findall(f'{ATOM}author')],
+           'abstract': ' '.join((entry.findtext(f'{ATOM}summary') or '').split()),
+           'publishedDate': (entry.findtext(f'{ATOM}published') or '')[:10],
+           'sourceUrl': arxiv_url.replace('http://', 'https://'),
+           'pdfUrl': pdf,
+           'sourcePaperId': arxiv_id,
+           'source': 'ARXIV',
+           'venue': None,
+           'codeUrls': [],
+           'additionalSources': [],
+       })
+   json.dump(out, sys.stdout)
+   PY
+   ```
+
+   Pipe `curl -s "<arxiv-api-url>" | python3 ...` and parse the resulting JSON in your shell. Adapt fields to the `CandidateRecord` shape before writing.
 4. Normalize each result to a `CandidateRecord`. Drop records missing `title` + `authors`.
 5. Apply within-batch dedup.
 6. Trim/pad to ~30 (acceptable: 25-30; never more than 30).

@@ -1,4 +1,3 @@
-import 'server-only';
 import { db } from '@/lib/db';
 import type { Paper, Source } from '@prisma/client';
 
@@ -28,6 +27,28 @@ export const papersRepo = {
       title: r.title,
       authors: (r.authors as string[]) ?? [],
     }));
+  },
+
+  /**
+   * Read-only listing for the /library page. Cursor-by-id pagination
+   * (Prisma `cursor` + `skip: 1`) so callers can page without reshaping
+   * the result. Phase 1 caller does not paginate; Phase 4/5 will.
+   */
+  listLibrary: async (opts: { limit?: number; cursor?: string } = {}) => {
+    const limit = opts.limit ?? 50;
+    return db.paper.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit,
+      ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
+      select: {
+        id: true,
+        title: true,
+        authors: true,
+        primarySource: true,
+        publishedDate: true,
+        createdAt: true,
+      },
+    });
   },
 
   create: (input: {

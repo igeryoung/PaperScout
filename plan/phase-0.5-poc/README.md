@@ -38,7 +38,7 @@ Spending Phases 1–5 on top of an unproven contract is high-cost; spending one 
 ### Database baseline (Phase 1 work pulled forward)
 
 - [x] `prisma/schema.prisma` — 9 entities from PRD §15-16 with FKs, indexes, enums
-- [ ] `npm run prisma:migrate -- --name init` (BLOCKED: Docker postgres not running)
+- [x] `npm run prisma:migrate -- --name init` (applied 2026-05-10 → `prisma/migrations/20260509164406_init/`)
 - [x] `npm run prisma:generate` (works without DB)
 
 ### Dedup primitives
@@ -87,14 +87,14 @@ Spending Phases 1–5 on top of an unproven contract is high-cost; spending one 
 - [x] User: validate output via `npm run validate:candidates data/runs/<ts>/candidates.json`
 - [x] User: `claude /evaluate-papers` on the same run dir, evaluating 1 PDF — ActCam (arXiv 2605.06667) Stage 2 SUCCESS
 - [x] User: validate output via `npm run validate:evaluations data/runs/<ts>/evaluations.json`
-- [ ] User: `npm run ingest data/runs/<ts>/` — full round-trip (DEFERRED: Docker not running 2026-05-09; R4 carried as backlog)
+- [x] User: `npm run ingest data/runs/<ts>/` — full round-trip (closed 2026-05-10 against `data/sample/`: 3 papers, 3 recommended, exit 0; second invocation exited 1 with idempotency message)
 - [x] Note token usage and wall-clock time — wall-clock 8m 39s; tokens far under $2
 
 ### Decision write-up
 
 - [x] Append a "Phase 0.5 results" section to today's `plan/log/<date>.md` capturing pass-bar outcomes (`plan/log/2026-05-09.md`)
-- [x] **Final go / no-go decision** — Conditional GO; R4 deferred awaiting Docker
-- [ ] If go: `plan/README.md` decisions log gets a 1-line entry; tick this phase in `plan/README.md` overall progress (pending — to update with Phase 1 entry)
+- [x] **Final go / no-go decision** — GO (R4 closed 2026-05-10)
+- [x] If go: `plan/README.md` decisions log gets a 1-line entry; tick this phase in `plan/README.md` overall progress (decision-log entry added 2026-05-10; Phase 0.5 box ticked in `plan/README.md`)
 - [ ] If no-go: update relevant phase READMEs per "Failure responses" before advancing (n/a — went GO)
 
 ## Failure responses
@@ -140,8 +140,8 @@ tests/integration/ingest.test.ts                 (pending Docker)
 - [x] `npm run build` green
 - [x] `npm run lint` clean (no errors, no warnings)
 - [x] `npx tsc --noEmit` clean
-- [ ] `prisma migrate dev` applied; `prisma studio` shows 9 tables (BLOCKED: Docker not running)
-- [ ] `npm run ingest data/sample/` exits 0; re-run = 0 new rows (BLOCKED: needs migrations applied)
+- [x] `prisma migrate dev` applied (init migration created all 9 tables; verified by successful ingest writing rows across them)
+- [x] `npm run ingest data/sample/` exits 0; re-run = 0 new rows (verified 2026-05-10: first run exit 0 ingested 3 papers; second run exit 1 with idempotency message rejecting duplicate ingestion — stronger than 0-new-rows)
 - [x] Real skill invocation in Claude Code produces JSON that passes both validators (user-side) — `data/runs/2026-05-08-1743/` 2026-05-09
 - [x] Cost + time bars met for the 5-paper PoC cycle (user-side) — wall-clock 8m 39s; tokens well under $2
 - [x] `plan/STATE.md` updated to point to Phase 0.5 work
@@ -156,4 +156,4 @@ Decision is **GO** with all 5 pass bars green. Sample data is committed and serv
 - Schemas are authored from PRD §13 + §15-16. Samples are examples *of those schemas*, not vice versa.
 - `data/sample/regression/` is reserved for Phase 2.5; not populated here.
 - The skill SKILL.md files are skeletal here — flesh out in Phase 2 (collect) and Phase 3 (evaluate). Phase 0.5 just needs them invocable.
-- `src/server/schema/*.ts` deliberately do NOT use `import 'server-only'` because they are pure zod (no env, no DB) and must be loadable by the validate CLIs running under tsx.
+- `src/server/schema/*.ts` deliberately do NOT use `import 'server-only'` because they are pure zod (no env, no DB) and must be loadable by the validate CLIs running under tsx. **2026-05-10 extension**: same applies to `src/lib/db.ts`, `src/lib/env.ts`, `src/server/repos/*.ts`, and `src/server/dedup/*.ts` — all imported by `scripts/ingest.ts` running under tsx, where `server-only`'s default export throws.
