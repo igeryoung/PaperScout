@@ -1,0 +1,6 @@
+{
+  "scores": {
+    "novelty": { "max": 15 },
+    "authorInstitutionReputation": { "min": 10 }
+  }
+}

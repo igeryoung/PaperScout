@@ -1,0 +1,40 @@
+{
+  "joinKey": {
+    "source": "ARXIV",
+    "sourcePaperId": "2212.08059"
+  },
+  "evaluationStage": "FULL_PDF",
+  "scores": {
+    "novelty": 9,
+    "methodologicalRigor": 17,
+    "experimentalQuality": 15,
+    "venueSourceCredibility": 11,
+    "authorInstitutionReputation": 9,
+    "total": 61
+  },
+  "recommendationDecision": "STORE_ONLY",
+  "recommendationReason": "Solid execution of mobile-ViT engineering with multi-task validation (ImageNet, COCO, ADE20K) and on-device latency measurement. Novelty is incremental over EfficientFormer v1 and prior efficient-ViT NAS works.",
+  "rankingExplanation": "PDF confirms incremental nature: novelty=9 (FFN-ratio search + minor block tweaks over v1), methodologicalRigor=17 (proper supernet + sandwich rule + multi-platform latency), experimentalQuality=15 (three benchmarks, three hardware platforms, real ablations). Total 61 → STORE_ONLY (just below the 65 RECOMMEND threshold).",
+  "summary": "EfficientFormerV2 revisits ViT design choices for mobile devices and proposes a fine-grained joint NAS over depth, width, and FFN expansion ratios that jointly optimizes a Mobile Efficiency Score (MES), achieving MobileNetV2-level latency at 3.5% higher top-1 on ImageNet-1K.",
+  "pdfAnalysisStatus": "SUCCESS",
+  "keyContribution": "Fine-grained per-block NAS over FFN expansion ratios alongside depth and width, with a joint MES objective that simultaneously optimizes latency and parameter count, applied to a unified-FFN supernet.",
+  "methodologySummary": "Builds on EfficientFormer-L1 by unifying token mixers (drop residual local mixers, use depth-wise FFN globally), adding talking-head attention with locality, dual-path attention downsampling, and stride attention at higher resolutions. The supernet is pretrained with the slimmable-network sandwich rule, then a frontier-search algorithm jointly minimizes ΔAccuracy/ΔMES over depth/width/expansion actions.",
+  "strengths": [
+    "MES objective is a clean joint formulation of size and latency that better matches mobile-deployment reality than searching over a single metric.",
+    "Latency measured on three platforms (iPhone 12 NPU, Pixel 6 CPU, A100 GPU), reducing single-device bias.",
+    "Downstream-task validation on COCO detection and ADE20K segmentation, not just ImageNet classification.",
+    "Search algorithm ablation against random search and the EfficientFormer v1 search method (Tab. 9) shows search contributes ~0.4% beyond a strong manual baseline."
+  ],
+  "weaknesses": [
+    "Headline 3.5% gain over MobileNetV2 v1.0 is partly attributable to the heavier supernet pretraining recipe, not search alone.",
+    "Architectural changes (unified FFN, locality in V, talking head) are individually small and prior-art-adjacent — Sec. 3 reads as engineering accumulation rather than a single new idea.",
+    "No comparison against more recent SSM- or Mamba-based mobile backbones; baselines are all from the 2022 efficient-ViT cohort."
+  ],
+  "tableFigureAnalysis": null,
+  "tags": [
+    "vision-transformer",
+    "efficiency",
+    "mobile",
+    "neural-architecture-search"
+  ]
+}

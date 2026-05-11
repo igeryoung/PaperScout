@@ -1,0 +1,47 @@
+[
+  {
+    "fixtureId": "F1",
+    "primaryKey": "ARXIV:2304.02643",
+    "allJoinKeys": [
+      "ARXIV:2304.02643"
+    ],
+    "metadataPath": "scripts/prompt-eval/fixtures/F1/metadata.json",
+    "boundsPath": "scripts/prompt-eval/fixtures/F1/bounds.json"
+  },
+  {
+    "fixtureId": "F2",
+    "primaryKey": "ARXIV:2212.08059",
+    "allJoinKeys": [
+      "ARXIV:2212.08059"
+    ],
+    "metadataPath": "scripts/prompt-eval/fixtures/F2/metadata.json",
+    "boundsPath": "scripts/prompt-eval/fixtures/F2/bounds.json"
+  },
+  {
+    "fixtureId": "F3",
+    "primaryKey": "ARXIV:2302.05442",
+    "allJoinKeys": [
+      "ARXIV:2302.05442"
+    ],
+    "metadataPath": "scripts/prompt-eval/fixtures/F3/metadata.json",
+    "boundsPath": "scripts/prompt-eval/fixtures/F3/bounds.json"
+  },
+  {
+    "fixtureId": "F4",
+    "primaryKey": "ARXIV:2304.07743",
+    "allJoinKeys": [
+      "ARXIV:2304.07743"
+    ],
+    "metadataPath": "scripts/prompt-eval/fixtures/F4/metadata.json",
+    "boundsPath": "scripts/prompt-eval/fixtures/F4/bounds.json"
+  },
+  {
+    "fixtureId": "F5",
+    "primaryKey": "ARXIV:2309.17421",
+    "allJoinKeys": [
+      "ARXIV:2309.17421"
+    ],
+    "metadataPath": "scripts/prompt-eval/fixtures/F5/metadata.json",
+    "boundsPath": "scripts/prompt-eval/fixtures/F5/bounds.json"
+  }
+]

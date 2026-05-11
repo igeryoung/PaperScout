@@ -46,6 +46,10 @@
 # Skill outputs. Committed samples live in data/sample/.
 /data/runs/
 
+# Phase 2.5 prompt harness — generated runs and unfetched local PDFs.
+/scripts/prompt-eval/runs/
+/scripts/prompt-eval/fixtures/**/paper.pdf
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

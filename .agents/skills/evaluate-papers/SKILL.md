@@ -48,6 +48,7 @@ If the user explicitly names a different run dir, use that.
 - **Distinguish novelty from engineering scale.**
 - **Mention when evidence is insufficient** rather than inflating scores.
 - **Do NOT reward famous institutions alone** — strong unknown-author papers can rank highly.
+- **Mixed academic + industry rosters**: score `authorInstitutionReputation` on the **median** affiliation, not the maximum. A single big-name co-author should not pull the score up against an otherwise unremarkable author list.
 - Use tables / figures from the PDF (when read) to evaluate experimental quality.
 
 ## Stage 1 — Abstract screening (all candidates)

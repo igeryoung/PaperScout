@@ -1,0 +1,8 @@
+{
+  "scores": {
+    "methodologicalRigor": { "min": 15 },
+    "authorInstitutionReputation": { "max": 10 },
+    "total": { "min": 55 }
+  },
+  "pdfAnalysisStatus": { "in": ["SUCCESS", "UNAVAILABLE"] }
+}

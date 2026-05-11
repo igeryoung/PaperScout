@@ -1,12 +1,23 @@
 # Phase 2.5 — Prompt Harness (offline)
 
-**Goal:** Lock in the Stage-1 (Haiku abstract screening) and Stage-2 (Sonnet full-PDF) prompts against ~5 hand-picked fixture papers, _without_ DB or UI in the loop. Output: schema-valid JSON whose scores agree with intuition.
+**Goal:** Lock in the Stage-1 abstract screening and Stage-2 full-PDF evaluation prompts against ~5 hand-picked fixture papers, without DB or UI in the loop. Output must conform to the existing `EvaluationRecord` contract and produce scores that agree with reviewer intuition.
+
+## Current-state decision
+
+This phase follows the architecture that exists after Phase 2:
+
+- The app/repo does **not** own Anthropic SDK calls or require `ANTHROPIC_API_KEY`.
+- Prompt execution remains skill-driven through `.claude/skills/evaluate-papers/SKILL.md` / `.agents/skills/evaluate-papers/SKILL.md`.
+- The canonical output contract is `src/server/schema/evaluation.ts` plus `data/sample/evaluations.json`.
+- The harness is a local fixture builder + validator + score-bound checker. It does not write to Postgres and does not introduce a second LLM output schema.
+
+If we later decide Phase 3 should call Anthropic directly from app code, that should be a separate architecture change, not hidden inside this harness phase.
 
 ## Why between Phase 2 and Phase 3
 
-- Phase 2 captured real candidates → we have realistic abstracts to feed.
-- Phase 3 wires prompts into the pipeline. If the prompts are wrong, the pipeline fails on real data and debugging conflates LLM quality with infra.
-- Iterating in a tight `tsx run-screening.ts` loop is 10x faster than iterating through the whole pipeline.
+- Phase 2 captured real candidates, so we have realistic abstracts and source metadata to feed.
+- Phase 3 wires ranking into the pipeline. If prompts are weak, debugging would conflate LLM quality with pipeline/infrastructure behavior.
+- Iterating on fixed `candidates.json` fixtures and schema validation is faster than running the whole collection and persistence flow.
 
 ## Goal checklist
 
@@ -14,121 +25,116 @@
 
 Pick 5 papers spanning the quality spectrum:
 
-- [ ] **F1 — Strong novelty + rigor**: a known landmark CV paper (e.g. SAM, NeRF, DINO). Manual `metadata.json` + downloaded `paper.pdf`.
-- [ ] **F2 — Incremental tweak**: a clearly-derivative paper (small architecture change on a benchmark). Should score low on novelty.
-- [ ] **F3 — Strong author / weak experiment**: famous lab, small ablations. Tests "don't reward fame alone" (PRD §13 constraint).
-- [ ] **F4 — Unknown author / strong method**: solid technical contribution from an unknown group. Tests "reward quality regardless of fame".
-- [ ] **F5 — Hype-driven / weak claims**: paper with bold claims, weak benchmarks. Should score low on experimental_quality.
-- [ ] Each fixture has `metadata.json` (title / authors / abstract / venue / sourceUrl) + optional `paper.pdf` (skip for F2 if PDF unavailable; harness should handle that)
-- [ ] `expected.json` per fixture: rough manually-assigned target scores (e.g. F2: novelty ≤ 8, experimental_quality ≤ 12) — used as soft check, not strict assertion
+- [x] **F1 — Strong novelty + rigor**: SAM (Kirillov et al. 2023, arXiv:2304.02643). Stage-2 SUCCESS, total=86.
+- [x] **F2 — Incremental tweak**: EfficientFormerV2 (Li et al. 2022, arXiv:2212.08059). Stage-2 SUCCESS, total=61, novelty=9.
+- [x] **F3 — Strong author / weak experiment**: ViT-22B (Dehghani et al. 2023, arXiv:2302.05442, Google Research). Stage-2 SUCCESS, total=73, novelty=11 (engineering-driven, not algorithmic).
+- [x] **F4 — Unknown author / strong method**: SeaThru-NeRF (Levy et al. 2023, arXiv:2304.07743, University of Haifa). Stage-2 SUCCESS, total=71, methodologicalRigor=17, authorInstitutionReputation=8 → confirms unknown-lab anti-suppression.
+- [x] **F5 — Hype-driven / weak claims**: The Dawn of LMMs / GPT-4V (Yang et al. 2023, arXiv:2309.17421). PDF 45.6 MB > 32 MB cap → pdfAnalysisStatus=UNAVAILABLE. total=30, experimentalQuality=4 → LOW_QUALITY.
+- [x] Each fixture has `metadata.json` that can be transformed into one `CandidateRecord` + a `_fixture` provenance block (`metadataSourceUrl`, `authoredAt`, `frozen: true`).
+- [x] Local `paper.pdf` files are **not** committed (decided 2026-05-10 per user choice; gitignored). The skill curls `pdfUrl` to `/tmp/`; F1/F4 bounds widened to `pdfAnalysisStatus in [SUCCESS, UNAVAILABLE]` to tolerate the network dependency.
+- [x] Each fixture has `bounds.json` with manually assigned soft checks (F1: novelty≥18 + total≥75; F2: novelty≤12 + total≤65; F3: novelty≤15 + authorInstitutionReputation≥10; F4: methodologicalRigor≥15 + authorInstitutionReputation≤10 + total≥55; F5: experimentalQuality≤12 + decision∈{LOW_QUALITY,STORE_ONLY}).
 
-### LLM client (`src/server/llm/`)
+### Prompt source
 
-- [ ] `client.ts` —
-  - [ ] `screenWithHaiku(input: ScreenInput): Promise<RawLlmJson>`
-  - [ ] `analyzeWithSonnet(input: PdfInput): Promise<RawLlmJson>`
-  - [ ] Anthropic SDK with retry (exponential backoff, max 3) on 429/5xx
-  - [ ] 60s timeout per call
-  - [ ] Use `tool_use` or response prefill (`{`) for JSON-only output
-  - [ ] Both functions return raw text + token counts; parsing happens in `parse.ts`
-
-- [ ] `pdf.ts` —
-  - [ ] `fetchPdfAsDocumentBlock(url): Promise<DocumentBlock | null>`
-  - [ ] Downloads PDF (timeout 30s, max 32MB), base64-encodes, returns Anthropic `document` content block
-  - [ ] On size > limit or HTTP failure: returns null and logs `pdf_analysis_status='unavailable'` reason
-
-- [ ] `schema.ts` — zod schemas matching PRD §13:
-  - [ ] `LlmJudgmentSchema`: paperId, summary, key_contribution, methodology_summary, strengths[], weaknesses[], tags[], scores{ novelty 0-25, methodological_rigor 0-25, experimental_quality 0-20, venue_source_credibility 0-15, author_institution_reputation 0-15, total }, ranking_explanation, recommendation_decision (enum)
-  - [ ] Custom refinement: `total === sum of 5 dimensions` (warn, not fail; LLMs miscount sometimes — auto-correct in parse step)
-
-- [ ] `parse.ts` —
-  - [ ] `extractJson(raw: string): unknown` — strips code fences, finds first `{...}` block
-  - [ ] `parseLlmOutput(raw): { ok: true, data } | { ok: false, error }`
-  - [ ] On schema fail: one repair attempt — re-prompt the model with the error message, ask it to fix; cap at 1 retry to avoid token spirals
-  - [ ] If `total !== sum`, recompute total from dimensions and emit a warning
-
-### Prompts (`src/server/llm/prompts/`)
-
-- [ ] `versions.ts`:
-  ```ts
-  export const SCREENING_PROMPT_VERSION = 'screening-v1';
-  export const PDF_PROMPT_VERSION = 'pdf-v1';
-  ```
-- [ ] `abstract-screening.ts`:
-  - System prompt: "You are an expert CV reviewer..."
-  - Encodes PRD §10 dimension definitions (full text or compressed bullet list per dimension)
-  - Encodes PRD §13 constraints (penalize hype, distinguish novelty from scale, mention insufficient evidence)
-  - Output format: JSON only, schema in `schema.ts`
-  - Few-shot example: 1 strong paper + 1 weak paper with target scores
-  - User content: title, authors, abstract, venue, source — formatted block
-
-- [ ] `full-pdf-analysis.ts`:
-  - Same dimensions, but prompts the model to **read the PDF document block** and reference tables / figures / ablations explicitly
-  - Output format: same schema + `tableFigureAnalysis` field
-  - User content: PDF document block + minimal text recap (title, authors, venue)
+- [x] `.claude/skills/evaluate-papers/SKILL.md` is canonical. No edits required during the loop (converged iteration 1).
+- [x] `.agents/skills/evaluate-papers/SKILL.md` re-synced byte-for-byte (only diff was the median-affiliation rule).
+- [x] Output shape preserved verbatim — `joinKey` / `evaluationStage` / camelCase scores / `recommendationDecision` enum / `pdfAnalysisStatus` enum / optional `tableFigureAnalysis`.
+- [x] Prompt continues to reference `src/server/schema/evaluation.ts` and `data/sample/evaluations.json` as the contract.
+- [x] All PRD §10 / §13 constraints present in the prompt: hype penalty, novelty-vs-scale, insufficient-evidence framing, no fame reward, median-affiliation rule, PDF tables/figures use.
 
 ### Harness scripts
 
-- [ ] `scripts/prompt-eval/run-screening.ts`:
-  - Loads each fixture's `metadata.json`
-  - Calls `screenWithHaiku`
-  - Prints: fixture id → JSON (pretty) + ✅ / ❌ vs `expected.json` soft bounds
-  - Exit code 0 if ≥4/5 fixtures pass soft bounds
-- [ ] `scripts/prompt-eval/run-pdf.ts`:
-  - Loads each fixture's `paper.pdf` (skips if missing)
-  - Calls `analyzeWithSonnet`
-  - Same output style
-- [ ] `npm run prompt:screen` and `npm run prompt:pdf` scripts
+- [x] `scripts/prompt-eval/build-fixture-run.ts` — loads `fixtures/F*/metadata.json`, strips `_fixture`, validates against `CandidatesFileSchema`, writes `runs/<run-id>/candidates.json` + `fixtures-manifest.json`. No PDF-copy step (deferred — skill curls `pdfUrl`).
+- [x] `scripts/prompt-eval/check-evaluations.ts` — per-record `EvaluationSchema.safeParse`, joinKey resolution mirroring `scripts/ingest.ts:65-79` (incl. additionalSources), `recomputeTotal` diagnostic, manifest-driven fixture lookup, bounds application, coarse-flag ranking. Exits 0 iff schema-valid all + ≥4/5 bounds-passed + zero unmatched joinKeys.
+- [x] `scripts/prompt-eval/normalize-evaluations.ts` — reorders top-level keys deterministically, recomputes `scores.total` only in the normalized copy, writes one file per fixture into `reference/normalized/`.
+- [x] `scripts/prompt-eval/lib.ts` (added during execution) — pure helpers (`BoundsSchema`, `FixtureManifestSchema`, `loadFixtures`, `buildCandidateMap`, `resolveJoinKey`, `recomputeTotal`, `applyBounds`, `checkRecordSchema`, `summarize`). All defensive over raw `unknown`. CLIs import from here; tests import from here.
+- [x] `npm run prompt:fixtures` (no env-file flag — harness has no DB).
+- [x] `npm run prompt:check -- <fixture-run-dir>`.
+- [x] `npm run prompt:normalize <fixture-run-dir>`.
 
-### Iteration
+### Manual skill loop
 
-- [ ] Run `prompt:screen` → inspect outputs → tweak `abstract-screening.ts` → bump `SCREENING_PROMPT_VERSION` (e.g. `screening-v1.1`) only when prompt changes meaningfully
-- [ ] Run `prompt:pdf` → same loop with `full-pdf-analysis.ts`
-- [ ] Stop when: schema-valid rate is 5/5, soft bounds pass on ≥4/5, ranking _order_ of fixtures matches intuition (F1 > F4 > F3 > F5 > F2 ish)
-- [ ] Save reference outputs at `scripts/prompt-eval/fixtures/expected/{fixtureId}.json` for regression in Phase 3
+This phase intentionally keeps the LLM invocation outside Node scripts:
+
+1. Run `npm run prompt:fixtures`.
+2. Invoke `/evaluate-papers` on the generated fixture run dir.
+3. Run `npm run validate:evaluations <fixture-run-dir>/evaluations.json`.
+4. Run `npm run prompt:check -- <fixture-run-dir>`.
+5. Inspect failures and update the skill prompt if needed.
+6. Re-run the same fixture set until outputs are schema-valid and rankings are intuitive.
+
+Stop when:
+
+- schema-valid rate is 5/5
+- soft bounds pass on at least 4/5
+- ranking order roughly matches intuition (`F1 > F4 > F3 > F5 > F2` is the starting expectation, not a hard assertion)
+- F2 has low novelty
+- F5 has low experimentalQuality
+- F4 is not unfairly penalized for unknown authorship
+
+### Regression outputs
+
+- [x] `scripts/prompt-eval/reference/raw/2026-05-10-2142/{candidates,evaluations,fixtures-manifest}.json` — accepted run snapshot.
+- [x] `scripts/prompt-eval/reference/normalized/F{1,2,3,4,5}.json` — one normalized snapshot per fixture (5 files).
+- [x] Soft target bounds live exclusively in `fixtures/F<n>/bounds.json`; reference outputs contain only observed skill output.
 
 ## Files created in this phase
 
 ```
-scripts/prompt-eval/fixtures/F1/{metadata.json, paper.pdf?, expected.json}
-scripts/prompt-eval/fixtures/F2/...
-scripts/prompt-eval/fixtures/F3/...
-scripts/prompt-eval/fixtures/F4/...
-scripts/prompt-eval/fixtures/F5/...
-scripts/prompt-eval/fixtures/expected/F1-screen.json
-scripts/prompt-eval/fixtures/expected/F1-pdf.json
-... (per fixture, per stage)
-scripts/prompt-eval/run-screening.ts
-scripts/prompt-eval/run-pdf.ts
+scripts/prompt-eval/fixtures/F1/{metadata.json,bounds.json,paper.pdf?}
+scripts/prompt-eval/fixtures/F2/{metadata.json,bounds.json,paper.pdf?}
+scripts/prompt-eval/fixtures/F3/{metadata.json,bounds.json,paper.pdf?}
+scripts/prompt-eval/fixtures/F4/{metadata.json,bounds.json,paper.pdf?}
+scripts/prompt-eval/fixtures/F5/{metadata.json,bounds.json,paper.pdf?}
+scripts/prompt-eval/runs/.gitkeep
+scripts/prompt-eval/reference/raw/.gitkeep
+scripts/prompt-eval/reference/normalized/.gitkeep
+scripts/prompt-eval/build-fixture-run.ts
+scripts/prompt-eval/check-evaluations.ts
+scripts/prompt-eval/normalize-evaluations.ts
+tests/unit/prompt-eval/bounds.test.ts
+tests/unit/prompt-eval/check-evaluations.test.ts
+```
+
+Prompt files may be modified in this phase:
+
+```
+.claude/skills/evaluate-papers/SKILL.md
+.agents/skills/evaluate-papers/SKILL.md
+```
+
+Do **not** create these files in this phase unless the architecture decision changes:
+
+```
 src/server/llm/client.ts
 src/server/llm/pdf.ts
 src/server/llm/schema.ts
-src/server/llm/parse.ts
-src/server/llm/prompts/abstract-screening.ts
-src/server/llm/prompts/full-pdf-analysis.ts
-src/server/llm/prompts/versions.ts
-tests/unit/llm/parse.test.ts
-tests/unit/llm/schema.test.ts
+src/server/llm/prompts/*
 ```
 
 ## Verification checklist
 
-- [ ] `npm run prompt:screen` exits 0 — all 5 fixtures schema-valid
-- [ ] `npm run prompt:pdf` exits 0 — ≥4/5 fixtures schema-valid (PDF may be skipped for one)
-- [ ] Output ranking order roughly matches intuition (F1 highest, F2 lowest novelty, F5 lowest experimental_quality)
-- [ ] `tests/unit/llm/parse.test.ts` covers: clean JSON, fenced JSON, JSON with prefix prose, malformed JSON → repair, total-sum auto-correct
-- [ ] `tests/unit/llm/schema.test.ts` covers: valid object, score out-of-range, missing required field
-- [ ] Reference outputs saved under `expected/`
-- [ ] `plan/STATE.md` updated to point to Phase 3
-- [ ] New entry appended at top of today's `plan/log/YYYY-MM-DD.md`
+- [x] `npm run prompt:fixtures` exits 0 and writes a valid 5-candidate fixture run.
+- [x] `/evaluate-papers` can run against that fixture run and produce `evaluations.json`.
+- [x] `npm run validate:evaluations <fixture-run-dir>/evaluations.json` exits 0.
+- [x] `npm run prompt:check -- <fixture-run-dir>` exits 0.
+- [x] Output ranking order roughly matches intuition (F1 > F3 > F4 > F2 > F5; coarse flags `F1∈top2`, `F5∈bottom2`, `F4≠last` all true).
+- [x] F2 novelty (9 ≤ 12) and F5 experimentalQuality (4 ≤ 12) soft checks pass.
+- [x] F4 confirms unknown authors are not uniformly suppressed (total=71, third by rank).
+- [x] Unit tests cover bounds parsing, joinKey matching, schema failure reporting, soft-bound failure reporting, and total-sum mismatch warnings (33 new tests; 91/91 total green).
+- [x] Reference outputs are saved under `scripts/prompt-eval/reference/`.
+- [x] `plan/STATE.md` updated to point to Phase 3.
+- [x] New entry appended at top of today's `plan/log/2026-05-11.md`.
 
 ## Exit criteria
 
-Stage-1 and Stage-2 prompts produce reliably-shaped, intuitively-ranked JSON on the 5-paper fixture set. Reference outputs committed for regression.
+The `evaluate-papers` skill produces reliably shaped, intuitively ranked `EvaluationRecord[]` JSON on the 5-paper fixture set. The accepted output is captured as regression reference data for Phase 3.
 
 ## Risks / pitfalls
 
-- **Token spirals on JSON repair** — cap at 1 repair attempt. If still bad, mark evaluation as failed in Phase 3, don't loop.
-- **LLM ranks unknown labs uniformly low** — F4 fixture is a regression check for this; if seen, prompt must be tightened with explicit instruction.
-- **PDF input limits** — Anthropic's PDF input has size and page caps; document the observed limits in `pdf.ts` JSDoc.
-- **Fixtures expire** — landmark papers don't, but venues/citation context might. Refresh fixtures yearly.
+- **Skill invocation is manual** — this is intentional for the current architecture. The harness validates the output but does not call Anthropic directly.
+- **Two skill locations can drift** — if both `.claude/skills/` and `.agents/skills/` remain in use, update both or decide one is canonical before closing the phase.
+- **Total-score arithmetic** — `EvaluationSchema` currently fails when `scores.total` is wrong. The checker should report the mismatch clearly and write any corrected form only as a normalized copy.
+- **PDF fixture availability** — local `paper.pdf` files make regression stable. URL-only PDFs can disappear or change, so they should be used only to refresh fixtures, not as the default check path.
+- **LLM ranks unknown labs uniformly low** — F4 exists to catch this; if seen, tighten the prompt.
+- **Fixtures age** — landmark papers do not, but venue/citation context can. Refresh fixtures yearly or when the scoring rubric changes.

@@ -1,0 +1,6 @@
+{
+  "scores": {
+    "experimentalQuality": { "max": 12 }
+  },
+  "recommendationDecision": { "in": ["LOW_QUALITY", "STORE_ONLY"] }
+}

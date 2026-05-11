@@ -1,0 +1,30 @@
+{
+  "title": "Rethinking Vision Transformers for MobileNet Size and Speed",
+  "authors": [
+    "Yanyu Li",
+    "Ju Hu",
+    "Yang Wen",
+    "Georgios Evangelidis",
+    "Kamyar Salahi",
+    "Yanzhi Wang",
+    "Sergey Tulyakov",
+    "Jian Ren"
+  ],
+  "abstract": "With the success of Vision Transformers (ViTs) in computer vision tasks, recent arts try to optimize the performance and complexity of ViTs to enable efficient deployment on mobile devices. Multiple approaches are proposed to accelerate attention mechanism, improve inefficient designs, or incorporate mobile-friendly lightweight convolutions to form hybrid architectures. However, ViT and its variants still have higher latency or considerably more parameters than lightweight CNNs, even true for the years-old MobileNet. In practice, latency and size are both crucial for efficient deployment on resource-constraint hardware. In this work, we investigate a central question, can transformer models run as fast as MobileNet and maintain a similar size? We revisit the design choices of ViTs and propose a novel supernet with low latency and high parameter efficiency. We further introduce a novel fine-grained joint search strategy for transformer models that can find efficient architectures by optimizing latency and number of parameters simultaneously. The proposed models, EfficientFormerV2, achieve 3.5% higher top-1 accuracy than MobileNetV2 on ImageNet-1K with similar latency and parameters. This work demonstrate that properly designed and optimized vision transformers can achieve high performance even with MobileNet-level size and speed.",
+  "venue": "ICCV 2023",
+  "publishedDate": "2022-12-15",
+  "sourceUrl": "https://arxiv.org/abs/2212.08059",
+  "pdfUrl": "https://arxiv.org/pdf/2212.08059.pdf",
+  "sourcePaperId": "2212.08059",
+  "source": "ARXIV",
+  "codeUrls": ["https://github.com/snap-research/EfficientFormer"],
+  "additionalSources": [],
+  "_fixture": {
+    "id": "F2",
+    "role": "Incremental tweak",
+    "notes": "V2 of EfficientFormer with fine-grained NAS. Mobile-efficiency tweak; methodology decent but novelty is incremental over v1 + prior efficient ViTs.",
+    "metadataSourceUrl": "https://arxiv.org/abs/2212.08059",
+    "authoredAt": "2026-05-10",
+    "frozen": true
+  }
+}

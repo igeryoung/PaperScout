@@ -31,7 +31,7 @@ Local, actionable plan with checkbox tracking per phase. The full approved narra
 - [x] **Phase 0.5 — PoC (decision gate)** → [phase-0.5-poc/](./phase-0.5-poc/README.md)
 - [x] **Phase 1 — Collection database** → [phase-1-collection-db/](./phase-1-collection-db/README.md)
 - [x] **Phase 2 — Source collection** → [phase-2-sources/](./phase-2-sources/README.md)
-- [ ] **Phase 2.5 — Prompt harness** → [phase-2.5-prompt-harness/](./phase-2.5-prompt-harness/README.md)
+- [x] **Phase 2.5 — Prompt harness** → [phase-2.5-prompt-harness/](./phase-2.5-prompt-harness/README.md)
 - [ ] **Phase 3 — Ranking pipeline** → [phase-3-ranking/](./phase-3-ranking/README.md)
 - [ ] **Phase 4 — Recommendation UI** → [phase-4-ui/](./phase-4-ui/README.md)
 - [ ] **Phase 5 — Feedback & library** → [phase-5-feedback-library/](./phase-5-feedback-library/README.md)
@@ -92,3 +92,4 @@ Append-only. Date format YYYY-MM-DD.
 - 2026-05-08 — Phase 0.5 deliverables built (DB-side complete; awaiting Docker for migrations + real-skill PoC).
 - 2026-05-10 — R4 closed. `npm run ingest data/sample/` succeeded (3 papers, 3 recommended); second invocation exited 1 with idempotency message. Required removing `import 'server-only'` from `src/lib/db.ts`, `src/lib/env.ts`, `src/server/repos/*.ts` (9 files), and `src/server/dedup/*.ts` (3 files) — the directive throws under tsx because `server-only` resolves its default export when no `react-server` condition is present. Convention note in §Conventions extended.
 - 2026-05-10 — Phase 0.5 → Phase 1 transition. Schema, init migration, 9 repos, dedup primitives, and unit tests pulled forward in 0.5; Phase 1 limited to the seed + `papersRepo.listLibrary` + `/library` skeleton + STATE.md backlog (SKILL.md tweaks). `scripts/ingest-test.ts` dropped (superseded by R4); `src/types/domain.ts` skipped (Prisma types suffice).
+- 2026-05-11 — Phase 2.5 closed. Prompt harness (`scripts/prompt-eval/`) verifies the `evaluate-papers` skill on 5 fixed fixtures without DB or UI. First-iteration manual loop hit 5/5 schema-valid + 5/5 bounds-pass + all three coarse flags. Reference outputs frozen under `scripts/prompt-eval/reference/`. Two follow-ups deferred to Phase 3 cleanup: local-PDF support in the skill (would re-tighten F1/F4 pdfAnalysisStatus bound) and removing the duplicate `.agents/skills/evaluate-papers/` if `.claude/` stays canonical.

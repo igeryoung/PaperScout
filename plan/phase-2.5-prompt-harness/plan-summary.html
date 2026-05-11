@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phase 2.5 Prompt Harness 計畫摘要</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --ink: #1d2733;
+        --muted: #667085;
+        --line: #d9e0e8;
+        --accent: #1f6feb;
+        --ok: #067647;
+        --warn: #b54708;
+        --danger: #b42318;
+        --soft-blue: #eef5ff;
+        --soft-green: #edf8f2;
+        --soft-warn: #fff6e8;
+        --soft-red: #fff1f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.58 Inter, ui-sans-serif, system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      }
+
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 48px 24px 64px;
+      }
+
+      header {
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 34px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin: 0;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+        padding: 16px 20px;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      ul,
+      ol {
+        margin: 0;
+        padding-left: 22px;
+      }
+
+      li + li {
+        margin-top: 7px;
+      }
+
+      code {
+        border-radius: 4px;
+        background: #edf1f6;
+        padding: 1px 5px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.92em;
+      }
+
+      .subtitle {
+        max-width: 880px;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .pill-blue {
+        background: var(--soft-blue);
+        color: var(--accent);
+      }
+
+      .pill-green {
+        background: var(--soft-green);
+        color: var(--ok);
+      }
+
+      .pill-warn {
+        background: var(--soft-warn);
+        color: var(--warn);
+      }
+
+      .section {
+        margin-top: 18px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+      }
+
+      .section-body {
+        padding: 20px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin: 28px 0;
+      }
+
+      .two-col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .three-col {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 18px;
+      }
+
+      .card strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 24px;
+        line-height: 1.1;
+      }
+
+      .card span,
+      .muted {
+        color: var(--muted);
+      }
+
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+
+      .item p {
+        color: var(--muted);
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      .step {
+        min-height: 150px;
+        padding: 16px;
+        border-left: 1px solid var(--line);
+      }
+
+      .step:first-child {
+        border-left: 0;
+      }
+
+      .step .num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        margin-bottom: 10px;
+        border-radius: 999px;
+        background: var(--soft-blue);
+        color: var(--accent);
+        font-weight: 750;
+        font-size: 13px;
+      }
+
+      .step strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .step span {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #fbfcfe;
+        font-weight: 700;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .callout {
+        border: 1px solid #ffd29b;
+        border-radius: 8px;
+        background: var(--soft-warn);
+        padding: 16px;
+      }
+
+      .callout strong {
+        color: var(--warn);
+      }
+
+      .do-not {
+        border-color: #fecdca;
+        background: var(--soft-red);
+      }
+
+      .do-not strong {
+        color: var(--danger);
+      }
+
+      @media (max-width: 900px) {
+        main {
+          padding: 32px 16px 48px;
+        }
+
+        .summary-grid,
+        .two-col,
+        .three-col,
+        .flow {
+          grid-template-columns: 1fr;
+        }
+
+        .step {
+          min-height: auto;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+
+        .step:first-child {
+          border-top: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Phase 2.5 Prompt Harness 計畫摘要</h1>
+        <p class="subtitle">
+          本階段要在進入 Phase 3 排名管線前，先用固定論文 fixtures 驗證
+          Stage-1 摘要篩選與 Stage-2 PDF 深讀 prompt，確保輸出符合既有
+          <code>EvaluationRecord</code> contract，且分數排序符合 reviewer 直覺。
+        </p>
+        <div class="meta">
+          <span class="pill pill-blue">Offline Harness</span>
+          <span class="pill pill-green">Skill-driven</span>
+          <span class="pill pill-warn">No DB / No UI</span>
+        </div>
+      </header>
+
+      <section class="grid summary-grid" aria-label="計畫快速摘要">
+        <div class="card">
+          <strong>5</strong>
+          <span>手選 fixture papers，覆蓋強弱與偏誤案例</span>
+        </div>
+        <div class="card">
+          <strong>2</strong>
+          <span>評估階段：abstract screening 與 full-PDF analysis</span>
+        </div>
+        <div class="card">
+          <strong>1</strong>
+          <span>唯一輸出 contract：既有 <code>EvaluationRecord[]</code></span>
+        </div>
+        <div class="card">
+          <strong>0</strong>
+          <span>不新增 Anthropic SDK、不要求 app 內 API key</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>High Level</h2>
+        <div class="section-body grid two-col">
+          <div class="item">
+            <h3>為什麼需要 Phase 2.5</h3>
+            <p>
+              Phase 2 已經完成 source collection，Phase 3 會把 ranking 接進
+              pipeline。若 prompt 品質不穩，Phase 3 debug 會混在 LLM 判斷、
+              schema、pipeline 與 DB persistence 之間。Phase 2.5 先把 prompt
+              行為固定下來，降低後續整合風險。
+            </p>
+          </div>
+          <div class="item">
+            <h3>目前架構決策</h3>
+            <p>
+              這個 repo 目前不在 app code 裡直接呼叫 Anthropic，也不要求
+              <code>ANTHROPIC_API_KEY</code>。Prompt 執行仍由
+              <code>/evaluate-papers</code> skill 負責；harness 只負責建立
+              fixture run、驗證 JSON、檢查分數與保存 regression output。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>預期目標</h2>
+        <div class="section-body">
+          <div class="grid three-col">
+            <div class="item">
+              <h3>Schema 穩定</h3>
+              <p>
+                Skill 輸出的 <code>evaluations.json</code> 必須通過
+                <code>EvaluationsFileSchema</code>，並且每筆
+                <code>joinKey</code> 都能對應到 fixture candidate。
+              </p>
+            </div>
+            <div class="item">
+              <h3>分數符合直覺</h3>
+              <p>
+                至少 4/5 fixtures 通過 soft bounds；F2 novelty 應偏低，F5
+                experimentalQuality 應偏低，F4 不應因 unknown authorship 被過度壓分。
+              </p>
+            </div>
+            <div class="item">
+              <h3>可回歸</h3>
+              <p>
+                接受的 raw outputs 與 normalized snapshots 會保存到
+                <code>scripts/prompt-eval/reference/</code>，供 Phase 3
+                和未來 prompt 調整時比較。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>主要內容</h2>
+        <div class="section-body">
+          <table>
+            <thead>
+              <tr>
+                <th>區塊</th>
+                <th>內容</th>
+                <th>產物</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Fixtures</td>
+                <td>
+                  建立 F1-F5 五類論文案例：強 novelty、incremental tweak、名校弱實驗、
+                  unknown group 強方法、hype-driven 弱 claims。
+                </td>
+                <td>
+                  <code>metadata.json</code>、<code>bounds.json</code>、
+                  optional <code>paper.pdf</code>
+                </td>
+              </tr>
+              <tr>
+                <td>Prompt Source</td>
+                <td>
+                  以 <code>.claude/skills/evaluate-papers/SKILL.md</code> 為主要 prompt
+                  source；若 <code>.agents/skills/</code> 仍使用，需保持同步。
+                </td>
+                <td>更新後的 skill prompt</td>
+              </tr>
+              <tr>
+                <td>Fixture Builder</td>
+                <td>
+                  把 fixtures 轉成一個 5-entry <code>CandidateRecord[]</code>
+                  run，並驗證 <code>candidates.json</code> shape。
+                </td>
+                <td><code>scripts/prompt-eval/build-fixture-run.ts</code></td>
+              </tr>
+              <tr>
+                <td>Evaluation Checker</td>
+                <td>
+                  驗證 <code>evaluations.json</code>、檢查 joinKey、重算 total、
+                  套用 bounds、輸出排名與錯誤報告。
+                </td>
+                <td><code>scripts/prompt-eval/check-evaluations.ts</code></td>
+              </tr>
+              <tr>
+                <td>Regression Snapshot</td>
+                <td>
+                  保存 raw skill output，並產生 normalized copy 供後續比較。
+                </td>
+                <td><code>scripts/prompt-eval/reference/</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>執行流程</h2>
+        <div class="section-body">
+          <div class="flow">
+            <div class="step">
+              <span class="num">1</span>
+              <strong>建立 fixtures</strong>
+              <span>撰寫 F1-F5 的 metadata、bounds，並準備本地 PDF。</span>
+            </div>
+            <div class="step">
+              <span class="num">2</span>
+              <strong>產生 fixture run</strong>
+              <span>執行 <code>npm run prompt:fixtures</code>，輸出 candidates.json。</span>
+            </div>
+            <div class="step">
+              <span class="num">3</span>
+              <strong>執行 skill</strong>
+              <span>對 fixture run 呼叫 <code>/evaluate-papers</code>。</span>
+            </div>
+            <div class="step">
+              <span class="num">4</span>
+              <strong>Schema 驗證</strong>
+              <span>執行 <code>npm run validate:evaluations</code>。</span>
+            </div>
+            <div class="step">
+              <span class="num">5</span>
+              <strong>Bounds 檢查</strong>
+              <span>執行 <code>npm run prompt:check -- &lt;run-dir&gt;</code>。</span>
+            </div>
+            <div class="step">
+              <span class="num">6</span>
+              <strong>保存回歸資料</strong>
+              <span>通過後保存 raw 與 normalized reference outputs。</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>驗收標準</h2>
+        <div class="section-body grid two-col">
+          <div class="item">
+            <h3>必須通過</h3>
+            <ul>
+              <li><code>prompt:fixtures</code> 產生有效的 5-candidate fixture run。</li>
+              <li><code>/evaluate-papers</code> 能產生 <code>evaluations.json</code>。</li>
+              <li><code>validate:evaluations</code> 通過。</li>
+              <li><code>prompt:check</code> 通過，且至少 4/5 soft bounds pass。</li>
+              <li>reference outputs 已保存。</li>
+            </ul>
+          </div>
+          <div class="item">
+            <h3>品質判斷</h3>
+            <ul>
+              <li>整體排名大致符合 <code>F1 &gt; F4 &gt; F3 &gt; F5 &gt; F2</code>。</li>
+              <li>F2 novelty 明顯偏低。</li>
+              <li>F5 experimentalQuality 明顯偏低。</li>
+              <li>F4 不因 unknown authorship 被系統性低估。</li>
+              <li>PDF analysis 有引用 tables、figures 或 ablations 的證據。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>明確不做</h2>
+        <div class="section-body grid two-col">
+          <div class="callout do-not">
+            <strong>不新增 direct LLM client</strong>
+            <p class="muted">
+              本階段不建立 <code>src/server/llm/client.ts</code>、
+              <code>src/server/llm/pdf.ts</code>、<code>src/server/llm/schema.ts</code>
+              或 <code>src/server/llm/prompts/*</code>。除非另行決定 Phase 3
+              要改成 app code 直接呼叫 Anthropic。
+            </p>
+          </div>
+          <div class="callout">
+            <strong>不碰 DB / UI</strong>
+            <p class="muted">
+              Harness 不寫入 Postgres、不修改 library page、不跑完整 pipeline。
+              它只建立 fixtures、驗證 skill output，並把接受的結果保存成 regression data。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>主要風險</h2>
+        <div class="section-body">
+          <table>
+            <thead>
+              <tr>
+                <th>風險</th>
+                <th>處理方式</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Skill invocation 是手動流程</td>
+                <td>這是目前架構的刻意選擇；harness 專注驗證輸出，不負責呼叫 LLM。</td>
+              </tr>
+              <tr>
+                <td>兩份 skill prompt 漂移</td>
+                <td>
+                  若 <code>.claude/skills/</code> 與 <code>.agents/skills/</code>
+                  都保留，Phase close 前要同步，或指定一份為 canonical。
+                </td>
+              </tr>
+              <tr>
+                <td>LLM total 加總錯誤</td>
+                <td>Checker 報告 mismatch；只在 normalized copy 修正，不靜默修改 raw output。</td>
+              </tr>
+              <tr>
+                <td>PDF URL 失效</td>
+                <td>預設使用本地 <code>paper.pdf</code>，URL 只用於刷新 fixtures。</td>
+              </tr>
+              <tr>
+                <td>Unknown authors 被低估</td>
+                <td>F4 專門作為 regression check，失敗時收緊 prompt。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

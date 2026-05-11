@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phase 2.5 程式碼審查報告</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --text: #17202a;
+        --muted: #607080;
+        --line: #d9e0e7;
+        --high: #b42318;
+        --medium: #b54708;
+        --low: #475467;
+        --ok: #087443;
+        --code: #f2f4f7;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          15px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      main {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding: 40px 24px 56px;
+      }
+
+      header,
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 18px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      h1 {
+        font-size: 30px;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        font-size: 20px;
+        margin-bottom: 14px;
+      }
+
+      h3 {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+
+      p {
+        margin: 8px 0 0;
+      }
+
+      ul {
+        margin: 10px 0 0;
+        padding-left: 20px;
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      code {
+        background: var(--code);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.92em;
+      }
+
+      pre {
+        background: #111827;
+        color: #f9fafb;
+        border-radius: 8px;
+        padding: 14px;
+        overflow-x: auto;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .stat {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcfe;
+      }
+
+      .label {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .value {
+        display: block;
+        margin-top: 4px;
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .finding {
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+        margin-top: 18px;
+      }
+
+      .finding:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+        margin-top: 0;
+      }
+
+      .severity {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 2px 9px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        margin-right: 8px;
+      }
+
+      .high {
+        background: var(--high);
+      }
+
+      .medium {
+        background: var(--medium);
+      }
+
+      .low {
+        background: var(--low);
+      }
+
+      .ok {
+        color: var(--ok);
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Phase 2.5 程式碼審查報告</h1>
+        <p class="muted">Paper Collection System · Prompt Harness · 2026-05-11</p>
+        <div class="meta">
+          <div class="stat">
+            <span class="label">審查建議</span>
+            <span class="value ok">已修正，可提交</span>
+          </div>
+          <div class="stat">
+            <span class="label">審查範圍</span>
+            <span class="value">Phase 2.5 diff</span>
+          </div>
+          <div class="stat">
+            <span class="label">問題數</span>
+            <span class="value">1 high · 1 medium · 1 low（已處理）</span>
+          </div>
+          <div class="stat">
+            <span class="label">驗證</span>
+            <span class="value ok">測試通過</span>
+          </div>
+        </div>
+      </header>
+
+      <section>
+        <h2>審查範圍</h2>
+        <p>
+          本次審查 Phase 2.5 prompt harness 相關變更：
+          <code>scripts/prompt-eval/</code>、<code>tests/unit/prompt-eval/</code>、
+          fixture/reference JSON、evaluate-papers skill 同步、phase 文件、
+          <code>package.json</code>、<code>.gitignore</code>，以及 incidental 的
+          <code>next-env.d.ts</code> 變更。
+        </p>
+      </section>
+
+      <section>
+        <h2>審查發現</h2>
+
+        <article class="finding">
+          <h3>
+            <span class="severity high">High</span>
+            Prompt checker 沒有檢查 5 個 fixture 是否全部完成評估
+          </h3>
+          <p>
+            <strong>位置：</strong>
+            <code>scripts/prompt-eval/check-evaluations.ts:110</code> 到
+            <code>scripts/prompt-eval/check-evaluations.ts:123</code>
+          </p>
+          <p>
+            目前 gate 只把 schema-valid 筆數拿來和 <code>summary.records.length</code>
+            比較，並接受 <code>boundsPassedCount &gt;= 4</code>。它沒有驗證 manifest
+            裡的每個 fixture 都剛好產生一筆 matched evaluation。把 F5 從 run 裡移除後，
+            指令仍會 exit 0，因為剩下四筆都 schema-valid，而且四筆 bounds 都通過。
+          </p>
+          <p>
+            這會削弱 Phase 2.5 的核心合約。Harness 可能 freeze 或 approve 一個靜默跳過
+            fixture 的 prompt run，包含原本明確用來檢查 hype / weak-claims 的 regression case。
+          </p>
+          <p>
+            <strong>修正狀態：</strong>已從 manifest 推導 expected fixture ids，當任何 fixture
+            missing、duplicated 或 unmatched 時直接 fail。也已補 unit test 覆蓋 missing
+            和 duplicate evaluation。
+          </p>
+        </article>
+
+        <article class="finding">
+          <h3>
+            <span class="severity medium">Medium</span>
+            Normalization 可能留下 stale reference files
+          </h3>
+          <p>
+            <strong>位置：</strong>
+            <code>scripts/prompt-eval/normalize-evaluations.ts:95</code> 到
+            <code>scripts/prompt-eval/normalize-evaluations.ts:115</code>
+          </p>
+          <p>
+            Normalizer 會為每筆 matched evaluation 寫出一個檔案，但沒有檢查完整 fixture set
+            是否都已寫出，也沒有在寫入前清掉既有的
+            <code>reference/normalized/F*.json</code>。如果後續 run 漏掉 F5，舊的
+            <code>F5.json</code> 仍可能留在目錄裡，讓 reference directory 看起來是完整的。
+          </p>
+          <p>
+            <strong>修正狀態：</strong>Normalizer 已和 checker 共用 manifest completeness
+            check，遇到 missing、duplicate 或 unexpected fixture 時 fail。寫入前也會移除
+            本次 manifest 對應的舊 normalized outputs，避免 stale file 留在目錄裡。
+          </p>
+        </article>
+
+        <article class="finding">
+          <h3>
+            <span class="severity low">Low</span>
+            Generated <code>next-env.d.ts</code> 被手動變更，不應納入本 phase
+          </h3>
+          <p>
+            <strong>位置：</strong> <code>next-env.d.ts:3</code>
+          </p>
+          <p>
+            這個檔案本身標註不應手動編輯；本機 Next 16 文件也說
+            <code>next-env.d.ts</code> 會由 <code>next dev</code>、<code>next build</code>
+            或 <code>next typegen</code> 產生，並建議加入 gitignore。這次 Phase 2.5 diff
+            把 route type import 從 <code>.next/types</code> 改成
+            <code>.next/dev/types</code>，這和 prompt harness 無關，而且會依最後執行的
+            Next command 產生 churn。
+          </p>
+          <p>
+            <strong>修正狀態：</strong>Phase 2.5 變更已 revert 這個 generated-file delta。
+            是否要依照目前 Next 文件停止追蹤 <code>next-env.d.ts</code>，可另開 cleanup
+            處理。
+          </p>
+        </article>
+      </section>
+
+      <section>
+        <h2>驗證</h2>
+        <ul>
+          <li><code>npm test</code> 通過：12 個 test files，91 個 tests。</li>
+          <li><code>npm run lint</code> 通過。</li>
+          <li><code>npx tsc --noEmit</code> 通過。</li>
+          <li>
+            <code>npm run prompt:check -- scripts/prompt-eval/reference/raw/2026-05-10-2142</code>
+            通過。這個指令需要允許 <code>tsx</code> 建立本機 IPC pipe。
+          </li>
+        </ul>
+
+        <p>High-severity finding 的 false-positive 重現方式：</p>
+        <pre><code>複製 accepted run 到 /tmp/pcs-phase25-missing-eval，並移除最後一筆 evaluation。
+
+npm run prompt:check -- /tmp/pcs-phase25-missing-eval
+
+schema-valid: 4/4  bounds-passed: 4/4  unmatched-joinKeys: 0
+PASS</code></pre>
+      </section>
+    </main>
+  </body>
+</html>

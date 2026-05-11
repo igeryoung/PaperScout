@@ -1,0 +1,29 @@
+{
+  "title": "SeaThru-NeRF: Neural Radiance Fields in Scattering Media",
+  "authors": [
+    "Deborah Levy",
+    "Amit Peleg",
+    "Naama Pearl",
+    "Dan Rosenbaum",
+    "Derya Akkaynak",
+    "Simon Korman",
+    "Tali Treibitz"
+  ],
+  "abstract": "Research on neural radiance fields (NeRFs) for novel view generation is exploding with new models and extensions. However, a question that remains unanswered is what happens in underwater or foggy scenes where the medium strongly influences the appearance of objects. Thus far, NeRF and its variants have ignored these cases. However, since the NeRF framework is based on volumetric rendering, it has inherent capability to account for the medium's effects, once modeled appropriately. We develop a new rendering model for NeRFs in scattering media, which is based on the SeaThru image formation model, and suggest a suitable architecture for learning both scene information and medium parameters. We demonstrate the strength of our method using simulated and real-world scenes, correctly rendering novel photorealistic views underwater. Even more excitingly, we can render clear views of these scenes, removing the medium between the camera and the scene and reconstructing the appearance and depth of far objects, which are severely occluded by the medium. Our code and unique datasets are available on the project's website.",
+  "venue": "CVPR 2023",
+  "publishedDate": "2023-04-16",
+  "sourceUrl": "https://arxiv.org/abs/2304.07743",
+  "pdfUrl": "https://arxiv.org/pdf/2304.07743.pdf",
+  "sourcePaperId": "2304.07743",
+  "source": "ARXIV",
+  "codeUrls": ["https://www.cs.tau.ac.il/~tommer/SeaThruNeRF/"],
+  "additionalSources": [],
+  "_fixture": {
+    "id": "F4",
+    "role": "Unknown lab + strong method",
+    "notes": "University of Haifa + Tel Aviv. Solid technical contribution: physics-grounded SeaThru rendering model integrated into NeRF for scattering media. Tests that unknown affiliations do not suppress total below the recommend floor.",
+    "metadataSourceUrl": "https://arxiv.org/abs/2304.07743",
+    "authoredAt": "2026-05-10",
+    "frozen": true
+  }
+}

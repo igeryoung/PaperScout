@@ -1,0 +1,9 @@
+{
+  "scores": {
+    "novelty": { "min": 18 },
+    "experimentalQuality": { "min": 16 },
+    "total": { "min": 75 }
+  },
+  "recommendationDecision": { "in": ["RECOMMEND"] },
+  "pdfAnalysisStatus": { "in": ["SUCCESS", "UNAVAILABLE"] }
+}
