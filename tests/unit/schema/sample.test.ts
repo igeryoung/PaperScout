@@ -44,6 +44,24 @@ describe('committed sample data', () => {
           e.scores.venueSourceCredibility +
           e.scores.authorInstitutionReputation;
         expect(e.scores.total).toBe(sum);
+        // Bilingual narrative fields must carry both locales.
+        expect(e.summary.en.length).toBeGreaterThan(0);
+        expect(e.summary['zh-TW'].length).toBeGreaterThan(0);
+        expect(e.recommendationReason.en.length).toBeGreaterThan(0);
+        expect(e.recommendationReason['zh-TW'].length).toBeGreaterThan(0);
+        expect(e.rankingExplanation.en.length).toBeGreaterThan(0);
+        expect(e.rankingExplanation['zh-TW'].length).toBeGreaterThan(0);
+        if (e.figure) {
+          expect(e.figure.caption.en.length).toBeGreaterThan(0);
+          expect(e.figure.caption['zh-TW'].length).toBeGreaterThan(0);
+        }
+        if (e.strengths) {
+          // List lengths should match across locales (skill guideline).
+          expect(e.strengths.en.length).toBe(e.strengths['zh-TW'].length);
+        }
+        if (e.weaknesses) {
+          expect(e.weaknesses.en.length).toBe(e.weaknesses['zh-TW'].length);
+        }
       }
     }
   });

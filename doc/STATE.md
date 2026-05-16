@@ -1,9 +1,9 @@
 # Current State
 
-**Phase:** Phase 4 — Paper trend UI (closed 2026-05-11 → Phase 5). Highlight-figure extension shipped 2026-05-14.
-**Current task:** Phase 5 kickoff (feedback + library filtering). Read-only viewer is live: `/`, `/runs/[id]`, `/papers/[id]`, plus a global `<AppHeader />`. Frozen Phase 2.5 reference is now also asserted via UI repo helpers. PaperCard + PaperDetail now show a highlight figure per Stage-2 paper (bytes streamed from `/api/papers/[id]/figure`).
+**Phase:** Phase 4 — Paper trend UI (closed 2026-05-11 → Phase 5). Highlight-figure extension shipped 2026-05-14. Bilingual (en + zh-TW) i18n preparation shipped 2026-05-16.
+**Current task:** Phase 5 kickoff (feedback + library filtering). Read-only viewer is live: `/`, `/runs/[id]`, `/papers/[id]`, plus a global `<AppHeader />` with a locale switcher. Frozen Phase 2.5 reference is now also asserted via UI repo helpers. PaperCard + PaperDetail show a highlight figure per Stage-2 paper (bytes streamed from `/api/papers/[id]/figure`). All evaluation narrative is bilingual end-to-end.
 **Last commit:** tracked in git; run `git log --oneline -1` for the current commit.
-**Updated:** 2026-05-14
+**Updated:** 2026-05-16
 
 > For onboarding (read order, contract pointers, agent rules), start at [`doc/AGENT_GUIDE.md`](./AGENT_GUIDE.md).
 
@@ -103,6 +103,18 @@ Decision: **GO** to Phase 5.
 - **API route**: `GET /api/papers/[id]/figure` streams bytes with `Cache-Control: public, max-age=31536000, immutable`, 404 when missing.
 - **UI**: `PaperCard` shows a 160×112 thumbnail at the right of the card (hidden on mobile), with placeholder slot when no figure; `PaperDetail` shows a centered figure (max-height 28rem) below the header with `<figcaption>`.
 - **Fixtures**: `data/sample/evaluations.json` extended (entries 1 and 2 now carry a `figure` block); `data/sample/figures/{2605.12345,2605.09876}.png` are tiny valid PNGs for ingest tests.
+
+## Phase 4 extension — Bilingual evaluations (2026-05-16)
+
+- **Skill contract**: `.claude/skills/evaluate-papers/SKILL.md` now requires every narrative field to be emitted in both `en` and `zh-TW`. New "Translation guidelines" section enforces Traditional Chinese (Taiwan), original-form proper nouns, and index-aligned lists. `data/sample/evaluations.json` rewritten with hand-crafted zh-TW translations of all three records.
+- **Schema** (`src/server/schema/evaluation.ts`): added `LocalizedString` (`{ en, 'zh-TW' }`) and `LocalizedStringList` (`{ en: string[], 'zh-TW': string[] }`) zod helpers. `summary`, `recommendationReason`, `rankingExplanation`, `keyContribution`, `methodologySummary`, `strengths`, `weaknesses`, `figure.caption` switched to the localized variants. `superRefine` enforces non-empty halves when `pdfAnalysisStatus === 'SUCCESS'`. `tags`, enums, scores, and `figure.{label,pageNumber,renderedPath}` stay single-value.
+- **DB** (`prisma/schema.prisma` + migration `20260516105100_bilingual_text`): five narrative TEXT columns on `paper_evaluations` and `paper_figures.caption` became `JSONB`. Migration hand-edited to use `USING jsonb_build_object('en', col, 'zh-TW', NULL)` so dev rows survive non-destructively; `strengths`/`weaknesses` (already JSONB) are wrapped with the same pattern via `UPDATE`. Applied to both `public` and `paperscout_test`.
+- **Repos + ingest**: `evaluationsRepo.upsert` and `figuresRepo.upsert` accept `LocalizedString` / `LocalizedStringList`. `scripts/ingest.ts` passes the zod-parsed bilingual objects straight through to Prisma JSON columns.
+- **Locale infrastructure** (new): `src/lib/locale.ts` — `SUPPORTED_LOCALES = ['en', 'zh-TW']`, `DEFAULT_LOCALE = 'zh-TW'`, `getLocale(searchParams?)` (cookie → `?locale=` override → default), `pickLocalized` / `pickLocalizedList` with cross-locale fallback (covers legacy rows where `zh-TW` is `NULL`). `src/i18n/{en,zh-TW,index}.ts` — full string catalog covering header, home, library, runs page, paper detail, score breakdown, source mix, trend summary, trend tags. `src/components/locale-switcher.tsx` + `src/app/api/locale/route.ts` set the cookie and trigger `router.refresh()`.
+- **UI refactor**: `layout.tsx` reads the cookie for `<html lang>` and `generateMetadata`. Every page (`/`, `/library`, `/runs/[id]`, `/papers/[id]`) and every consumer component (`paper-card`, `paper-detail`, `score-breakdown`, `source-mix`, `trend-summary`, `trend-tags`, `app-header`) takes `locale` + `messages` and pulls chrome from the catalog. Header mounts `<LocaleSwitcher>`.
+- **Tests**: `tests/unit/lib/locale.test.ts` (new — 13 tests covering `pickLocalized`, `pickLocalizedList`, `normalizeLocale`, defaults). `tests/unit/schema/sample.test.ts` extended to assert both locale halves are non-empty and that list lengths match across locales. Existing fixtures in `tests/unit/ingest/{lib,figures}.test.ts`, `tests/unit/prompt-eval/check-evaluations.test.ts`, `tests/integration/ingest.test.ts`, and `tests/integration/ui-repos.test.ts` updated to the new shape. The frozen prompt-eval reference at `scripts/prompt-eval/reference/raw/2026-05-10-2142/evaluations.json` was wrapped via a one-shot transform (`en` and `zh-TW` both seeded to the original English) so the Phase-3 ingest integration test still round-trips; a re-run of the prompt harness will produce real translations later.
+- **Verification**: `npm run lint` ✓; `npm run build` ✓ (`/api/locale` listed); `npm test` 148/148 (was 135 + 13 new); `RUN_INTEGRATION=1 npm run test:integration` 13/13. Live smoke: default no-cookie → `<html lang="zh-TW">` + Chinese chrome; `POST /api/locale {locale:'en'}` → cookie set, refresh → `<html lang="en">` + English chrome on `/`, `/papers/[id]`, `/runs/[id]`.
+- **Known limitations**: layout reads locale from cookie only; `?locale=` URL override applies to page body but not to the `<html lang>` attribute. Pre-bilingual `data/runs/*/evaluations.json` files will fail the new zod schema — re-evaluate before ingesting.
 
 ## Open questions for the user
 

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import type { LocalizedString } from '@/server/schema/evaluation';
 
 export const figuresRepo = {
   /**
@@ -16,7 +17,7 @@ export const figuresRepo = {
     paperId: string;
     imageBytes: Buffer;
     mimeType: string;
-    caption: string | null;
+    caption: LocalizedString | null;
     figureLabel: string | null;
     pageNumber: number | null;
     sourcePdfUrl: string | null;
@@ -29,7 +30,7 @@ export const figuresRepo = {
         // Buffer is Buffer<ArrayBufferLike>. Runtime is happy with either.
         imageBytes: input.imageBytes as never,
         mimeType: input.mimeType,
-        caption: input.caption,
+        caption: (input.caption ?? null) as never,
         figureLabel: input.figureLabel,
         pageNumber: input.pageNumber,
         sourcePdfUrl: input.sourcePdfUrl,
@@ -37,7 +38,7 @@ export const figuresRepo = {
       update: {
         imageBytes: input.imageBytes as never,
         mimeType: input.mimeType,
-        caption: input.caption,
+        caption: (input.caption ?? null) as never,
         figureLabel: input.figureLabel,
         pageNumber: input.pageNumber,
         sourcePdfUrl: input.sourcePdfUrl,

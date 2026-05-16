@@ -1,27 +1,27 @@
 import type { PaperEvaluation } from '@prisma/client';
 import { scoreTier, type ScoreTier } from '@/server/lib/select-evaluation';
+import type { Messages } from '@/i18n';
 
 interface ScoreBreakdownProps {
   evaluation: PaperEvaluation;
+  messages: Messages;
 }
 
-const DIMENSIONS: Array<{
-  label: string;
-  max: number;
-  field: keyof Pick<
-    PaperEvaluation,
-    | 'noveltyScore'
-    | 'methodologicalRigorScore'
-    | 'experimentalQualityScore'
-    | 'venueSourceCredibilityScore'
-    | 'authorInstitutionReputationScore'
-  >;
-}> = [
-  { label: 'Novelty', max: 25, field: 'noveltyScore' },
-  { label: 'Methodological rigor', max: 25, field: 'methodologicalRigorScore' },
-  { label: 'Experimental quality', max: 20, field: 'experimentalQualityScore' },
-  { label: 'Venue / source credibility', max: 15, field: 'venueSourceCredibilityScore' },
-  { label: 'Author / institution reputation', max: 15, field: 'authorInstitutionReputationScore' },
+type ScoreField = keyof Pick<
+  PaperEvaluation,
+  | 'noveltyScore'
+  | 'methodologicalRigorScore'
+  | 'experimentalQualityScore'
+  | 'venueSourceCredibilityScore'
+  | 'authorInstitutionReputationScore'
+>;
+
+const DIMENSION_DEFS: Array<{ key: keyof Messages['scoreBreakdown']; max: number; field: ScoreField }> = [
+  { key: 'novelty', max: 25, field: 'noveltyScore' },
+  { key: 'methodologicalRigor', max: 25, field: 'methodologicalRigorScore' },
+  { key: 'experimentalQuality', max: 20, field: 'experimentalQualityScore' },
+  { key: 'venueSourceCredibility', max: 15, field: 'venueSourceCredibilityScore' },
+  { key: 'authorInstitutionReputation', max: 15, field: 'authorInstitutionReputationScore' },
 ];
 
 const TIER_BG: Record<ScoreTier, string> = {
@@ -30,12 +30,13 @@ const TIER_BG: Record<ScoreTier, string> = {
   weak: 'bg-rose-500',
 };
 
-export function ScoreBreakdown({ evaluation }: ScoreBreakdownProps) {
+export function ScoreBreakdown({ evaluation, messages }: ScoreBreakdownProps) {
+  const t = messages.scoreBreakdown;
   const totalTier = scoreTier(evaluation.totalScore, 100);
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <span className="text-sm font-medium">Total score</span>
+        <span className="text-sm font-medium">{t.total}</span>
         <span className={`text-xl font-semibold tabular-nums`}>
           <span
             className={
@@ -52,14 +53,14 @@ export function ScoreBreakdown({ evaluation }: ScoreBreakdownProps) {
         </span>
       </div>
       <div className="space-y-2">
-        {DIMENSIONS.map((d) => {
+        {DIMENSION_DEFS.map((d) => {
           const value = evaluation[d.field];
           const pct = d.max > 0 ? (value / d.max) * 100 : 0;
           const tier = scoreTier(value, d.max);
           return (
             <div key={d.field} className="space-y-1">
               <div className="flex items-baseline justify-between text-xs">
-                <span>{d.label}</span>
+                <span>{t[d.key]}</span>
                 <span className="text-muted-foreground tabular-nums">
                   {value} / {d.max}
                 </span>

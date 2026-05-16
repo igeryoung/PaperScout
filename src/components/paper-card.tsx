@@ -9,6 +9,8 @@ import type {
 import { Badge } from '@/components/ui/badge';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { scoreTier, type ScoreTier } from '@/server/lib/select-evaluation';
+import { pickLocalized, type Locale } from '@/lib/locale';
+import type { Messages } from '@/i18n';
 
 export interface PaperCardPaper {
   id: string;
@@ -21,7 +23,7 @@ export interface PaperCardPaper {
   tags: PaperTag[];
   codeLinks: PaperCodeLink[];
   figure: {
-    caption: string | null;
+    caption: unknown;
     figureLabel: string | null;
   } | null;
 }
@@ -30,12 +32,9 @@ interface PaperCardProps {
   rank: number | null;
   paper: PaperCardPaper;
   evaluation: PaperEvaluation | null;
+  locale: Locale;
+  messages: Messages;
 }
-
-const STAGE_LABEL: Record<PaperEvaluation['evaluationStage'], string> = {
-  ABSTRACT_SCREENING: 'Abstract',
-  FULL_PDF: 'Full PDF',
-};
 
 const TIER_TEXT: Record<ScoreTier, string> = {
   good: 'text-emerald-600 dark:text-emerald-400',
@@ -49,14 +48,17 @@ const TIER_BG: Record<ScoreTier, string> = {
   weak: 'bg-rose-500',
 };
 
-const SOURCE_LABEL: Record<PaperSource['source'], string> = {
-  ARXIV: 'arXiv',
-  OPENREVIEW: 'OpenReview',
-  HUGGINGFACE: 'Hugging Face',
-};
-
-function StageBadge({ evaluation }: { evaluation: PaperEvaluation }) {
-  const stage = STAGE_LABEL[evaluation.evaluationStage];
+function StageBadge({
+  evaluation,
+  messages,
+}: {
+  evaluation: PaperEvaluation;
+  messages: Messages;
+}) {
+  const stage =
+    evaluation.evaluationStage === 'FULL_PDF'
+      ? messages.paperCard.stageFullPdf
+      : messages.paperCard.stageAbstract;
   if (evaluation.evaluationStage === 'FULL_PDF') {
     const status = evaluation.pdfAnalysisStatus ?? 'UNAVAILABLE';
     return (
@@ -77,7 +79,7 @@ function findSourceLink(paper: PaperCardPaper, source: PaperSource['source']): s
   return row?.sourceUrl ?? null;
 }
 
-export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
+export function PaperCard({ rank, paper, evaluation, locale, messages }: PaperCardProps) {
   const total = evaluation?.totalScore ?? null;
   const tier = total !== null ? scoreTier(total, 100) : null;
   const arxivUrl = findSourceLink(paper, 'ARXIV');
@@ -85,6 +87,9 @@ export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
   const huggingFaceUrl = findSourceLink(paper, 'HUGGINGFACE');
   const visibleTags = paper.tags.slice(0, 5);
   const hiddenTagCount = paper.tags.length - visibleTags.length;
+  const summary = pickLocalized(evaluation?.summary, locale);
+  const reason = pickLocalized(evaluation?.recommendationReason, locale);
+  const sourceLabels = messages.common.sources;
 
   return (
     <article className="bg-card rounded-lg border p-5 shadow-sm">
@@ -122,15 +127,15 @@ export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{SOURCE_LABEL[paper.primarySource]}</Badge>
-            {evaluation ? <StageBadge evaluation={evaluation} /> : null}
+            <Badge variant="secondary">{sourceLabels[paper.primarySource]}</Badge>
+            {evaluation ? <StageBadge evaluation={evaluation} messages={messages} /> : null}
             {evaluation?.recommendationDecision ? (
               <Badge
                 variant={
                   evaluation.recommendationDecision === 'RECOMMEND' ? 'default' : 'outline'
                 }
               >
-                {evaluation.recommendationDecision}
+                {messages.common.decisions[evaluation.recommendationDecision]}
               </Badge>
             ) : null}
             {visibleTags.map((t) => (
@@ -143,15 +148,13 @@ export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
             ) : null}
           </div>
 
-          {evaluation?.summary ? (
-            <p className="text-foreground line-clamp-3 text-sm leading-relaxed">
-              {evaluation.summary}
-            </p>
+          {summary ? (
+            <p className="text-foreground line-clamp-3 text-sm leading-relaxed">{summary}</p>
           ) : null}
 
-          {evaluation?.recommendationReason ? (
+          {reason ? (
             <p className="text-muted-foreground border-l-2 pl-3 text-sm italic line-clamp-2">
-              {evaluation.recommendationReason}
+              {reason}
             </p>
           ) : null}
 
@@ -163,7 +166,7 @@ export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                PDF ↗
+                {messages.common.pdf}
               </a>
             ) : null}
             {arxivUrl ? (
@@ -173,7 +176,7 @@ export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                arXiv ↗
+                {sourceLabels.ARXIV} ↗
               </a>
             ) : null}
             {openReviewUrl ? (
@@ -183,7 +186,7 @@ export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                OpenReview ↗
+                {sourceLabels.OPENREVIEW} ↗
               </a>
             ) : null}
             {huggingFaceUrl ? (
@@ -193,7 +196,7 @@ export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                HuggingFace ↗
+                {sourceLabels.HUGGINGFACE} ↗
               </a>
             ) : null}
             {paper.codeLinks.map((c) => (
@@ -204,18 +207,26 @@ export function PaperCard({ rank, paper, evaluation }: PaperCardProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                Code ↗
+                {messages.common.code}
               </a>
             ))}
           </div>
         </div>
-        <PaperFigureThumb paper={paper} />
+        <PaperFigureThumb paper={paper} locale={locale} messages={messages} />
       </div>
     </article>
   );
 }
 
-function PaperFigureThumb({ paper }: { paper: PaperCardPaper }) {
+function PaperFigureThumb({
+  paper,
+  locale,
+  messages,
+}: {
+  paper: PaperCardPaper;
+  locale: Locale;
+  messages: Messages;
+}) {
   if (!paper.figure) {
     return (
       <div
@@ -224,8 +235,9 @@ function PaperFigureThumb({ paper }: { paper: PaperCardPaper }) {
       />
     );
   }
-  const labelPart = paper.figure.figureLabel ?? 'Highlight figure';
-  const captionPart = paper.figure.caption ? `: ${paper.figure.caption}` : '';
+  const labelPart = paper.figure.figureLabel ?? messages.paperCard.figureFallback;
+  const captionText = pickLocalized(paper.figure.caption, locale);
+  const captionPart = captionText ? `: ${captionText}` : '';
   return (
     // Served from our own /api/papers/[id]/figure route; next/image
     // optimization is not needed for a small, cache-controlled thumbnail.

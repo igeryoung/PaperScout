@@ -2,6 +2,8 @@ import 'server-only';
 
 import { Badge } from '@/components/ui/badge';
 import { papersRepo } from '@/server/repos/papers';
+import { getLocale } from '@/lib/locale';
+import { getMessages } from '@/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,30 +24,34 @@ function formatAuthors(authors: unknown): string {
 }
 
 export default async function LibraryPage() {
-  const papers = await papersRepo.listLibrary({ limit: 50 });
+  const [papers, locale] = await Promise.all([
+    papersRepo.listLibrary({ limit: 50 }),
+    getLocale(),
+  ]);
+  const t = getMessages(locale).library;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
       <header className="mb-6 flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Library</h1>
-        <p className="text-sm text-muted-foreground">{papers.length} paper(s)</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+        <p className="text-sm text-muted-foreground">{t.paperCount(papers.length)}</p>
       </header>
 
       {papers.length === 0 ? (
         <p className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No papers stored yet. Run <code className="font-mono">npm run db:seed</code> or
-          ingest a run via <code className="font-mono">npm run ingest &lt;dir&gt;</code>.
+          {t.empty} <code className="font-mono">npm run db:seed</code> {t.emptyOr}{' '}
+          <code className="font-mono">npm run ingest &lt;dir&gt;</code>.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left">
               <tr>
-                <th className="px-4 py-2 font-medium">Title</th>
-                <th className="px-4 py-2 font-medium">Authors</th>
-                <th className="px-4 py-2 font-medium">Source</th>
-                <th className="px-4 py-2 font-medium">Published</th>
-                <th className="px-4 py-2 font-medium">Stored</th>
+                <th className="px-4 py-2 font-medium">{t.columnTitle}</th>
+                <th className="px-4 py-2 font-medium">{t.columnAuthors}</th>
+                <th className="px-4 py-2 font-medium">{t.columnSource}</th>
+                <th className="px-4 py-2 font-medium">{t.columnPublished}</th>
+                <th className="px-4 py-2 font-medium">{t.columnStored}</th>
               </tr>
             </thead>
             <tbody>

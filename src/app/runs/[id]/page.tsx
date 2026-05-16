@@ -10,12 +10,14 @@ import { PaperCard } from '@/components/paper-card';
 import { TrendSummary } from '@/components/trend-summary';
 import { SourceMix } from '@/components/source-mix';
 import { formatDate } from '@/lib/format';
+import { getLocale } from '@/lib/locale';
+import { getMessages } from '@/i18n';
 
 export const dynamic = 'force-dynamic';
 
 interface RunPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ showAll?: string }>;
+  searchParams: Promise<{ showAll?: string; locale?: string }>;
 }
 
 function isTruthyParam(value: string | undefined): boolean {
@@ -24,24 +26,27 @@ function isTruthyParam(value: string | undefined): boolean {
 
 export default async function RunPage({ params, searchParams }: RunPageProps) {
   const { id } = await params;
-  const { showAll } = await searchParams;
-  const run = await runsRepo.findById(id);
+  const sp = await searchParams;
+  const [run, locale] = await Promise.all([runsRepo.findById(id), getLocale(sp)]);
   if (!run) notFound();
-  const showAllResults = isTruthyParam(showAll);
+  const messages = getMessages(locale);
+  const t = messages.runPage;
+  const showAllResults = isTruthyParam(sp.showAll);
 
   const header = (
     <header className="space-y-2">
       <p className="text-muted-foreground text-xs uppercase tracking-wide">
-        Agent run · {formatDate(run.runDate)}
+        {t.eyebrow(formatDate(run.runDate))}
       </p>
       <h1 className="text-3xl font-semibold tracking-tight">
-        Paper trends for {formatDate(run.runDate)}
+        {t.heading(formatDate(run.runDate))}
       </h1>
       <p className="text-muted-foreground text-sm">
-        Status: {run.status}
+        {t.status(run.status)}
         {run.completedAt ? (
           <>
-            <span className="mx-2">·</span>Completed {formatDate(run.completedAt)}
+            <span className="mx-2">·</span>
+            {t.completedAt(formatDate(run.completedAt))}
           </>
         ) : null}
         {run.ingestSourceDir ? (
@@ -59,7 +64,7 @@ export default async function RunPage({ params, searchParams }: RunPageProps) {
       <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
         {header}
         <div className="rounded-md border border-dashed p-6">
-          <p className="text-sm">This run failed before any papers were ranked.</p>
+          <p className="text-sm">{t.failedBody}</p>
         </div>
       </main>
     );
@@ -70,9 +75,7 @@ export default async function RunPage({ params, searchParams }: RunPageProps) {
       <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
         {header}
         <div className="rounded-md border border-dashed p-6">
-          <p className="text-sm">
-            Collection/import in progress. Reload after the agent run completes.
-          </p>
+          <p className="text-sm">{t.runningBody}</p>
         </div>
       </main>
     );
@@ -89,18 +92,18 @@ export default async function RunPage({ params, searchParams }: RunPageProps) {
       {header}
 
       <section>
-        <TrendSummary summary={summary} />
+        <TrendSummary summary={summary} messages={messages} />
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide">Source mix</h2>
-        <SourceMix sources={summary.sources} />
+        <h2 className="text-xs font-semibold uppercase tracking-wide">{t.sourceMixHeader}</h2>
+        <SourceMix sources={summary.sources} messages={messages} />
       </section>
 
       <section className="space-y-4">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold tracking-tight">
-            {showAllResults ? 'All ranked papers' : 'Recommended papers'}
+            {showAllResults ? t.sectionAll : t.sectionRecommended}
             <span className="text-muted-foreground ml-2 text-sm font-normal tabular-nums">
               {results.length}
             </span>
@@ -109,14 +112,12 @@ export default async function RunPage({ params, searchParams }: RunPageProps) {
             href={showAllResults ? `/runs/${run.id}` : `/runs/${run.id}?showAll=1`}
             className="text-muted-foreground hover:text-foreground text-sm underline"
           >
-            {showAllResults ? 'Show recommended only' : 'Show all results'}
+            {showAllResults ? t.showRecommendedOnly : t.showAll}
           </Link>
         </div>
         {results.length === 0 ? (
           <p className="text-muted-foreground rounded-md border border-dashed p-6 text-sm">
-            {showAllResults
-              ? 'This run produced no ranked papers.'
-              : 'No papers in this run were marked RECOMMEND.'}
+            {showAllResults ? t.emptyAll : t.emptyRecommended}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -126,6 +127,8 @@ export default async function RunPage({ params, searchParams }: RunPageProps) {
                   rank={r.finalRank}
                   paper={r.paper}
                   evaluation={selectBestEvaluation(r.paper.evaluations)}
+                  locale={locale}
+                  messages={messages}
                 />
               </li>
             ))}

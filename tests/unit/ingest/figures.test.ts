@@ -33,7 +33,7 @@ describe('ingestFigure', () => {
       figure: {
         label: 'Figure 1',
         pageNumber: 2,
-        caption: 'cap',
+        caption: { en: 'cap', 'zh-TW': 'cap' },
         renderedPath: 'figures/missing.png',
       },
     });
@@ -56,7 +56,7 @@ describe('ingestFigure', () => {
       figure: {
         label: 'Figure 1',
         pageNumber: 2,
-        caption: 'cap',
+        caption: { en: 'cap', 'zh-TW': 'cap' },
         renderedPath: 'figures/big.png',
       },
     });
@@ -77,7 +77,7 @@ describe('ingestFigure', () => {
       figure: {
         label: 'Figure 1',
         pageNumber: 2,
-        caption: 'cap',
+        caption: { en: 'cap', 'zh-TW': 'cap' },
         renderedPath: 'figures/fig.png',
       },
     });
@@ -88,7 +88,7 @@ describe('ingestFigure', () => {
     expect(arg.mimeType).toBe('image/png');
     expect(arg.figureLabel).toBe('Figure 1');
     expect(arg.pageNumber).toBe(2);
-    expect(arg.caption).toBe('cap');
+    expect(arg.caption).toEqual({ en: 'cap', 'zh-TW': 'cap' });
     expect(arg.sourcePdfUrl).toBe('https://example/pdf');
     expect(Buffer.isBuffer(arg.imageBytes)).toBe(true);
     expect(arg.imageBytes.equals(bytes)).toBe(true);
@@ -107,7 +107,7 @@ describe('ingestFigure', () => {
       figure: {
         label: 'Figure 1',
         pageNumber: 1,
-        caption: 'c',
+        caption: { en: 'c', 'zh-TW': 'c' },
         renderedPath: absPath,
       },
     });

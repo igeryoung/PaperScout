@@ -13,29 +13,61 @@
       "authorInstitutionReputation": 9,
       "total": 69
     },
-    "summary": "ViT-Lite proposes progressive token merging within vision transformers, achieving a 3x FLOPs reduction while matching or beating standard ViT baselines across classification, detection, and segmentation.",
-    "recommendationReason": "Solid efficiency contribution with comprehensive cross-task evaluation and released code; incremental novelty over prior token-pruning work but well-executed.",
-    "keyContribution": "A learnable token-merging operator applied progressively across transformer layers, parameterized by importance scores derived from attention norms.",
-    "methodologySummary": "Extends ViT with a per-layer token-merge operator: at each layer, tokens are scored by attention norms; the bottom-k are merged with their nearest neighbors via a weighted sum. Trained on ImageNet-1k with no extra supervision; downstream tasks fine-tune the standard heads.",
-    "strengths": [
-      "Clear FLOPs/accuracy tradeoff with results on three diverse benchmarks",
-      "Code and pretrained models released for reproducibility",
-      "Ablations on merge schedule, k-values, and merge position"
-    ],
-    "weaknesses": [
-      "Comparison limited to ViT-family baselines; no comparison vs. recent SSM- or Mamba-based architectures",
-      "Latency results omitted on consumer hardware; FLOPs reduction may not translate to wall-clock speedup",
-      "Limited discussion of failure modes (e.g. small-object detection)"
-    ],
+    "summary": {
+      "en": "ViT-Lite proposes progressive token merging within vision transformers, achieving a 3x FLOPs reduction while matching or beating standard ViT baselines across classification, detection, and segmentation.",
+      "zh-TW": "ViT-Lite 在 vision transformer 中引入逐層 token 合併機制，將 FLOPs 降低為原本的三分之一，並在分類、偵測與分割三類任務上達到與標準 ViT baseline 相當甚至更佳的表現。"
+    },
+    "recommendationReason": {
+      "en": "Solid efficiency contribution with comprehensive cross-task evaluation and released code; incremental novelty over prior token-pruning work but well-executed.",
+      "zh-TW": "在效率改進上有紮實貢獻，跨任務的實驗評估完整且開源了程式碼；相較先前 token-pruning 工作的新穎性偏增量式，但執行得宜。"
+    },
+    "keyContribution": {
+      "en": "A learnable token-merging operator applied progressively across transformer layers, parameterized by importance scores derived from attention norms.",
+      "zh-TW": "一種可學習的 token 合併運算子，會在 transformer 各層中逐層套用，並以 attention norm 推導出的重要性分數做為參數。"
+    },
+    "methodologySummary": {
+      "en": "Extends ViT with a per-layer token-merge operator: at each layer, tokens are scored by attention norms; the bottom-k are merged with their nearest neighbors via a weighted sum. Trained on ImageNet-1k with no extra supervision; downstream tasks fine-tune the standard heads.",
+      "zh-TW": "在 ViT 之上加入每層的 token 合併運算子：每一層依 attention norm 為 token 評分，將分數最低的 k 個 token 與其最近鄰透過加權加總合併。整體在 ImageNet-1k 上訓練，未使用額外監督；下游任務則僅微調標準 head。"
+    },
+    "strengths": {
+      "en": [
+        "Clear FLOPs/accuracy tradeoff with results on three diverse benchmarks",
+        "Code and pretrained models released for reproducibility",
+        "Ablations on merge schedule, k-values, and merge position"
+      ],
+      "zh-TW": [
+        "FLOPs 與準確率的取捨清晰，並在三個性質不同的 benchmark 上提供結果",
+        "釋出程式碼與預訓練模型，可重現性高",
+        "對合併排程、k 值與合併位置都做了消融實驗"
+      ]
+    },
+    "weaknesses": {
+      "en": [
+        "Comparison limited to ViT-family baselines; no comparison vs. recent SSM- or Mamba-based architectures",
+        "Latency results omitted on consumer hardware; FLOPs reduction may not translate to wall-clock speedup",
+        "Limited discussion of failure modes (e.g. small-object detection)"
+      ],
+      "zh-TW": [
+        "比較對象僅限於 ViT 系列 baseline，未與近期 SSM 或 Mamba 系列架構對照",
+        "未提供消費級硬體上的延遲量測；FLOPs 降低不一定能轉換為實際 wall-clock 加速",
+        "對失效情境（如小物件偵測）的討論不足"
+      ]
+    },
     "tags": ["vision-transformer", "efficiency", "token-merging"],
-    "rankingExplanation": "Strong methodology and breadth of experiments; novelty is incremental over prior token-pruning work but the cross-task validation and reproducibility lift the score into recommend territory.",
+    "rankingExplanation": {
+      "en": "Strong methodology and breadth of experiments; novelty is incremental over prior token-pruning work but the cross-task validation and reproducibility lift the score into recommend territory.",
+      "zh-TW": "方法論紮實、實驗涵蓋面廣；新穎性相對先前 token-pruning 工作偏增量，但跨任務驗證與可重現性將整體分數推進至推薦區間。"
+    },
     "recommendationDecision": "RECOMMEND",
     "pdfAnalysisStatus": "SUCCESS",
     "tableFigureAnalysis": null,
     "figure": {
       "label": "Figure 1",
       "pageNumber": 2,
-      "caption": "Overview of the progressive token-merging operator: tokens are scored by attention norms and the lowest-k are merged with their nearest neighbors at each transformer layer.",
+      "caption": {
+        "en": "Overview of the progressive token-merging operator: tokens are scored by attention norms and the lowest-k are merged with their nearest neighbors at each transformer layer.",
+        "zh-TW": "逐層 token 合併運算子總覽：每個 transformer 層以 attention norm 為 token 評分，並將分數最低的 k 個 token 與其最近鄰合併。"
+      },
       "renderedPath": "figures/2605.12345.png"
     }
   },
@@ -53,29 +85,61 @@
       "authorInstitutionReputation": 12,
       "total": 81
     },
-    "summary": "DiffSeg shows that pretrained text-to-image diffusion models can perform open-vocabulary segmentation without any segmentation supervision, achieving SOTA zero-shot results across three benchmarks.",
-    "recommendationReason": "Genuinely novel reuse of generative models for discriminative segmentation. The boundary-aware refinement closes a known gap in prior diffusion-based segmentation approaches.",
-    "keyContribution": "A boundary-aware refinement module operating on cross-attention maps from pretrained diffusion models, enabling supervision-free open-vocabulary segmentation.",
-    "methodologySummary": "Extracts cross-attention maps between text tokens and image patches at multiple diffusion timesteps, aggregates them, and applies a boundary-aware module that uses gradient information from the diffusion latent space to sharpen segmentation boundaries. No segmentation labels are used at any stage.",
-    "strengths": [
-      "Genuinely novel reuse of generative pretraining for a discriminative task",
-      "Strong zero-shot results on three diverse benchmarks (VOC, COCO, ADE20K)",
-      "Scaling analysis showing segmentation quality improves with diffusion model size",
-      "Clear ablation on the boundary-aware refinement component"
-    ],
-    "weaknesses": [
-      "Inference is slow due to multi-timestep cross-attention extraction",
-      "Limited comparison to recent SAM-based zero-shot baselines"
-    ],
+    "summary": {
+      "en": "DiffSeg shows that pretrained text-to-image diffusion models can perform open-vocabulary segmentation without any segmentation supervision, achieving SOTA zero-shot results across three benchmarks.",
+      "zh-TW": "DiffSeg 證明預訓練的文字到圖像 diffusion 模型可在完全無分割監督的情況下執行 open-vocabulary 分割，並在三個 benchmark 上取得 SOTA 等級的 zero-shot 表現。"
+    },
+    "recommendationReason": {
+      "en": "Genuinely novel reuse of generative models for discriminative segmentation. The boundary-aware refinement closes a known gap in prior diffusion-based segmentation approaches.",
+      "zh-TW": "將生成式模型重新用於判別式分割任務的想法具有實質新穎性；其 boundary-aware refinement 模組補足了先前 diffusion-based 分割方法的已知缺陷。"
+    },
+    "keyContribution": {
+      "en": "A boundary-aware refinement module operating on cross-attention maps from pretrained diffusion models, enabling supervision-free open-vocabulary segmentation.",
+      "zh-TW": "一個作用於預訓練 diffusion 模型 cross-attention 圖上的 boundary-aware refinement 模組，使得無監督的 open-vocabulary 分割成為可能。"
+    },
+    "methodologySummary": {
+      "en": "Extracts cross-attention maps between text tokens and image patches at multiple diffusion timesteps, aggregates them, and applies a boundary-aware module that uses gradient information from the diffusion latent space to sharpen segmentation boundaries. No segmentation labels are used at any stage.",
+      "zh-TW": "於多個 diffusion timestep 萃取文字 token 與影像 patch 之間的 cross-attention 圖並進行聚合，再以 boundary-aware 模組搭配 diffusion 潛在空間的梯度資訊銳化分割邊界。整個流程不使用任何分割標註。"
+    },
+    "strengths": {
+      "en": [
+        "Genuinely novel reuse of generative pretraining for a discriminative task",
+        "Strong zero-shot results on three diverse benchmarks (VOC, COCO, ADE20K)",
+        "Scaling analysis showing segmentation quality improves with diffusion model size",
+        "Clear ablation on the boundary-aware refinement component"
+      ],
+      "zh-TW": [
+        "將生成式預訓練重新用於判別式任務，想法具實質新穎性",
+        "在三個性質不同的 benchmark（VOC、COCO、ADE20K）上 zero-shot 表現皆強",
+        "提供 scaling 分析，顯示分割品質隨 diffusion 模型規模成長",
+        "對 boundary-aware refinement 模組的消融實驗清楚"
+      ]
+    },
+    "weaknesses": {
+      "en": [
+        "Inference is slow due to multi-timestep cross-attention extraction",
+        "Limited comparison to recent SAM-based zero-shot baselines"
+      ],
+      "zh-TW": [
+        "因需在多個 timestep 上萃取 cross-attention，推論速度偏慢",
+        "與近期 SAM-based zero-shot baseline 的比較不夠完整"
+      ]
+    },
     "tags": ["diffusion", "segmentation", "open-vocabulary", "vision-language-model"],
-    "rankingExplanation": "Top score driven by novelty and rigor: opens a clear new direction (generative-pretraining → discriminative tasks) with credible empirical evidence and a thoughtful boundary-aware refinement.",
+    "rankingExplanation": {
+      "en": "Top score driven by novelty and rigor: opens a clear new direction (generative-pretraining → discriminative tasks) with credible empirical evidence and a thoughtful boundary-aware refinement.",
+      "zh-TW": "高分主要由新穎性與嚴謹度推動：開啟了一條清晰的新方向（由生成式預訓練導向判別式任務），並提供可信的實證與經過深思的 boundary-aware refinement 模組。"
+    },
     "recommendationDecision": "RECOMMEND",
     "pdfAnalysisStatus": "SUCCESS",
     "tableFigureAnalysis": null,
     "figure": {
       "label": "Figure 2",
       "pageNumber": 4,
-      "caption": "Boundary-aware refinement: cross-attention maps from multiple diffusion timesteps are aggregated and sharpened using gradients from the latent space to produce segmentation masks without any segmentation supervision.",
+      "caption": {
+        "en": "Boundary-aware refinement: cross-attention maps from multiple diffusion timesteps are aggregated and sharpened using gradients from the latent space to produce segmentation masks without any segmentation supervision.",
+        "zh-TW": "Boundary-aware refinement：聚合多個 diffusion timestep 的 cross-attention 圖，並以潛在空間的梯度進行銳化，在完全無分割監督的情況下產生分割遮罩。"
+      },
       "renderedPath": "figures/2605.09876.png"
     }
   },
@@ -93,14 +157,23 @@
       "authorInstitutionReputation": 8,
       "total": 63
     },
-    "summary": "Self-supervised geometric consistency loss for sparse-view 3D reconstruction, with reported PSNR improvements over recent NeRF and Gaussian-Splatting baselines on DTU and BlendedMVS.",
-    "recommendationReason": "Reasonable contribution to sparse-view reconstruction with CVPR venue credibility. Stage-1 score did not make the top-15 cutoff for full-PDF analysis.",
+    "summary": {
+      "en": "Self-supervised geometric consistency loss for sparse-view 3D reconstruction, with reported PSNR improvements over recent NeRF and Gaussian-Splatting baselines on DTU and BlendedMVS.",
+      "zh-TW": "針對 sparse-view 3D 重建提出自監督幾何一致性損失，於 DTU 與 BlendedMVS 上 PSNR 優於近期 NeRF 與 Gaussian-Splatting baseline。"
+    },
+    "recommendationReason": {
+      "en": "Reasonable contribution to sparse-view reconstruction with CVPR venue credibility. Stage-1 score did not make the top-15 cutoff for full-PDF analysis.",
+      "zh-TW": "在 sparse-view 重建方向上有合理貢獻，加上 CVPR 級別場域的可信度。Stage-1 分數未進入前 15 名，故未進行完整 PDF 分析。"
+    },
     "keyContribution": null,
     "methodologySummary": null,
     "strengths": null,
     "weaknesses": null,
     "tags": ["3d-reconstruction", "self-supervised", "sparse-view", "novel-view-synthesis"],
-    "rankingExplanation": "Stage-1 abstract-only assessment. Promising direction with moderate venue credibility; full-PDF analysis not attempted because Stage-1 score fell outside the top-15 cutoff.",
+    "rankingExplanation": {
+      "en": "Stage-1 abstract-only assessment. Promising direction with moderate venue credibility; full-PDF analysis not attempted because Stage-1 score fell outside the top-15 cutoff.",
+      "zh-TW": "Stage-1 僅依摘要評估。研究方向具潛力且場域可信度中等；因 Stage-1 分數未進入前 15 名，未進行完整 PDF 分析。"
+    },
     "recommendationDecision": "STORE_ONLY",
     "pdfAnalysisStatus": null,
     "tableFigureAnalysis": null

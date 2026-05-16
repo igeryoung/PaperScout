@@ -39,8 +39,8 @@ npm test
 1. Click **Generate Today's Recommendations**.
 2. Sources collect ~30 candidates → deduplicate → persist all 30.
 3. Stage 1 (Haiku): screen all 30 abstracts, produce 100-pt scores.
-4. Stage 2 (Sonnet): full-PDF analysis on top 15 (native Claude PDF input).
-5. Rank, mark top-10 `is_recommended`. UI shows the ranked list.
+4. Stage 2 (Sonnet): full-PDF analysis on top 15 (native Claude PDF input). Every narrative field (summary, methodology, strengths/weaknesses, ranking note, figure caption, …) is emitted bilingually as `{ en, "zh-TW" }`.
+5. Rank, mark top-10 `is_recommended`. UI shows the ranked list with a header locale switcher (English / 繁體中文).
 6. User rates 1–5 stars + optional comment.
 
 ## Known limitations (V1)

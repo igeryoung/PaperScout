@@ -55,6 +55,17 @@ When the schema or the samples change, *all three roles update together* (schema
 
 Ingest validation failures exit non-zero with a path-to-error message. Skill failures are visible in the user's Claude Code session — no app-level error surface for them.
 
+### Internationalization (i18n)
+
+The UI supports `en` and `zh-TW` (Traditional Chinese, Taiwan). Default locale is `zh-TW`.
+
+- **Locale resolution** — `src/lib/locale.ts:getLocale(searchParams?)` reads `searchParams.locale` first, then the `locale` cookie, then falls back to `DEFAULT_LOCALE`. `cookies()` is called via `next/headers`, so any caller using it is a Server Component / Route Handler.
+- **Switcher** — `src/components/locale-switcher.tsx` (the only Client Component in the chrome) POSTs to `/api/locale`, which sets the cookie and triggers `router.refresh()`. No path-prefix routing; URLs stay locale-free.
+- **Evaluation text is bilingual on disk and in DB** — narrative fields are JSONB `{ en, "zh-TW" }`. See [`doc/data-contract.md`](./data-contract.md) for the full field list and rules. Components render via `pickLocalized(value, locale)` (and `pickLocalizedList` for arrays), which falls back to the other locale if the requested one is missing — important because legacy rows have `zh-TW: null` until re-evaluated.
+- **Static UI strings live in catalogs** — `src/i18n/{en,zh-TW}.ts` (shape derived from `en.ts` via `Messages = typeof messages`). `getMessages(locale)` returns the catalog. Components accept `messages: Messages` as a prop rather than calling `getMessages` themselves — keeps them locale-pure.
+- **`<html lang>` and metadata** — `src/app/layout.tsx` reads the cookie (no searchParams) to set `lang` and `generateMetadata`. The `?locale=` URL override therefore affects the page body but not the `lang` attribute.
+- **Tags stay English-only** — `tags[]` is a search/filter index, not user-facing prose.
+
 ## Implementation principles
 
 ### Structured errors and logs

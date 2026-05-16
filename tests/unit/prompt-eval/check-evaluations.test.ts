@@ -38,19 +38,22 @@ const validScores = {
   total: 74,
 };
 
+const L = (en: string) => ({ en, 'zh-TW': en });
+const LL = (en: string[]) => ({ en, 'zh-TW': [...en] });
+
 function makeEvaluation(joinKey: { source: string; sourcePaperId: string }, overrides: Record<string, unknown> = {}) {
   return {
     joinKey,
     evaluationStage: 'FULL_PDF',
     scores: { ...validScores },
-    summary: 'summary',
-    recommendationReason: 'reason',
-    keyContribution: 'kc',
-    methodologySummary: 'ms',
-    strengths: ['s1'],
-    weaknesses: ['w1'],
+    summary: L('summary'),
+    recommendationReason: L('reason'),
+    keyContribution: L('kc'),
+    methodologySummary: L('ms'),
+    strengths: LL(['s1']),
+    weaknesses: LL(['w1']),
     tags: ['tag'],
-    rankingExplanation: 're',
+    rankingExplanation: L('re'),
     recommendationDecision: 'RECOMMEND',
     pdfAnalysisStatus: 'SUCCESS',
     tableFigureAnalysis: null,

@@ -5,25 +5,27 @@ import { ScoreBreakdown } from '@/components/score-breakdown';
 import { Separator } from '@/components/ui/separator';
 import type { PaperWithDetail } from '@/server/repos/papers';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
-import { formatAuthors, formatDate, stringsFromJson } from '@/lib/format';
+import { formatAuthors, formatDate } from '@/lib/format';
+import { pickLocalized, pickLocalizedList, type Locale } from '@/lib/locale';
+import type { Messages } from '@/i18n';
 
 interface PaperDetailProps {
   paper: PaperWithDetail;
+  locale: Locale;
+  messages: Messages;
 }
 
-const SOURCE_LABEL: Record<PaperWithDetail['primarySource'], string> = {
-  ARXIV: 'arXiv',
-  OPENREVIEW: 'OpenReview',
-  HUGGINGFACE: 'Hugging Face',
-};
-
-const STAGE_LABEL: Record<PaperEvaluation['evaluationStage'], string> = {
-  ABSTRACT_SCREENING: 'Abstract screening',
-  FULL_PDF: 'Full PDF analysis',
-};
-
-function StageBadge({ evaluation }: { evaluation: PaperEvaluation }) {
-  const stage = STAGE_LABEL[evaluation.evaluationStage];
+function StageBadge({
+  evaluation,
+  messages,
+}: {
+  evaluation: PaperEvaluation;
+  messages: Messages;
+}) {
+  const stage =
+    evaluation.evaluationStage === 'FULL_PDF'
+      ? messages.paperDetail.stageFullPdf
+      : messages.paperDetail.stageAbstract;
   if (evaluation.evaluationStage === 'FULL_PDF') {
     const status = evaluation.pdfAnalysisStatus ?? 'UNAVAILABLE';
     return (
@@ -39,24 +41,32 @@ function StageBadge({ evaluation }: { evaluation: PaperEvaluation }) {
   );
 }
 
-export function PaperDetail({ paper }: PaperDetailProps) {
+export function PaperDetail({ paper, locale, messages }: PaperDetailProps) {
   const evaluation = selectBestEvaluation(paper.evaluations);
-  const strengths = evaluation ? stringsFromJson(evaluation.strengths) : [];
-  const weaknesses = evaluation ? stringsFromJson(evaluation.weaknesses) : [];
+  const summary = pickLocalized(evaluation?.summary, locale);
+  const reason = pickLocalized(evaluation?.recommendationReason, locale);
+  const rankingExplanation = pickLocalized(evaluation?.rankingExplanation, locale);
+  const keyContribution = pickLocalized(evaluation?.keyContribution, locale);
+  const methodologySummary = pickLocalized(evaluation?.methodologySummary, locale);
+  const strengths = evaluation ? pickLocalizedList(evaluation.strengths, locale) : [];
+  const weaknesses = evaluation ? pickLocalizedList(evaluation.weaknesses, locale) : [];
+  const figureCaption = pickLocalized(paper.figure?.caption, locale);
+  const sourceLabels = messages.common.sources;
+  const t = messages.paperDetail;
 
   return (
     <article className="space-y-8">
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{SOURCE_LABEL[paper.primarySource]}</Badge>
-          {evaluation ? <StageBadge evaluation={evaluation} /> : null}
+          <Badge variant="secondary">{sourceLabels[paper.primarySource]}</Badge>
+          {evaluation ? <StageBadge evaluation={evaluation} messages={messages} /> : null}
           {evaluation?.recommendationDecision ? (
             <Badge
               variant={
                 evaluation.recommendationDecision === 'RECOMMEND' ? 'default' : 'outline'
               }
             >
-              {evaluation.recommendationDecision}
+              {messages.common.decisions[evaluation.recommendationDecision]}
             </Badge>
           ) : null}
         </div>
@@ -64,7 +74,7 @@ export function PaperDetail({ paper }: PaperDetailProps) {
         <p className="text-muted-foreground text-sm">
           {formatAuthors(paper.authors)}
           <span className="mx-2">·</span>
-          Published {formatDate(paper.publishedDate)}
+          {t.publishedPrefix} {formatDate(paper.publishedDate)}
           {paper.venue ? (
             <>
               <span className="mx-2">·</span>
@@ -91,20 +101,20 @@ export function PaperDetail({ paper }: PaperDetailProps) {
             src={`/api/papers/${paper.id}/figure`}
             alt={
               paper.figure.figureLabel
-                ? `${paper.figure.figureLabel}${paper.figure.caption ? `: ${paper.figure.caption}` : ''}`
-                : 'Highlight figure'
+                ? `${paper.figure.figureLabel}${figureCaption ? `: ${figureCaption}` : ''}`
+                : t.figureFallback
             }
             loading="eager"
             decoding="async"
             className="bg-muted mx-auto max-h-[28rem] w-auto max-w-full rounded-md border object-contain"
           />
-          {paper.figure.caption ? (
+          {figureCaption ? (
             <figcaption className="text-muted-foreground text-center text-xs leading-relaxed">
               {paper.figure.figureLabel ? (
                 <span className="font-medium">{paper.figure.figureLabel}</span>
               ) : null}
-              {paper.figure.figureLabel && paper.figure.caption ? ' · ' : ''}
-              {paper.figure.caption}
+              {paper.figure.figureLabel && figureCaption ? ' · ' : ''}
+              {figureCaption}
             </figcaption>
           ) : null}
         </figure>
@@ -112,61 +122,61 @@ export function PaperDetail({ paper }: PaperDetailProps) {
 
       {evaluation ? (
         <section className="bg-card rounded-lg border p-6">
-          <ScoreBreakdown evaluation={evaluation} />
+          <ScoreBreakdown evaluation={evaluation} messages={messages} />
         </section>
       ) : null}
 
-      {evaluation?.summary ? (
+      {summary ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide">Summary</h2>
-          <p className="leading-relaxed">{evaluation.summary}</p>
+          <h2 className="text-xs font-semibold uppercase tracking-wide">{t.summary}</h2>
+          <p className="leading-relaxed">{summary}</p>
         </section>
       ) : null}
 
-      {evaluation?.recommendationReason ? (
+      {reason ? (
         <section className="space-y-2">
           <h2 className="text-xs font-semibold uppercase tracking-wide">
-            Why recommended
+            {t.whyRecommended}
           </h2>
           <p className="text-muted-foreground border-l-2 pl-3 italic leading-relaxed">
-            {evaluation.recommendationReason}
+            {reason}
           </p>
         </section>
       ) : null}
 
-      {evaluation?.rankingExplanation ? (
+      {rankingExplanation ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide">Ranking note</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide">{t.rankingNote}</h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            {evaluation.rankingExplanation}
+            {rankingExplanation}
           </p>
         </section>
       ) : null}
 
       {paper.abstract ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide">Abstract</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide">{t.abstract}</h2>
           <p className="leading-relaxed">{paper.abstract}</p>
         </section>
       ) : null}
 
-      {evaluation?.keyContribution ? (
+      {keyContribution ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide">Key contribution</h2>
-          <p className="leading-relaxed">{evaluation.keyContribution}</p>
+          <h2 className="text-xs font-semibold uppercase tracking-wide">{t.keyContribution}</h2>
+          <p className="leading-relaxed">{keyContribution}</p>
         </section>
       ) : null}
 
-      {evaluation?.methodologySummary ? (
+      {methodologySummary ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide">Methodology</h2>
-          <p className="leading-relaxed">{evaluation.methodologySummary}</p>
+          <h2 className="text-xs font-semibold uppercase tracking-wide">{t.methodology}</h2>
+          <p className="leading-relaxed">{methodologySummary}</p>
         </section>
       ) : null}
 
       {strengths.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide">Strengths</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide">{t.strengths}</h2>
           <ul className="list-disc space-y-1 pl-5 leading-relaxed">
             {strengths.map((s, i) => (
               <li key={i}>{s}</li>
@@ -177,7 +187,7 @@ export function PaperDetail({ paper }: PaperDetailProps) {
 
       {weaknesses.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide">Weaknesses</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide">{t.weaknesses}</h2>
           <ul className="list-disc space-y-1 pl-5 leading-relaxed">
             {weaknesses.map((w, i) => (
               <li key={i}>{w}</li>
@@ -189,7 +199,7 @@ export function PaperDetail({ paper }: PaperDetailProps) {
       <Separator />
 
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide">Links</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide">{t.links}</h2>
         <ul className="space-y-1.5 text-sm">
           {paper.pdfUrl ? (
             <li>
@@ -199,7 +209,7 @@ export function PaperDetail({ paper }: PaperDetailProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                PDF ↗
+                {messages.common.pdf}
               </a>
             </li>
           ) : null}
@@ -211,7 +221,7 @@ export function PaperDetail({ paper }: PaperDetailProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                {SOURCE_LABEL[s.source]}: {s.sourceUrl} ↗
+                {sourceLabels[s.source]}: {s.sourceUrl} ↗
               </a>
             </li>
           ))}
@@ -223,7 +233,7 @@ export function PaperDetail({ paper }: PaperDetailProps) {
                 target="_blank"
                 rel="noreferrer"
               >
-                Code: {c.codeUrl} ↗
+                {messages.common.code}: {c.codeUrl}
               </a>
             </li>
           ))}

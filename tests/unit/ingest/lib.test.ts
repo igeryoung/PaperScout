@@ -28,19 +28,22 @@ function mkScores(over: Partial<Evaluation['scores']> = {}): Evaluation['scores'
   };
 }
 
+const L = (en: string) => ({ en, 'zh-TW': en });
+const LL = (en: string[]) => ({ en, 'zh-TW': en });
+
 function mkEval(over: Partial<Evaluation> = {}): Evaluation {
   return {
     joinKey: { source: 'ARXIV', sourcePaperId: '0000.0000' },
     evaluationStage: 'ABSTRACT_SCREENING',
     scores: mkScores(),
-    summary: 'summary',
-    recommendationReason: 'reason',
+    summary: L('summary'),
+    recommendationReason: L('reason'),
     keyContribution: null,
     methodologySummary: null,
     strengths: null,
     weaknesses: null,
     tags: [],
-    rankingExplanation: 'expl',
+    rankingExplanation: L('expl'),
     recommendationDecision: 'STORE_ONLY',
     pdfAnalysisStatus: null,
     tableFigureAnalysis: null,
@@ -74,10 +77,10 @@ describe('chooseRankingScore', () => {
       evaluationStage: 'FULL_PDF',
       scores: mkScores({ novelty: 20 }),
       pdfAnalysisStatus: 'SUCCESS',
-      keyContribution: 'kc',
-      methodologySummary: 'ms',
-      strengths: ['s'],
-      weaknesses: ['w'],
+      keyContribution: L('kc'),
+      methodologySummary: L('ms'),
+      strengths: LL(['s']),
+      weaknesses: LL(['w']),
     });
     const got = chooseRankingScore(mkPaperEval('p1', [abstract, full]));
     expect(got?.sourceEval).toBe(full);

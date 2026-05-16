@@ -160,7 +160,9 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ui-repos integration', () => {
       const fig = r.paper.figure!;
       expect(fig.figureLabel).toMatch(/^Figure \d+$/);
       expect(fig.pageNumber).toBeGreaterThan(0);
-      expect(fig.caption?.length ?? 0).toBeGreaterThan(0);
+      const caption = fig.caption as { en?: string; 'zh-TW'?: string } | null;
+      expect(caption?.en?.length ?? 0).toBeGreaterThan(0);
+      expect(caption?.['zh-TW']?.length ?? 0).toBeGreaterThan(0);
       expect(fig.mimeType).toBe('image/png');
       // imageBytes is intentionally excluded from list queries — keys present
       // on the metadata-only select must NOT include `imageBytes`.

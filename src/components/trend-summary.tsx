@@ -1,7 +1,9 @@
 import type { RunSummary } from '@/server/repos/trends';
+import type { Messages } from '@/i18n';
 
 interface TrendSummaryProps {
   summary: RunSummary;
+  messages: Messages;
 }
 
 interface StatProps {
@@ -20,23 +22,25 @@ function Stat({ label, value, hint }: StatProps) {
   );
 }
 
-export function TrendSummary({ summary }: TrendSummaryProps) {
+export function TrendSummary({ summary, messages }: TrendSummaryProps) {
+  const t = messages.trendSummary;
+  const sourceLabels = messages.common.sources;
   const topSource = summary.sources[0];
   const topSourceLabel = topSource
-    ? `${topSource.source} · ${topSource.count}`
-    : '—';
+    ? `${sourceLabels[topSource.source]} · ${topSource.count}`
+    : messages.common.dash;
   const median =
-    summary.scoreStats !== null ? `${summary.scoreStats.median} / 100` : '—';
+    summary.scoreStats !== null ? `${summary.scoreStats.median} / 100` : messages.common.dash;
   const pdf = summary.pdfStatus;
-  const pdfHint = `${pdf.success} ok · ${pdf.failed + pdf.unavailable} unavail · ${pdf.none} abstract`;
+  const pdfHint = t.pdfHint(pdf.success, pdf.failed + pdf.unavailable, pdf.none);
 
   return (
     <div className="flex flex-wrap gap-3">
-      <Stat label="Papers" value={summary.totalPapers} />
-      <Stat label="Recommended" value={summary.recommendedCount} />
-      <Stat label="Median score" value={median} />
-      <Stat label="PDF analysis" value={pdf.success} hint={pdfHint} />
-      <Stat label="Top source" value={topSourceLabel} />
+      <Stat label={t.papers} value={summary.totalPapers} />
+      <Stat label={t.recommended} value={summary.recommendedCount} />
+      <Stat label={t.medianScore} value={median} />
+      <Stat label={t.pdfAnalysis} value={pdf.success} hint={pdfHint} />
+      <Stat label={t.topSource} value={topSourceLabel} />
     </div>
   );
 }

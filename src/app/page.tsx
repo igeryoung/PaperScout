@@ -23,14 +23,10 @@ import {
 import { trendsRepo, type RunSummary, type TagCount } from '@/server/repos/trends';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { formatAuthors, formatDate } from '@/lib/format';
+import { getLocale, pickLocalized, type Locale } from '@/lib/locale';
+import { getMessages, type Messages } from '@/i18n';
 
 export const dynamic = 'force-dynamic';
-
-const SOURCE_LABEL: Record<PaperSource['source'], string> = {
-  ARXIV: 'arXiv',
-  OPENREVIEW: 'OpenReview',
-  HUGGINGFACE: 'Hugging Face',
-};
 
 const TOPIC_FALLBACKS = [
   'Computer Vision',
@@ -44,7 +40,7 @@ const TOPIC_FALLBACKS = [
 const HOME_FEED_PAGE_SIZE = 10;
 
 interface HomePageProps {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; locale?: string }>;
 }
 
 function parsePageParam(value: string | undefined): number {
@@ -53,7 +49,8 @@ function parsePageParam(value: string | undefined): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
-function EmptyState() {
+function EmptyState({ messages }: { messages: Messages }) {
+  const t = messages.home;
   return (
     <main className="mx-auto max-w-[1760px] px-4 py-6 sm:px-6 lg:px-12">
       <section className="grid min-h-[420px] place-items-center rounded-[10px] border border-dashed border-[#d9deea] bg-white px-6 py-12 text-center shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
@@ -62,21 +59,18 @@ function EmptyState() {
             <Sparkles aria-hidden className="h-7 w-7" />
           </div>
           <h1 className="text-3xl font-semibold tracking-normal text-[#111827]">
-            尚未匯入 agent 更新
+            {t.emptyTitle}
           </h1>
-          <p className="mt-3 text-sm leading-6 text-[#667085]">
-            PaperScout 目前是唯讀檢視器。請先在本機執行 collection 與
-            evaluation skills，再將 run 目錄匯入資料庫。
-          </p>
+          <p className="mt-3 text-sm leading-6 text-[#667085]">{t.emptyBody}</p>
           <pre className="mx-auto mt-6 max-w-xl overflow-x-auto rounded-lg bg-[#f2f4f8] p-4 text-left font-mono text-xs text-[#344054]">
-            {`# 1. Collect candidates\n#    Claude Code -> /collect-papers\n# 2. Evaluate the top 15\n#    Claude Code -> /evaluate-papers\n# 3. Ingest into the DB\nnpm run ingest data/runs/<YYYY-MM-DD-HHMM>`}
+            {t.emptyCommands}
           </pre>
           <p className="mt-6 text-sm text-[#667085]">
-            你仍可前往{' '}
+            {t.emptyLibraryHint}{' '}
             <Link href="/library" className="font-semibold text-[#392ee5] underline">
-              論文庫
+              {t.emptyLibraryLink}
             </Link>{' '}
-            瀏覽已儲存的論文。
+            {t.emptyLibraryAfter}
           </p>
         </div>
       </section>
@@ -127,11 +121,11 @@ function HeroArt() {
   );
 }
 
-function TopicChips({ tags }: { tags: TagCount[] }) {
+function TopicChips({ tags, label }: { tags: TagCount[]; label: string }) {
   const topics = tags.length > 0 ? tags.map((t) => t.tag) : TOPIC_FALLBACKS;
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[#5f6b7a]">
-      <span>熱門主題：</span>
+      <span>{label}</span>
       {topics.slice(0, 7).map((topic) => (
         <Link
           key={topic}
@@ -145,7 +139,8 @@ function TopicChips({ tags }: { tags: TagCount[] }) {
   );
 }
 
-function Hero({ summary }: { summary: RunSummary }) {
+function Hero({ summary, messages }: { summary: RunSummary; messages: Messages }) {
+  const t = messages.home;
   return (
     <section
       className="grid min-h-[216px] items-center gap-10 rounded-[10px] bg-[radial-gradient(circle_at_68%_30%,rgba(151,124,255,0.22),transparent_22%),linear-gradient(100deg,#edf7ff_0%,#f8f0ff_51%,#eaf4ff_100%)] px-5 py-6 shadow-[0_18px_50px_rgba(31,42,68,0.08)] md:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:px-24 xl:px-44"
@@ -156,40 +151,43 @@ function Hero({ summary }: { summary: RunSummary }) {
           id="hero-title"
           className="mb-3.5 text-[29px] leading-[1.12] font-extrabold tracking-normal text-[#111827] md:text-[34px]"
         >
-          更快找到值得閱讀的論文。
+          {t.heroTitle}
         </h1>
-        <p className="mb-5 text-sm text-[#273142]">
-          AI 會依據最新匯入的研究資料，摘要、評分並標註最相關的論文。
-        </p>
+        <p className="mb-5 text-sm text-[#273142]">{t.heroSubtitle}</p>
         <label className="grid min-h-[54px] grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-[9px] border border-[#d9deea] bg-white pr-2 pl-5 shadow-[0_12px_26px_rgba(45,52,88,0.14)] max-sm:grid-cols-[auto_1fr] max-sm:p-3">
           <Sparkles aria-hidden className="h-5 w-5 text-[#5b4df1]" />
           <input
             type="text"
-            aria-label="輸入研究興趣"
-            placeholder="輸入你感興趣的研究主題，例如：LLM agents、RAG、diffusion models..."
+            aria-label={t.heroSearchAria}
+            placeholder={t.heroSearchPlaceholder}
             className="min-w-0 border-0 bg-transparent text-[15px] text-[#475467] outline-none placeholder:text-[#98a2b3]"
           />
           <button
             type="button"
             disabled
-            aria-label="送出研究興趣"
-            title="V1 目前不儲存個人化研究興趣"
+            aria-label={t.heroSubmitAria}
+            title={t.heroSubmitTitle}
             className="grid h-[38px] w-[38px] cursor-not-allowed place-items-center rounded-[7px] bg-gradient-to-br from-[#7868ff] to-[#4437e7] text-white shadow-[0_10px_24px_rgba(91,77,241,0.28)] max-sm:col-span-2 max-sm:w-full"
           >
             <ArrowRight aria-hidden className="h-5 w-5" />
           </button>
         </label>
-        <TopicChips tags={summary.topTags} />
+        <TopicChips tags={summary.topTags} label={t.heroTopicsLabel} />
       </div>
       <HeroArt />
     </section>
   );
 }
 
-function FeedToolbar() {
+function FeedToolbar({ messages }: { messages: Messages }) {
+  const t = messages.home;
   return (
     <div className="flex items-center justify-between gap-4 border-b border-[#e5e9f3] px-5 pt-2.5 max-lg:flex-col max-lg:items-stretch">
-      <div className="flex min-w-0 gap-6 overflow-x-auto" role="tablist" aria-label="論文列表篩選">
+      <div
+        className="flex min-w-0 gap-6 overflow-x-auto"
+        role="tablist"
+        aria-label={t.feedTablistAria}
+      >
         <button
           type="button"
           className="inline-flex items-center gap-2 border-b-[3px] border-[#5b4df1] pb-3 text-sm font-extrabold whitespace-nowrap text-[#392ee5]"
@@ -197,12 +195,12 @@ function FeedToolbar() {
           aria-selected="true"
         >
           <Star aria-hidden className="h-4 w-4" />
-          為你推薦
+          {t.feedTabRecommended}
         </button>
         {[
-          { label: '熱門趨勢', icon: TrendingUp },
-          { label: '最新發佈', icon: Shield },
-          { label: '高分推薦', icon: BarChart3 },
+          { label: t.feedTabTrending, icon: TrendingUp },
+          { label: t.feedTabLatest, icon: Shield },
+          { label: t.feedTabTop, icon: BarChart3 },
         ].map(({ label, icon: Icon }) => (
           <button
             key={label}
@@ -217,8 +215,8 @@ function FeedToolbar() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3 pb-2.5 max-sm:flex-wrap" aria-label="列表控制">
-        {['領域', '時間', '排序依據：AI 評分'].map((label) => (
+      <div className="flex items-center gap-3 pb-2.5 max-sm:flex-wrap" aria-label={t.feedControlsAria}>
+        {[t.feedFilterDomain, t.feedFilterTime, t.feedFilterSort].map((label) => (
           <select
             key={label}
             aria-label={label}
@@ -228,10 +226,10 @@ function FeedToolbar() {
             <option>{label}</option>
           </select>
         ))}
-        <div className="flex" aria-label="檢視模式">
+        <div className="flex" aria-label={t.feedViewAria}>
           <button
             type="button"
-            aria-label="卡片檢視"
+            aria-label={t.feedViewCard}
             className="grid h-9 w-[38px] place-items-center rounded-l-lg border border-[#d7deea] bg-[#ebe9ff] text-[#5b4df1]"
           >
             <Grid2X2 aria-hidden className="h-4 w-4" />
@@ -239,7 +237,7 @@ function FeedToolbar() {
           <button
             type="button"
             disabled
-            aria-label="列表檢視"
+            aria-label={t.feedViewList}
             className="-ml-px grid h-9 w-[38px] cursor-not-allowed place-items-center rounded-r-lg border border-[#d7deea] bg-white text-[#344054] opacity-80"
           >
             <List aria-hidden className="h-4 w-4" />
@@ -254,11 +252,17 @@ function findSourceLink(paper: RunResultWithDetail['paper'], source: PaperSource
   return paper.sources.find((s) => s.source === source)?.sourceUrl ?? null;
 }
 
-function ScoreRing({ evaluation }: { evaluation: PaperEvaluation | null }) {
+function ScoreRing({
+  evaluation,
+  messages,
+}: {
+  evaluation: PaperEvaluation | null;
+  messages: Messages;
+}) {
   if (!evaluation) {
     return (
       <div className="grid h-16 w-16 place-items-center rounded-full bg-[#eef2f8] text-center text-xs text-[#667085]">
-        N/A
+        {messages.home.cardScoreNa}
       </div>
     );
   }
@@ -321,10 +325,21 @@ function PlaceholderThumb({ index }: { index: number }) {
   );
 }
 
-function PaperThumb({ result, index }: { result: RunResultWithDetail; index: number }) {
+function PaperThumb({
+  result,
+  index,
+  locale,
+  messages,
+}: {
+  result: RunResultWithDetail;
+  index: number;
+  locale: Locale;
+  messages: Messages;
+}) {
   if (!result.paper.figure) return <PlaceholderThumb index={index} />;
-  const labelPart = result.paper.figure.figureLabel ?? 'Highlight figure';
-  const captionPart = result.paper.figure.caption ? `: ${result.paper.figure.caption}` : '';
+  const labelPart = result.paper.figure.figureLabel ?? messages.home.cardFigureFallback;
+  const captionText = pickLocalized(result.paper.figure.caption, locale);
+  const captionPart = captionText ? `: ${captionText}` : '';
   return (
     // eslint-disable-next-line @next/next/no-img-element -- served by the existing cache-controlled route.
     <img
@@ -340,9 +355,11 @@ function PaperThumb({ result, index }: { result: RunResultWithDetail; index: num
 function ExternalLinks({
   result,
   evaluation,
+  messages,
 }: {
   result: RunResultWithDetail;
   evaluation: PaperEvaluation | null;
+  messages: Messages;
 }) {
   const paper = result.paper;
   const arxivUrl = findSourceLink(paper, 'ARXIV');
@@ -353,10 +370,10 @@ function ExternalLinks({
 
   return (
     <div className="flex justify-between gap-4 text-[13px] font-bold text-[#392ee5]">
-      <Link href={`/papers/${paper.id}`}>查看摘要</Link>
+      <Link href={`/papers/${paper.id}`}>{messages.home.cardViewSummary}</Link>
       {firstExternal ? (
         <a href={firstExternal} target="_blank" rel="noreferrer">
-          開啟論文 ↗
+          {messages.home.cardOpenPaper}
         </a>
       ) : evaluation ? (
         <span>{evaluation.evaluationStage}</span>
@@ -368,22 +385,28 @@ function ExternalLinks({
 function HomePaperCard({
   result,
   index,
+  locale,
+  messages,
 }: {
   result: RunResultWithDetail;
   index: number;
+  locale: Locale;
+  messages: Messages;
 }) {
   const paper = result.paper;
   const evaluation = selectBestEvaluation(paper.evaluations);
   const visibleTags = paper.tags.slice(0, 5);
-  const summary = evaluation?.summary ?? '此論文已匯入 PaperScout，可點入查看來源、摘要與詳細評估。';
+  const sourceLabels = messages.common.sources;
+  const summary =
+    pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
   const reason =
-    evaluation?.recommendationReason ??
-    evaluation?.rankingExplanation ??
-    '此論文在本次 agent 評估中被標記為推薦閱讀。';
+    pickLocalized(evaluation?.recommendationReason, locale) ??
+    pickLocalized(evaluation?.rankingExplanation, locale) ??
+    messages.home.reasonFallback;
 
   return (
     <article className="grid grid-cols-1 items-start gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)_230px]">
-      <PaperThumb result={result} index={index} />
+      <PaperThumb result={result} index={index} locale={locale} messages={messages} />
 
       <div className="min-w-0">
         <h2 className="mb-2 text-lg leading-snug font-semibold tracking-normal text-[#111827]">
@@ -394,13 +417,11 @@ function HomePaperCard({
         <div className="mb-2 flex flex-wrap gap-2 text-[13px] text-[#667085]">
           <span>{formatAuthors(paper.authors, 3)}</span>
           <span>|</span>
-          <span>{SOURCE_LABEL[paper.primarySource]}</span>
+          <span>{sourceLabels[paper.primarySource]}</span>
           <span>|</span>
           <span>{formatDate(paper.publishedDate)}</span>
         </div>
-        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-[#273142]">
-          {summary}
-        </p>
+        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-[#273142]">{summary}</p>
         <div className="mb-4 flex flex-wrap gap-2">
           {visibleTags.map((tag) => (
             <Link
@@ -419,7 +440,7 @@ function HomePaperCard({
             className="inline-flex min-h-[33px] cursor-not-allowed items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] opacity-80"
           >
             <Star aria-hidden className="h-4 w-4" />
-            收藏
+            {messages.home.cardFavorite}
           </button>
           <button
             type="button"
@@ -427,44 +448,47 @@ function HomePaperCard({
             className="inline-flex min-h-[33px] cursor-not-allowed items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] opacity-80"
           >
             <Bookmark aria-hidden className="h-4 w-4" />
-            稍後閱讀
+            {messages.home.cardReadLater}
           </button>
-          <span className="text-[13px] text-[#667085]">閱讀時間：約 18 分鐘</span>
+          <span className="text-[13px] text-[#667085]">{messages.home.cardReadTime}</span>
         </div>
       </div>
 
       <div className="flex min-w-0 flex-col gap-3.5">
         <div className="flex items-center gap-4">
-          <ScoreRing evaluation={evaluation} />
-          <span className="text-[13px] whitespace-nowrap text-[#344054]">AI 評分 ⓘ</span>
+          <ScoreRing evaluation={evaluation} messages={messages} />
+          <span className="text-[13px] whitespace-nowrap text-[#344054]">
+            {messages.home.cardAiScore} ⓘ
+          </span>
         </div>
         <div className="min-h-[68px] rounded-lg bg-[#eaf8f4] px-3.5 py-3 text-sm leading-snug text-[#195b50]">
           <strong className="mb-1.5 flex items-center gap-2 text-[13px] text-[#0f9f86]">
             <Lightbulb aria-hidden className="h-4 w-4" />
-            推薦原因
+            {messages.home.cardReasonHeader}
           </strong>
           <span className="line-clamp-3">{reason}</span>
         </div>
-        <ExternalLinks result={result} evaluation={evaluation} />
+        <ExternalLinks result={result} evaluation={evaluation} messages={messages} />
       </div>
     </article>
   );
 }
 
-function HotTagsCard({ tags }: { tags: TagCount[] }) {
+function HotTagsCard({ tags, messages }: { tags: TagCount[]; messages: Messages }) {
   const visible = tags.slice(0, 8);
+  const t = messages.home;
   return (
     <section className="rounded-[10px] border border-[#e5e9f3] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-[17px] font-semibold tracking-normal text-[#111827]">
-          熱門標籤
+          {t.hotTagsTitle}
         </h3>
         <Link href="/library" className="text-xs font-bold text-[#5b4df1]">
-          查看全部
+          {t.hotTagsLink}
         </Link>
       </div>
       {visible.length === 0 ? (
-        <p className="text-sm text-[#667085]">尚無標籤。</p>
+        <p className="text-sm text-[#667085]">{t.hotTagsEmpty}</p>
       ) : (
         <div className="flex flex-wrap gap-2.5">
           {visible.map((tag) => (
@@ -485,17 +509,21 @@ function HotTagsCard({ tags }: { tags: TagCount[] }) {
 
 function RecentRecommendationsCard({
   recommended,
+  messages,
 }: {
   recommended: RunResultWithDetail[];
+  messages: Messages;
 }) {
+  const t = messages.home;
+  const sourceLabels = messages.common.sources;
   return (
     <section className="rounded-[10px] border border-[#e5e9f3] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-[17px] font-semibold tracking-normal text-[#111827]">
-          最近推薦
+          {t.recentTitle}
         </h3>
         <Link href="/library" className="text-xs font-bold text-[#5b4df1]">
-          查看全部
+          {t.recentLink}
         </Link>
       </div>
       <div className="grid gap-4">
@@ -509,7 +537,7 @@ function RecentRecommendationsCard({
                 <Link href={`/papers/${r.paper.id}`}>{r.paper.title}</Link>
               </h4>
               <p className="text-xs text-[#667085]">
-                {SOURCE_LABEL[r.paper.primarySource]} | {formatDate(r.paper.publishedDate)}
+                {sourceLabels[r.paper.primarySource]} | {formatDate(r.paper.publishedDate)}
               </p>
             </div>
             <span className="text-[#5b4df1]">♡</span>
@@ -520,22 +548,24 @@ function RecentRecommendationsCard({
   );
 }
 
-function SourceMixCard({ summary }: { summary: RunSummary }) {
+function SourceMixCard({ summary, messages }: { summary: RunSummary; messages: Messages }) {
   const total = summary.sources.reduce((acc, source) => acc + source.count, 0);
+  const t = messages.home;
+  const sourceLabels = messages.common.sources;
   return (
     <section className="rounded-[10px] border border-[#e5e9f3] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-[17px] font-semibold tracking-normal text-[#111827]">
-          來源分布
+          {t.sourceMixTitle}
         </h3>
       </div>
       {total === 0 ? (
-        <p className="text-sm text-[#667085]">尚無來源資料。</p>
+        <p className="text-sm text-[#667085]">{t.sourceMixEmpty}</p>
       ) : (
         <ul className="grid gap-3">
           {summary.sources.map((source) => (
             <li key={source.source} className="flex items-center justify-between text-sm">
-              <span className="text-[#344054]">{SOURCE_LABEL[source.source]}</span>
+              <span className="text-[#344054]">{sourceLabels[source.source]}</span>
               <span className="font-semibold tabular-nums text-[#392ee5]">
                 {source.count} ({Math.round((source.count / total) * 100)}%)
               </span>
@@ -547,22 +577,21 @@ function SourceMixCard({ summary }: { summary: RunSummary }) {
   );
 }
 
-function PersonalCard() {
+function PersonalCard({ messages }: { messages: Messages }) {
+  const t = messages.home;
   return (
     <section className="grid grid-cols-[1fr_92px] items-center gap-4 rounded-[10px] border border-[#e5e9f3] bg-[radial-gradient(circle_at_88%_30%,rgba(124,101,255,0.14),transparent_26%),#fff] px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)] max-sm:grid-cols-1">
       <div>
         <h3 className="mb-2 text-[17px] font-semibold tracking-normal text-[#111827]">
-          個人化推薦設定
+          {t.personalTitle}
         </h3>
-        <p className="mb-4 text-[13px] text-[#667085]">
-          讓 AI 更了解你，獲得更精準的推薦
-        </p>
+        <p className="mb-4 text-[13px] text-[#667085]">{t.personalBody}</p>
         <button
           type="button"
           disabled
           className="inline-flex min-h-[38px] cursor-not-allowed items-center rounded-[7px] bg-gradient-to-br from-[#7868ff] to-[#4437e7] px-5 text-sm font-extrabold text-white opacity-85"
         >
-          設定我的研究興趣
+          {t.personalCta}
         </button>
       </div>
       <div
@@ -577,16 +606,17 @@ function Pagination({
   currentPage,
   totalPages,
   totalItems,
+  messages,
 }: {
   currentPage: number;
   totalPages: number;
   totalItems: number;
+  messages: Messages;
 }) {
+  const t = messages.home;
   if (totalPages <= 1) {
     return (
-      <p className="text-center text-sm text-[#667085]">
-        已顯示全部 {totalItems} 篇論文
-      </p>
+      <p className="text-center text-sm text-[#667085]">{t.paginationAllShown(totalItems)}</p>
     );
   }
 
@@ -596,22 +626,20 @@ function Pagination({
   return (
     <nav
       className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5e9f3] pt-4 text-sm"
-      aria-label="論文分頁"
+      aria-label={t.paginationAria}
     >
-      <p className="text-[#667085]">
-        第 {currentPage} / {totalPages} 頁 · 共 {totalItems} 篇論文
-      </p>
+      <p className="text-[#667085]">{t.paginationStatus(currentPage, totalPages, totalItems)}</p>
       <div className="flex flex-wrap items-center gap-2">
         {currentPage > 1 ? (
           <Link
             href={pageHref(currentPage - 1)}
             className="inline-flex min-h-9 items-center rounded-lg border border-[#d7deea] bg-white px-3 font-semibold text-[#344054] hover:text-[#392ee5]"
           >
-            上一頁
+            {t.paginationPrev}
           </Link>
         ) : (
           <span className="inline-flex min-h-9 cursor-not-allowed items-center rounded-lg border border-[#d7deea] bg-[#f2f4f8] px-3 font-semibold text-[#98a2b3]">
-            上一頁
+            {t.paginationPrev}
           </span>
         )}
 
@@ -635,11 +663,11 @@ function Pagination({
             href={pageHref(currentPage + 1)}
             className="inline-flex min-h-9 items-center rounded-lg border border-[#d7deea] bg-white px-3 font-semibold text-[#344054] hover:text-[#392ee5]"
           >
-            下一頁
+            {t.paginationNext}
           </Link>
         ) : (
           <span className="inline-flex min-h-9 cursor-not-allowed items-center rounded-lg border border-[#d7deea] bg-[#f2f4f8] px-3 font-semibold text-[#98a2b3]">
-            下一頁
+            {t.paginationNext}
           </span>
         )}
       </div>
@@ -648,11 +676,15 @@ function Pagination({
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const { page } = await searchParams;
-  const run = await runsRepo.latestCompletedForDisplay();
-  if (!run) return <EmptyState />;
+  const sp = await searchParams;
+  const [run, locale] = await Promise.all([
+    runsRepo.latestCompletedForDisplay(),
+    getLocale(sp),
+  ]);
+  const messages = getMessages(locale);
+  if (!run) return <EmptyState messages={messages} />;
 
-  const requestedPage = parsePageParam(page);
+  const requestedPage = parsePageParam(sp.page);
 
   const [summary, recommended, totalResults] = await Promise.all([
     trendsRepo.getRunSummary(run.id),
@@ -669,53 +701,63 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
-      <Hero summary={summary} />
+      <Hero summary={summary} messages={messages} />
 
       <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
         <section
           className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
           aria-labelledby="feed-title"
         >
-          <FeedToolbar />
+          <FeedToolbar messages={messages} />
           <div className="sr-only" id="feed-title">
-            推薦論文
+            {messages.home.feedTitleSr}
           </div>
           <div className="grid gap-3.5 px-5 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#667085]">
               <span>
-                最新 agent 更新：{formatDate(run.completedAt ?? run.createdAt)} · 已收集{' '}
-                {summary.totalPapers} 篇 · 推薦 {summary.recommendedCount} 篇 · 目前顯示第{' '}
-                {currentPage} 頁
+                {messages.home.runMeta(
+                  formatDate(run.completedAt ?? run.createdAt),
+                  summary.totalPapers,
+                  summary.recommendedCount,
+                  currentPage,
+                )}
               </span>
               <Link href={`/runs/${run.id}`} className="font-semibold text-[#392ee5]">
-                查看完整 run →
+                {messages.home.viewFullRun}
               </Link>
             </div>
 
             {results.length === 0 ? (
               <div className="rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-6 text-sm text-[#667085]">
-                本次 run 尚未產生可顯示的論文。
+                {messages.home.feedNoResults}
               </div>
             ) : (
               results.map((result, index) => (
-                <HomePaperCard key={result.id} result={result} index={index} />
+                <HomePaperCard
+                  key={result.id}
+                  result={result}
+                  index={index}
+                  locale={locale}
+                  messages={messages}
+                />
               ))
             )}
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               totalItems={totalResults}
+              messages={messages}
             />
           </div>
         </section>
 
-        <aside className="grid content-start gap-3" aria-label="輔助資訊">
-          <HotTagsCard tags={summary.topTags} />
+        <aside className="grid content-start gap-3" aria-label={messages.home.sidebarAria}>
+          <HotTagsCard tags={summary.topTags} messages={messages} />
           {recommended.length > 0 ? (
-            <RecentRecommendationsCard recommended={recommended} />
+            <RecentRecommendationsCard recommended={recommended} messages={messages} />
           ) : null}
-          <SourceMixCard summary={summary} />
-          <PersonalCard />
+          <SourceMixCard summary={summary} messages={messages} />
+          <PersonalCard messages={messages} />
         </aside>
       </div>
     </main>

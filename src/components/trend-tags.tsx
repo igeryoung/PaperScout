@@ -1,15 +1,17 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import type { TagCount } from '@/server/repos/trends';
+import type { Messages } from '@/i18n';
 
 interface TrendTagsProps {
   tags: TagCount[];
+  messages: Messages;
   cap?: number;
 }
 
-export function TrendTags({ tags, cap = 12 }: TrendTagsProps) {
+export function TrendTags({ tags, messages, cap = 12 }: TrendTagsProps) {
   if (tags.length === 0) {
-    return <p className="text-muted-foreground text-sm">No tags yet.</p>;
+    return <p className="text-muted-foreground text-sm">{messages.trendTags.empty}</p>;
   }
   const visible = tags.slice(0, cap);
   const hidden = tags.length - visible.length;
@@ -27,9 +29,7 @@ export function TrendTags({ tags, cap = 12 }: TrendTagsProps) {
           </Badge>
         </Link>
       ))}
-      {hidden > 0 ? (
-        <Badge variant="outline">+{hidden} more</Badge>
-      ) : null}
+      {hidden > 0 ? <Badge variant="outline">{messages.trendTags.more(hidden)}</Badge> : null}
     </div>
   );
 }

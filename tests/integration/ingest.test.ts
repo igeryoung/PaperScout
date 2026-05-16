@@ -92,7 +92,9 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
       expect(fig.imageBytes.length).toBeGreaterThan(0);
       expect(fig.figureLabel).toMatch(/^Figure \d+$/);
       expect(fig.pageNumber).toBeGreaterThan(0);
-      expect(fig.caption?.length ?? 0).toBeGreaterThan(0);
+      const caption = fig.caption as { en?: string; 'zh-TW'?: string } | null;
+      expect(caption?.en?.length ?? 0).toBeGreaterThan(0);
+      expect(caption?.['zh-TW']?.length ?? 0).toBeGreaterThan(0);
     }
 
     // The figureLabel sort puts "Figure 1" before "Figure 2".
@@ -230,14 +232,14 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
           authorInstitutionReputation: 10,
           total: 62,
         },
-        summary: 's',
-        recommendationReason: 'r',
+        summary: { en: 's', 'zh-TW': 's' },
+        recommendationReason: { en: 'r', 'zh-TW': 'r' },
         keyContribution: null,
         methodologySummary: null,
         strengths: null,
         weaknesses: null,
         tags: ['x'],
-        rankingExplanation: 'e',
+        rankingExplanation: { en: 'e', 'zh-TW': 'e' },
         recommendationDecision: 'RECOMMEND',
         pdfAnalysisStatus: null,
         tableFigureAnalysis: null,
@@ -304,14 +306,14 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
           authorInstitutionReputation: 10,
           total: 50,
         },
-        summary: 's',
-        recommendationReason: 'r',
+        summary: { en: 's', 'zh-TW': 's' },
+        recommendationReason: { en: 'r', 'zh-TW': 'r' },
         keyContribution: null,
         methodologySummary: null,
         strengths: null,
         weaknesses: null,
         tags: [],
-        rankingExplanation: 'e',
+        rankingExplanation: { en: 'e', 'zh-TW': 'e' },
         recommendationDecision: 'STORE_ONLY',
         pdfAnalysisStatus: null,
         tableFigureAnalysis: null,

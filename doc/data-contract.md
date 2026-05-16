@@ -44,17 +44,44 @@ When the schema or these samples change, *all three roles update together*.
 | `scores.venueSourceCredibility` | int 0-15 | PRD §10 |
 | `scores.authorInstitutionReputation` | int 0-15 | PRD §10 |
 | `scores.total` | int 0-100 | Must equal sum of the 5 dimensions |
-| `summary` | string | 1-3 sentence summary |
-| `recommendationReason` | string | Why this paper would (or would not) be recommended; visible on the top-10 card |
-| `keyContribution` | string \| null | Only populated when `evaluationStage === FULL_PDF` |
-| `methodologySummary` | string \| null | Same |
-| `strengths` | string[] \| null | Same |
-| `weaknesses` | string[] \| null | Same |
-| `tags` | string[] | Free-form, lowercase, normalized; ingest may dedup against `paper_tags` |
-| `rankingExplanation` | string | Longer-form rationale visible on the detail page |
+| `summary` | `LocalizedString` | 1-3 sentence summary, per locale |
+| `recommendationReason` | `LocalizedString` | Why this paper would (or would not) be recommended; visible on the top-10 card |
+| `keyContribution` | `LocalizedString` \| null | Only populated when `evaluationStage === FULL_PDF` |
+| `methodologySummary` | `LocalizedString` \| null | Same |
+| `strengths` | `LocalizedStringList` \| null | Per-locale list of 3–5 bullets; same index ⇒ same point across locales |
+| `weaknesses` | `LocalizedStringList` \| null | Per-locale list of 2–4 bullets; same alignment rule as `strengths` |
+| `tags` | string[] | Free-form, lowercase, normalized; **not localized** (kept as English keyword tokens for search/filter) |
+| `rankingExplanation` | `LocalizedString` | Longer-form rationale visible on the detail page |
 | `recommendationDecision` | enum `RECOMMEND` \| `STORE_ONLY` \| `LOW_QUALITY` | Drives downstream filtering hints; NOT the same as `is_recommended` (top-10 selection happens in ingest) |
 | `pdfAnalysisStatus` | enum `SUCCESS` \| `FAILED` \| `UNAVAILABLE` \| null | Only populated when stage = FULL_PDF; null for abstract-only |
 | `tableFigureAnalysis` | unknown \| null | Optional structured evidence from PDF tables/figures |
+| `figure` | `{ label, pageNumber, caption: LocalizedString, renderedPath } \| null` | Only valid when `pdfAnalysisStatus === 'SUCCESS'`. `label`/`pageNumber`/`renderedPath` are single-value. `caption.en` is **verbatim from the PDF** (≤ 240 chars); `caption['zh-TW']` is a faithful translation (≤ 240 chars). |
+
+## Bilingual narrative shape (i18n)
+
+As of 2026-05-16 the skill emits every narrative field in two locales. The schema (`src/server/schema/evaluation.ts`) enforces both halves are non-empty when present.
+
+```ts
+type LocalizedString = { en: string; 'zh-TW': string };
+type LocalizedStringList = { en: string[]; 'zh-TW': string[] };
+```
+
+Example:
+
+```json
+"summary": {
+  "en": "ViT-Lite proposes progressive token merging…",
+  "zh-TW": "ViT-Lite 在 vision transformer 中引入逐層 token 合併機制…"
+}
+```
+
+Rules:
+
+- **Index alignment for lists** — `strengths.en[i]` and `strengths['zh-TW'][i]` describe the same point. Lengths must match.
+- **Translation language** — `zh-TW` is Traditional Chinese (Taiwan). Simplified is not accepted.
+- **Proper nouns stay original** — model names, dataset names, metrics (e.g. `ViT`, `ImageNet-1k`, `PSNR`) are not transliterated.
+- **Tags stay English** — `tags[]` is a lowercase keyword index, not user-facing prose.
+- **Storage** — Postgres columns (`paper_evaluations.summary`, `…recommendation_reason`, `…ranking_explanation`, `…key_contribution`, `…methodology_summary`, `…strengths`, `…weaknesses`, `paper_figures.caption`) are JSONB. The UI uses `pickLocalized(value, locale)` from `src/lib/locale.ts` to render.
 
 ## Stage-1 vs Stage-2
 

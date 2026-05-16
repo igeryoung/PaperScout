@@ -101,7 +101,7 @@ model PaperFigure {
   paperId      String   @id @map("paper_id") @db.Uuid
   imageBytes   Bytes    @map("image_bytes")
   mimeType     String   @default("image/png") @map("mime_type")
-  caption      String?
+  caption      Json?
   figureLabel  String?  @map("figure_label")
   pageNumber   Int?     @map("page_number")
   sourcePdfUrl String?  @map("source_pdf_url")
@@ -178,9 +178,9 @@ model PaperEvaluation {
   evaluationStage                  EvaluationStage        @map("evaluation_stage")
   llmModel                         String                 @map("llm_model")
   llmPromptVersion                 String                 @map("llm_prompt_version")
-  summary                          String?
-  keyContribution                  String?                @map("key_contribution")
-  methodologySummary               String?                @map("methodology_summary")
+  summary                          Json?
+  keyContribution                  Json?                  @map("key_contribution")
+  methodologySummary               Json?                  @map("methodology_summary")
   strengths                        Json?
   weaknesses                       Json?
   noveltyScore                     Int                    @map("novelty_score")
@@ -189,8 +189,8 @@ model PaperEvaluation {
   venueSourceCredibilityScore      Int                    @map("venue_source_credibility_score")
   authorInstitutionReputationScore Int                    @map("author_institution_reputation_score")
   totalScore                       Int                    @map("total_score")
-  rankingExplanation               String?                @map("ranking_explanation")
-  recommendationReason             String?                @map("recommendation_reason")
+  rankingExplanation               Json?                  @map("ranking_explanation")
+  recommendationReason             Json?                  @map("recommendation_reason")
   recommendationDecision           RecommendationDecision @map("recommendation_decision")
   pdfAnalysisStatus                PdfAnalysisStatus?     @map("pdf_analysis_status")
   tableFigureAnalysis              Json?                  @map("table_figure_analysis")

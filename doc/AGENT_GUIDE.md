@@ -26,6 +26,8 @@ You are an AI agent (or a new human contributor) picking up work on PaperScout C
 | Ranking semantics (script side) | `scripts/ingest/lib.ts`                                               |
 | Ranking semantics (UI side)     | `src/server/lib/select-evaluation.ts`                                 |
 | Aggregations / view models      | `src/server/repos/trends.ts`                                          |
+| Locale resolution + helpers     | `src/lib/locale.ts`                                                   |
+| UI string catalog               | `src/i18n/{en,zh-TW,index}.ts`                                        |
 
 ## Agent rules of engagement
 
@@ -34,6 +36,7 @@ Full rationale lives in [`doc/ARCHITECTURE.md`](./ARCHITECTURE.md); below is the
 - **Skills produce JSON only.** `scripts/ingest.ts` is the only DB writer.
 - **Prisma calls only inside `src/server/repos/`.** No exceptions in pages, route handlers, or scripts.
 - **Sample data is the contract.** If you change the schema, regenerate samples AND fixtures in the same change.
+- **Evaluation narrative is bilingual.** Every translatable field is `{ en, "zh-TW" }` (or `{ en: string[], "zh-TW": string[] }` for lists). UI reads via `pickLocalized` / `pickLocalizedList` from `src/lib/locale.ts`. `tags[]` stays English. See [`doc/data-contract.md`](./data-contract.md) for the full list.
 - **`import 'server-only'` is forbidden** in modules also imported by tsx CLIs (`src/server/schema/`, `src/server/repos/`, `src/server/dedup/`, `src/lib/db.ts`, `src/lib/env.ts`). The directive throws at load time under plain Node.
 - **Integration tests are gated** by `RUN_INTEGRATION=1` + `DATABASE_URL_TEST`. `DATABASE_URL_TEST` alone is not enough.
 - **`test:integration` runs serially** (`--no-file-parallelism`) — shared `paperscout_test` schema means truncate/insert can interleave.
@@ -47,9 +50,9 @@ doc/
 ├── README.md           — human-facing index
 ├── PRD_v1.md           — product requirements
 ├── STATE.md            — current implementation truth
-├── ARCHITECTURE.md     — tech stack, conventions, ranking rules
+├── ARCHITECTURE.md     — tech stack, conventions, ranking rules, i18n
 ├── AGENT_GUIDE.md      — this file
-├── data-contract.md    — field-by-field for data/sample/*.json
+├── data-contract.md    — field-by-field for data/sample/*.json (bilingual)
 ├── roadmap/
 │   └── phase-5-feedback-library.md   — active forward plan
 └── log/                — append-only decision records (YYYY-MM-DD.md)
