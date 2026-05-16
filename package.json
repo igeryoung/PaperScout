@@ -11,7 +11,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run --exclude tests/integration",
     "test:watch": "vitest --exclude tests/integration",
-    "test:integration": "node --env-file-if-exists=.env.test --env-file-if-exists=.env.local --env-file-if-exists=.env node_modules/vitest/dist/cli.js run tests/integration",
+    "test:integration": "node --env-file-if-exists=.env.test --env-file-if-exists=.env.local --env-file-if-exists=.env node_modules/vitest/dist/cli.js run --no-file-parallelism tests/integration",
     "test:e2e": "playwright test",
     "db:seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env prisma/seed.ts",
     "ingest": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/ingest.ts",

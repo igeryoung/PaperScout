@@ -33,6 +33,13 @@ export const JoinKeySchema = z.object({
 
 const StringList = z.array(z.string().min(1));
 
+export const FigureSchema = z.object({
+  label: z.string().min(1),
+  pageNumber: z.number().int().min(1),
+  caption: z.string().min(1).max(240),
+  renderedPath: z.string().min(1),
+});
+
 export const EvaluationSchema = z
   .object({
     joinKey: JoinKeySchema,
@@ -49,6 +56,7 @@ export const EvaluationSchema = z
     recommendationDecision: RecommendationDecisionEnum,
     pdfAnalysisStatus: PdfAnalysisStatusEnum.nullable(),
     tableFigureAnalysis: z.unknown().nullable().default(null),
+    figure: FigureSchema.nullable().default(null),
   })
   .superRefine((val, ctx) => {
     if (val.evaluationStage === 'FULL_PDF') {
@@ -91,6 +99,20 @@ export const EvaluationSchema = z
           message: 'pdfAnalysisStatus must be null when evaluationStage = ABSTRACT_SCREENING',
         });
       }
+      if (val.figure !== null) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['figure'],
+          message: 'figure must be null when evaluationStage = ABSTRACT_SCREENING',
+        });
+      }
+    }
+    if (val.figure !== null && val.pdfAnalysisStatus !== 'SUCCESS') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['figure'],
+        message: 'figure can only be set when pdfAnalysisStatus = SUCCESS',
+      });
     }
   });
 

@@ -3,8 +3,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { db } from '@/lib/db';
-import { CandidatesFileSchema } from '@/server/schema/candidate';
-import { EvaluationsFileSchema } from '@/server/schema/evaluation';
+import { CandidatesFileSchema, type Candidate } from '@/server/schema/candidate';
+import { EvaluationsFileSchema, type Evaluation } from '@/server/schema/evaluation';
 import { findMatch } from '@/server/dedup/matcher';
 import { chooseFingerprint } from '@/server/dedup/fingerprint';
 import { normalizeTitle } from '@/server/dedup/normalize';
@@ -16,6 +16,13 @@ import { evaluationsRepo } from '@/server/repos/evaluations';
 import { tagsRepo } from '@/server/repos/tags';
 import { codeLinksRepo } from '@/server/repos/codeLinks';
 import { duplicatesRepo } from '@/server/repos/duplicates';
+import { ingestFigure } from './ingest/figures';
+import {
+  chooseRankingScore,
+  rankPapers,
+  recomputeTotal,
+  type PaperEval,
+} from './ingest/lib';
 
 async function main() {
   // ---------- CLI ----------
@@ -58,11 +65,11 @@ async function main() {
     process.exit(1);
   }
 
-  const candidates = candResult.data;
-  const evaluations = evalResult.data;
+  const candidates: Candidate[] = candResult.data;
+  const evaluations: Evaluation[] = evalResult.data;
 
   // ---------- Sanity: every evaluation joinKey matches a candidate ----------
-  const candByKey = new Map<string, (typeof candidates)[number]>();
+  const candByKey = new Map<string, Candidate>();
   for (const c of candidates) {
     if (!c.sourcePaperId) continue;
     candByKey.set(`${c.source}:${c.sourcePaperId}`, c);
@@ -74,6 +81,20 @@ async function main() {
     const key = `${e.joinKey.source}:${e.joinKey.sourcePaperId}`;
     if (!candByKey.has(key)) {
       console.error(`evaluation joinKey ${key} does not match any candidate`);
+      process.exit(1);
+    }
+  }
+
+  // ---------- Sanity: no duplicate evaluation rows for same paper + stage ----------
+  // The join is candidate-keyed here; we'll re-check after dedup resolves to paperId.
+  const evalsByJoinKeyAndStage = new Map<string, number>();
+  for (const e of evaluations) {
+    const k = `${e.joinKey.source}:${e.joinKey.sourcePaperId}:${e.evaluationStage}`;
+    evalsByJoinKeyAndStage.set(k, (evalsByJoinKeyAndStage.get(k) ?? 0) + 1);
+  }
+  for (const [k, count] of evalsByJoinKeyAndStage) {
+    if (count > 1) {
+      console.error(`duplicate evaluation rows for ${k} (count=${count})`);
       process.exit(1);
     }
   }
@@ -119,10 +140,15 @@ async function main() {
   };
 
   const paperIdByJoinKey = new Map<string, string>();
+  const seenPaperId = new Set<string>();
+  // Track per-paper {candidateOrder, joinKey} for ranking + fail-fast diagnostics.
+  const paperMeta = new Map<string, { candidateOrder: number; joinKey: string }>();
   let newCount = 0;
   let existingCount = 0;
+  let skipped = 0;
 
-  for (const cand of candidates) {
+  for (let i = 0; i < candidates.length; i++) {
+    const cand = candidates[i];
     const match = await findMatch(cand, matcherDeps);
     let paperId: string;
     let collectionStatus: 'NEW' | 'EXISTING';
@@ -168,12 +194,6 @@ async function main() {
       newCount++;
     } else {
       paperId = match.paperId;
-      // Record duplicate edge if the new candidate would have been treated as a separate paper
-      // (the canonical paper already exists; this candidate is the duplicate side).
-      // We don't have a separate "duplicate paper" row here, so we just log via paper_duplicates
-      // as canonical=match.paperId, duplicate=match.paperId (self-link); skip if redundant.
-      // For V1 we record the match method on a dummy duplicate row only when method != exact-id matches.
-      // Simpler: only record on FUZZY_TITLE / NORMALIZED_TITLE matches (lower confidence).
       if (match.method === 'FUZZY_TITLE' || match.method === 'NORMALIZED_TITLE') {
         await duplicatesRepo.create({
           canonicalPaperId: paperId,
@@ -182,8 +202,14 @@ async function main() {
           confidence: match.confidence,
         });
       }
-
-      if (!(await sourcesRepo.exists(paperId, cand.source))) {
+      if (
+        !(await sourcesRepo.existsIdentity({
+          paperId,
+          source: cand.source,
+          sourcePaperId: cand.sourcePaperId,
+          sourceUrl: cand.sourceUrl,
+        }))
+      ) {
         await sourcesRepo.create({
           paperId,
           source: cand.source,
@@ -193,7 +219,14 @@ async function main() {
         });
       }
       for (const alt of cand.additionalSources) {
-        if (!(await sourcesRepo.exists(paperId, alt.source))) {
+        if (
+          !(await sourcesRepo.existsIdentity({
+            paperId,
+            source: alt.source,
+            sourcePaperId: alt.sourcePaperId,
+            sourceUrl: alt.sourceUrl,
+          }))
+        ) {
           await sourcesRepo.create({
             paperId,
             source: alt.source,
@@ -207,7 +240,16 @@ async function main() {
       existingCount++;
     }
 
-    await runResultsRepo.create({ runId: run.id, paperId, collectionStatus });
+    if (seenPaperId.has(paperId)) {
+      // Two candidates in this batch resolved (via fuzzy match) to the same Paper.
+      // Skip the duplicate run-result row to respect paper_run_results unique constraint.
+      skipped++;
+    } else {
+      await runResultsRepo.create({ runId: run.id, paperId, collectionStatus });
+      seenPaperId.add(paperId);
+      const primaryKey = cand.sourcePaperId ? `${cand.source}:${cand.sourcePaperId}` : `paper:${paperId}`;
+      paperMeta.set(paperId, { candidateOrder: i, joinKey: primaryKey });
+    }
 
     if (cand.codeUrls.length) {
       await codeLinksRepo.addAll(paperId, cand.codeUrls);
@@ -221,19 +263,16 @@ async function main() {
     }
   }
 
-  // ---------- Persist evaluations ----------
-  const evalScoreByPaperId = new Map<string, number>();
+  // ---------- Persist evaluations + group by paperId for ranking ----------
+  const evalsByPaperId = new Map<string, Evaluation[]>();
+  const figureStats = { ok: 0, missing: 0, oversize: 0, error: 0 };
+
   for (const e of evaluations) {
     const key = `${e.joinKey.source}:${e.joinKey.sourcePaperId}`;
     const paperId = paperIdByJoinKey.get(key);
     if (!paperId) continue;
 
-    const recomputedTotal =
-      e.scores.novelty +
-      e.scores.methodologicalRigor +
-      e.scores.experimentalQuality +
-      e.scores.venueSourceCredibility +
-      e.scores.authorInstitutionReputation;
+    const recomputedTotal = recomputeTotal(e.scores);
 
     await evaluationsRepo.upsert({
       paperId,
@@ -253,33 +292,85 @@ async function main() {
       authorInstitutionReputationScore: e.scores.authorInstitutionReputation,
       totalScore: recomputedTotal,
       rankingExplanation: e.rankingExplanation,
+      recommendationReason: e.recommendationReason,
       recommendationDecision: e.recommendationDecision,
       pdfAnalysisStatus: e.pdfAnalysisStatus,
       tableFigureAnalysis: e.tableFigureAnalysis,
     });
     await tagsRepo.addAll(paperId, e.tags, 'LLM_GENERATED');
 
-    // Keep the highest-stage score for ranking (FULL_PDF wins over ABSTRACT_SCREENING)
-    const prev = evalScoreByPaperId.get(paperId);
-    if (prev === undefined || e.evaluationStage === 'FULL_PDF') {
-      evalScoreByPaperId.set(paperId, recomputedTotal);
+    if (e.figure) {
+      const paper = await papersRepo.findById(paperId);
+      const outcome = await ingestFigure({
+        paperId,
+        runDir,
+        pdfUrl: paper?.pdfUrl ?? null,
+        figure: e.figure,
+      });
+      figureStats[outcome]++;
+    }
+
+    const bucket = evalsByPaperId.get(paperId) ?? [];
+    bucket.push(e);
+    evalsByPaperId.set(paperId, bucket);
+  }
+
+  // ---------- Post-persist dedup check: same paperId + stage ----------
+  // (catches the case where two candidates dedup to the same paper but each carried
+  // an evaluation row for the same stage — the joinKey-level check above misses this.)
+  for (const [paperId, evals] of evalsByPaperId) {
+    const stages = new Set<string>();
+    for (const e of evals) {
+      if (stages.has(e.evaluationStage)) {
+        const meta = paperMeta.get(paperId);
+        console.error(
+          `duplicate ${e.evaluationStage} evaluation for paper ${paperId} (joinKey ${meta?.joinKey ?? '?'})`,
+        );
+        process.exit(1);
+      }
+      stages.add(e.evaluationStage);
+    }
+  }
+
+  // ---------- Fail-fast: every persisted paper must have an evaluation ----------
+  // (Future `--allow-partial` flag could relax this; not implemented in Phase 3.)
+  for (const [paperId, meta] of paperMeta) {
+    if (!evalsByPaperId.has(paperId)) {
+      console.error(
+        `candidate ${meta.joinKey} (paperId ${paperId}) has no matching evaluation`,
+      );
+      process.exit(1);
     }
   }
 
   // ---------- Compute final_rank + is_recommended ----------
-  const sorted = [...evalScoreByPaperId.entries()].sort(([, a], [, b]) => b - a);
-  let rank = 1;
-  for (const [paperId] of sorted) {
-    await runResultsRepo.updateRanking(run.id, paperId, rank, rank <= 10);
-    rank++;
+  const paperEvals: PaperEval[] = [];
+  for (const [paperId, meta] of paperMeta) {
+    paperEvals.push({
+      paperId,
+      candidateOrder: meta.candidateOrder,
+      joinKey: meta.joinKey,
+      evaluations: evalsByPaperId.get(paperId) ?? [],
+    });
+  }
+
+  const scored = paperEvals
+    .map((p) => chooseRankingScore(p))
+    .filter((s): s is NonNullable<typeof s> => s !== null);
+  const ranked = rankPapers(scored);
+
+  for (const r of ranked) {
+    await runResultsRepo.updateRanking(run.id, r.paperId, r.rank, r.isRecommended);
   }
 
   await runsRepo.setStatus(run.id, 'COMPLETED', true);
 
-  const recommendedCount = Math.min(10, sorted.length);
+  const recommendedCount = ranked.filter((r) => r.isRecommended).length;
   console.log(
-    `Ingested ${candidates.length} papers (${newCount} new, ${existingCount} existing); ` +
-      `${recommendedCount} recommended; run id ${run.id}`,
+    `Ingested ${candidates.length} papers (${newCount} new, ${existingCount} existing, ${skipped} skipped); ` +
+      `${recommendedCount} recommended; ` +
+      `figures: ${figureStats.ok} ok / ${figureStats.missing} missing / ${figureStats.oversize} oversize / ${figureStats.error} error; ` +
+      `run id ${run.id}`,
   );
 
   await db.$disconnect();

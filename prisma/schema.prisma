@@ -90,10 +90,26 @@ model Paper {
   codeLinks   PaperCodeLink[]
   asCanonical PaperDuplicate[]  @relation("Canonical")
   asDuplicate PaperDuplicate[]  @relation("Duplicate")
+  figure      PaperFigure?
 
   @@index([normalizedTitle])
   @@index([primarySource, publishedDate])
   @@map("papers")
+}
+
+model PaperFigure {
+  paperId      String   @id @map("paper_id") @db.Uuid
+  imageBytes   Bytes    @map("image_bytes")
+  mimeType     String   @default("image/png") @map("mime_type")
+  caption      String?
+  figureLabel  String?  @map("figure_label")
+  pageNumber   Int?     @map("page_number")
+  sourcePdfUrl String?  @map("source_pdf_url")
+  extractedAt  DateTime @default(now()) @map("extracted_at")
+
+  paper Paper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@map("paper_figures")
 }
 
 model PaperSource {
@@ -174,6 +190,7 @@ model PaperEvaluation {
   authorInstitutionReputationScore Int                    @map("author_institution_reputation_score")
   totalScore                       Int                    @map("total_score")
   rankingExplanation               String?                @map("ranking_explanation")
+  recommendationReason             String?                @map("recommendation_reason")
   recommendationDecision           RecommendationDecision @map("recommendation_decision")
   pdfAnalysisStatus                PdfAnalysisStatus?     @map("pdf_analysis_status")
   tableFigureAnalysis              Json?                  @map("table_figure_analysis")

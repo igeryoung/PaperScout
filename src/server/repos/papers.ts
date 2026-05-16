@@ -1,11 +1,37 @@
 import { db } from '@/lib/db';
-import type { Paper, Source } from '@prisma/client';
+import type { Paper, Prisma, Source } from '@prisma/client';
+
+const detailInclude = {
+  evaluations: { orderBy: { createdAt: 'desc' } },
+  tags: true,
+  sources: true,
+  codeLinks: true,
+  figure: {
+    select: {
+      caption: true,
+      figureLabel: true,
+      pageNumber: true,
+      mimeType: true,
+    },
+  },
+} as const satisfies Prisma.PaperInclude;
+
+export type PaperWithDetail = Prisma.PaperGetPayload<{
+  include: typeof detailInclude;
+}>;
 
 export const papersRepo = {
   findByFingerprint: (fp: string) =>
     db.paper.findUnique({ where: { duplicateFingerprint: fp } }),
 
   findById: (id: string) => db.paper.findUnique({ where: { id } }),
+
+  /**
+   * Detail view for /papers/[id]. Returns the paper with all evaluations
+   * (across runs, newest first), tags, sources, and code links.
+   */
+  findDetailById: (id: string): Promise<PaperWithDetail | null> =>
+    db.paper.findUnique({ where: { id }, include: detailInclude }),
 
   findByNormalizedTitle: async (norm: string) => {
     const p = await db.paper.findFirst({ where: { normalizedTitle: norm } });

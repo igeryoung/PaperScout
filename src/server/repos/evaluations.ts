@@ -24,6 +24,7 @@ export const evaluationsRepo = {
     authorInstitutionReputationScore: number;
     totalScore: number;
     rankingExplanation: string | null;
+    recommendationReason: string | null;
     recommendationDecision: RecommendationDecision;
     pdfAnalysisStatus: PdfAnalysisStatus | null;
     tableFigureAnalysis?: unknown;
@@ -54,6 +55,7 @@ export const evaluationsRepo = {
         authorInstitutionReputationScore: input.authorInstitutionReputationScore,
         totalScore: input.totalScore,
         rankingExplanation: input.rankingExplanation,
+        recommendationReason: input.recommendationReason,
         recommendationDecision: input.recommendationDecision,
         pdfAnalysisStatus: input.pdfAnalysisStatus,
         tableFigureAnalysis: (input.tableFigureAnalysis ?? null) as never,
@@ -73,6 +75,7 @@ export const evaluationsRepo = {
         authorInstitutionReputationScore: input.authorInstitutionReputationScore,
         totalScore: input.totalScore,
         rankingExplanation: input.rankingExplanation,
+        recommendationReason: input.recommendationReason,
         recommendationDecision: input.recommendationDecision,
         pdfAnalysisStatus: input.pdfAnalysisStatus,
         tableFigureAnalysis: (input.tableFigureAnalysis ?? null) as never,

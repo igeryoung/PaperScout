@@ -2,7 +2,7 @@
 
 AI-powered computer-vision paper collection and ranking system. Collects 30 recent CV papers per run from arXiv / OpenReview / Hugging Face, runs a two-stage LLM pipeline (Haiku abstract screening → Sonnet full-PDF analysis), and surfaces a ranked top-10 with explanations.
 
-V1 is a local single-user web app. See `doc/PRD_v1.md` for the full product requirements and `plan/` for the implementation TODO board.
+V1 is a local single-user web app. See [`doc/`](./doc/) for product requirements, current state, architecture, roadmap, and decision log. Start at [`doc/AGENT_GUIDE.md`](./doc/AGENT_GUIDE.md) (new contributors) or [`doc/STATE.md`](./doc/STATE.md) (for status).
 
 ## Quick start
 
@@ -32,8 +32,7 @@ npm test
 - `prisma/` — schema, migrations, seed
 - `scripts/` — PoC scripts (`poc/`), prompt harness (`prompt-eval/`), manual ingest (`ingest-test.ts`)
 - `tests/` — Vitest (`unit/`, `integration/`, `fixtures/`) + Playwright (`e2e/`)
-- `doc/` — PRD
-- `plan/` — implementation TODO board (`README.md` + `STATE.md` + `log/` + per-phase READMEs)
+- `doc/` — PRD, current state, architecture, agent guide, roadmap, decision log
 
 ## How it works (V1)
 

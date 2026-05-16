@@ -31,7 +31,13 @@
     "rankingExplanation": "Strong methodology and breadth of experiments; novelty is incremental over prior token-pruning work but the cross-task validation and reproducibility lift the score into recommend territory.",
     "recommendationDecision": "RECOMMEND",
     "pdfAnalysisStatus": "SUCCESS",
-    "tableFigureAnalysis": null
+    "tableFigureAnalysis": null,
+    "figure": {
+      "label": "Figure 1",
+      "pageNumber": 2,
+      "caption": "Overview of the progressive token-merging operator: tokens are scored by attention norms and the lowest-k are merged with their nearest neighbors at each transformer layer.",
+      "renderedPath": "figures/2605.12345.png"
+    }
   },
   {
     "joinKey": {
@@ -65,7 +71,13 @@
     "rankingExplanation": "Top score driven by novelty and rigor: opens a clear new direction (generative-pretraining → discriminative tasks) with credible empirical evidence and a thoughtful boundary-aware refinement.",
     "recommendationDecision": "RECOMMEND",
     "pdfAnalysisStatus": "SUCCESS",
-    "tableFigureAnalysis": null
+    "tableFigureAnalysis": null,
+    "figure": {
+      "label": "Figure 2",
+      "pageNumber": 4,
+      "caption": "Boundary-aware refinement: cross-attention maps from multiple diffusion timesteps are aggregated and sharpened using gradients from the latent space to produce segmentation masks without any segmentation supervision.",
+      "renderedPath": "figures/2605.09876.png"
+    }
   },
   {
     "joinKey": {

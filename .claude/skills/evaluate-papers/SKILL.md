@@ -65,7 +65,7 @@ For each candidate in `candidates.json`:
 5. `summary`: 1-3 sentences.
 6. `recommendationReason`: 1-2 sentences for why this paper is or isn't recommended.
 7. `rankingExplanation`: 2-4 sentences explaining the score breakdown.
-8. Set `evaluationStage = "ABSTRACT_SCREENING"`, `pdfAnalysisStatus = null`, `keyContribution = null`, `methodologySummary = null`, `strengths = null`, `weaknesses = null`.
+8. Set `evaluationStage = "ABSTRACT_SCREENING"`, `pdfAnalysisStatus = null`, `keyContribution = null`, `methodologySummary = null`, `strengths = null`, `weaknesses = null`, `figure = null`.
 
 ## Stage 2 — Full PDF for top 15
 
@@ -83,7 +83,19 @@ For each:
 6. Fill `strengths[]` (3-5 bullets, each 1 sentence), `weaknesses[]` (2-4 bullets).
 7. Refine `rankingExplanation` with PDF-backed reasoning.
 8. Set `evaluationStage = "FULL_PDF"`, `pdfAnalysisStatus = "SUCCESS"`.
-9. Replace the corresponding entry in your output array.
+9. **Pick the most important figure** (only when `pdfAnalysisStatus = SUCCESS`):
+   - Preference order: (a) architecture diagram, (b) main result / comparison figure, (c) Figure 1 / teaser.
+   - Record `label` (e.g. `"Figure 1"`), `pageNumber` (1-indexed page of the PDF), `caption` (verbatim from the paper, trimmed to ≤ 240 chars).
+   - Render that page to PNG (prereq: `brew install poppler` provides `pdftocairo`):
+     ```bash
+     mkdir -p <run-dir>/figures
+     pdftocairo -png -singlefile -f <page> -l <page> -r 150 \
+       /tmp/paper-<safe-id>.pdf <run-dir>/figures/<safe-id>
+     ```
+     This writes `<run-dir>/figures/<safe-id>.png` (the `.png` is appended automatically).
+   - Set `figure = { label, pageNumber, caption, renderedPath: "figures/<safe-id>.png" }` on the entry. The path is **relative to the run dir** (the ingest step resolves it).
+   - If `pdftocairo` is missing or rendering fails: leave `figure = null`; do not block the evaluation.
+10. Replace the corresponding entry in your output array.
 
 ## Output
 

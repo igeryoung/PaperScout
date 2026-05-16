@@ -1,5 +1,28 @@
 import { db } from '@/lib/db';
-import type { CollectionStatus } from '@prisma/client';
+import type { CollectionStatus, Prisma } from '@prisma/client';
+
+const detailInclude = {
+  paper: {
+    include: {
+      evaluations: true,
+      tags: true,
+      sources: true,
+      codeLinks: true,
+      figure: {
+        select: {
+          caption: true,
+          figureLabel: true,
+          pageNumber: true,
+          mimeType: true,
+        },
+      },
+    },
+  },
+} as const satisfies Prisma.PaperRunResultInclude;
+
+export type RunResultWithDetail = Prisma.PaperRunResultGetPayload<{
+  include: typeof detailInclude;
+}>;
 
 export const runResultsRepo = {
   create: (input: {
@@ -31,5 +54,20 @@ export const runResultsRepo = {
     db.paperRunResult.findMany({
       where: { runId, isRecommended: true },
       orderBy: { finalRank: 'asc' },
+    }),
+
+  /**
+   * Joined view for the Phase 4 run-detail page. Returns ranked results with
+   * the full paper payload: evaluations, tags, sources, code links. The page
+   * picks the best evaluation per paper via selectBestEvaluation().
+   */
+  findByRunWithDetail: (
+    runId: string,
+    opts: { recommendedOnly: boolean } = { recommendedOnly: false },
+  ): Promise<RunResultWithDetail[]> =>
+    db.paperRunResult.findMany({
+      where: { runId, ...(opts.recommendedOnly ? { isRecommended: true } : {}) },
+      orderBy: [{ finalRank: 'asc' }, { id: 'asc' }],
+      include: detailInclude,
     }),
 };
