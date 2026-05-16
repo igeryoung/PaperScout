@@ -61,13 +61,25 @@ export const runResultsRepo = {
    * the full paper payload: evaluations, tags, sources, code links. The page
    * picks the best evaluation per paper via selectBestEvaluation().
    */
+  countByRun: (
+    runId: string,
+    opts: { recommendedOnly?: boolean } = {},
+  ): Promise<number> =>
+    db.paperRunResult.count({
+      where: { runId, ...(opts.recommendedOnly ? { isRecommended: true } : {}) },
+    }),
+
   findByRunWithDetail: (
     runId: string,
-    opts: { recommendedOnly: boolean } = { recommendedOnly: false },
+    opts: { recommendedOnly?: boolean; limit?: number; offset?: number } = {
+      recommendedOnly: false,
+    },
   ): Promise<RunResultWithDetail[]> =>
     db.paperRunResult.findMany({
       where: { runId, ...(opts.recommendedOnly ? { isRecommended: true } : {}) },
       orderBy: [{ finalRank: 'asc' }, { id: 'asc' }],
+      ...(opts.limit ? { take: opts.limit } : {}),
+      ...(opts.offset ? { skip: opts.offset } : {}),
       include: detailInclude,
     }),
 };

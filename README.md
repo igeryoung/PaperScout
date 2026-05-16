@@ -17,7 +17,7 @@ cp .env.example .env.local
 
 # 3. Install + run
 npm install
-npm run dev                      # http://localhost:3000
+npm run dev                      # http://localhost:3050
 
 # 4. Tests
 npm test

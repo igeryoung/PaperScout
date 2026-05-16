@@ -227,9 +227,9 @@ function PaperFigureThumb({ paper }: { paper: PaperCardPaper }) {
   const labelPart = paper.figure.figureLabel ?? 'Highlight figure';
   const captionPart = paper.figure.caption ? `: ${paper.figure.caption}` : '';
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- served from our own
-    // /api/papers/[id]/figure route; next/image optimization is not needed for
-    // a small, cache-controlled thumbnail.
+    // Served from our own /api/papers/[id]/figure route; next/image
+    // optimization is not needed for a small, cache-controlled thumbnail.
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={`/api/papers/${paper.id}/figure`}
       alt={`${labelPart}${captionPart}`}

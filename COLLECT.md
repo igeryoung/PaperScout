@@ -74,7 +74,7 @@ Ingested 30 papers (24 new, 6 existing); 10 recommended; run id <uuid>
 
 ## Step 4 — Review
 
-Open <http://localhost:3000/library> — the seeded + ingested papers list with title / authors / source badge / dates, sorted desc by `createdAt`.
+Open <http://localhost:3050/library> — the seeded + ingested papers list with title / authors / source badge / dates, sorted desc by `createdAt`.
 
 For raw inspection:
 

@@ -41,4 +41,24 @@ export const runsRepo = {
       where: { status: 'COMPLETED' },
       orderBy: { completedAt: 'desc' },
     }),
+
+  latestCompletedForDisplay: async () => {
+    const run = await db.dailyRun.findFirst({
+      where: {
+        status: 'COMPLETED',
+        evaluations: { some: {} },
+        NOT: {
+          ingestSourceDir: { endsWith: '/data/sample' },
+        },
+      },
+      orderBy: { completedAt: 'desc' },
+    });
+    return (
+      run ??
+      (await db.dailyRun.findFirst({
+        where: { status: 'COMPLETED' },
+        orderBy: { completedAt: 'desc' },
+      }))
+    );
+  },
 };
