@@ -102,33 +102,86 @@ For each candidate in `candidates.json`:
 
 After Stage 1, sort candidates by Stage-1 `total` desc. Take the top 15.
 
+**Prereqs** (one-time install): `brew install poppler qpdf`. Poppler provides
+`pdftocairo`/`pdftotext`/`pdfinfo`; `qpdf` is used to slice the PDF to its main body.
+
 For each:
 
 1. Download PDF: `curl -L --max-filesize 33554432 --max-time 60 -o /tmp/paper-<safe-id>.pdf <pdfUrl>`
    - 32 MB cap (`--max-filesize 33554432`).
    - On HTTP error or oversize: keep the Stage-1 record, set `pdfAnalysisStatus = "UNAVAILABLE"`, set `evaluationStage = "FULL_PDF"`, do NOT modify `keyContribution` etc. Skip to next.
-2. Read the PDF (`Read` tool, given the local path).
-3. Update the 5 dimension scores using the deeper evidence (often `experimentalQuality` and `methodologicalRigor` shift the most).
-4. Recompute `total` = sum of the 5.
-5. Fill `keyContribution` (1-2 sentences) in both `en` and `zh-TW`. Fill `methodologySummary` (2-3 sentences) in both `en` and `zh-TW`.
-6. Fill `strengths.en[]` (3-5 bullets, each 1 sentence) **and** `strengths["zh-TW"][]` with index-aligned translations. Same for `weaknesses` (2-4 bullets per locale).
-7. Refine `rankingExplanation` (both locales) with PDF-backed reasoning.
-8. Set `evaluationStage = "FULL_PDF"`, `pdfAnalysisStatus = "SUCCESS"`.
-9. **Pick the most important figure** (only when `pdfAnalysisStatus = SUCCESS`):
-   - Preference order: (a) architecture diagram, (b) main result / comparison figure, (c) Figure 1 / teaser.
-   - Record `label` (e.g. `"Figure 1"`), `pageNumber` (1-indexed page of the PDF), and `caption` as a bilingual object:
-     - `caption.en` = verbatim from the paper (trim only the `"Figure N:"` prefix), ≤ 240 chars.
-     - `caption["zh-TW"]` = faithful Traditional Chinese translation of `caption.en`, ≤ 240 chars.
-   - Render that page to PNG (prereq: `brew install poppler` provides `pdftocairo`):
-     ```bash
-     mkdir -p <run-dir>/figures
-     pdftocairo -png -singlefile -f <page> -l <page> -r 150 \
-       /tmp/paper-<safe-id>.pdf <run-dir>/figures/<safe-id>
-     ```
-     This writes `<run-dir>/figures/<safe-id>.png` (the `.png` is appended automatically).
-   - Set `figure = { label, pageNumber, caption: { en, "zh-TW" }, renderedPath: "figures/<safe-id>.png" }` on the entry. The path is **relative to the run dir** (the ingest step resolves it).
-   - If `pdftocairo` is missing or rendering fails: leave `figure = null`; do not block the evaluation.
-10. Replace the corresponding entry in your output array.
+2. **Truncate to main body.** Produce `/tmp/paper-<safe-id>-main.pdf` containing only
+   pages up to (but not including) the first "Appendix" or "Supplementary Material"
+   header. All later steps — reading the PDF and rendering the figure — operate on
+   the truncated file, never the original.
+
+   ```bash
+   PAGES=$(pdfinfo /tmp/paper-<safe-id>.pdf | awk '/^Pages:/ {print $2}')
+   CUTOFF=""
+   for p in $(seq 1 "$PAGES"); do
+     if pdftotext -layout -f "$p" -l "$p" /tmp/paper-<safe-id>.pdf - \
+          | grep -Eiq '^[[:space:]]*(appendix\b|a\.?[[:space:]]+appendix\b|supplementary[[:space:]]+material\b|supplemental[[:space:]]+material\b)'; then
+       CUTOFF=$((p - 1))
+       break
+     fi
+   done
+   if [ -n "$CUTOFF" ] && [ "$CUTOFF" -ge 1 ]; then
+     qpdf --pages /tmp/paper-<safe-id>.pdf 1-"$CUTOFF" -- \
+       /tmp/paper-<safe-id>.pdf /tmp/paper-<safe-id>-main.pdf
+   else
+     cp /tmp/paper-<safe-id>.pdf /tmp/paper-<safe-id>-main.pdf
+   fi
+   ```
+
+   Edge cases:
+   - No marker found → keep the whole PDF (some short papers have no appendix).
+   - Marker on page 1 → treat as no cutoff (avoid producing a 0-page slice).
+   - `pageNumber` you record in `figure` later is the page index within
+     `*-main.pdf`, which equals the original index since only the tail is dropped.
+3. Read the truncated PDF (`Read` tool on `/tmp/paper-<safe-id>-main.pdf`).
+4. Update the 5 dimension scores using the deeper evidence (often `experimentalQuality` and `methodologicalRigor` shift the most).
+5. Recompute `total` = sum of the 5.
+6. Fill `keyContribution` (1-2 sentences) in both `en` and `zh-TW`. Fill `methodologySummary` (2-3 sentences) in both `en` and `zh-TW`.
+7. Fill `strengths.en[]` (3-5 bullets, each 1 sentence) **and** `strengths["zh-TW"][]` with index-aligned translations. Same for `weaknesses` (2-4 bullets per locale).
+8. Refine `rankingExplanation` (both locales) with PDF-backed reasoning.
+9. Set `evaluationStage = "FULL_PDF"`, `pdfAnalysisStatus = "SUCCESS"`.
+10. **Pick the most important figure** (only when `pdfAnalysisStatus = SUCCESS`):
+    - Preference order: (a) architecture diagram, (b) main result / comparison figure, (c) Figure 1 / teaser. The candidate page comes from `*-main.pdf`, so it can never be an appendix figure.
+    - Record `label` (e.g. `"Figure 1"`), `pageNumber` (1-indexed page of `*-main.pdf`), and `caption` as a bilingual object:
+      - `caption.en` = verbatim from the paper (trim only the `"Figure N:"` prefix), ≤ 240 chars.
+      - `caption["zh-TW"]` = faithful Traditional Chinese translation of `caption.en`, ≤ 240 chars.
+    - Render **only the figure region** (not the whole page). Two passes:
+
+      **(a) Preview pass** — rasterize the page at low DPI so you can perceive the layout:
+      ```bash
+      mkdir -p <run-dir>/figures
+      pdftocairo -png -singlefile -f <page> -l <page> -r 72 \
+        /tmp/paper-<safe-id>-main.pdf /tmp/paper-<safe-id>-preview
+      sips -g pixelWidth -g pixelHeight /tmp/paper-<safe-id>-preview.png
+      ```
+      Read `/tmp/paper-<safe-id>-preview.png` with the `Read` tool.
+
+      **(b) Bounding box** — the figure is the rectangle **immediately above its `Figure N:` caption line**. Estimate `(x_frac, y_frac, w_frac, h_frac)` as fractions of the preview page (each in `[0, 1]`). Include the caption line if it sits flush against the figure; otherwise stop at the figure's lower border. Convert fractions to pixel coords at 150 dpi (the final render resolution):
+      ```
+      x_px = round(x_frac * preview_width_px  * 150 / 72)
+      y_px = round(y_frac * preview_height_px * 150 / 72)
+      w_px = round(w_frac * preview_width_px  * 150 / 72)
+      h_px = round(h_frac * preview_height_px * 150 / 72)
+      ```
+
+      **(c) Crop pass** — re-render the same page at 150 dpi, restricted to the bounding box. This stays vector-sharp because it goes straight from the PDF, not from the preview PNG:
+      ```bash
+      pdftocairo -png -singlefile -f <page> -l <page> -r 150 \
+        -x <x_px> -y <y_px> -W <w_px> -H <h_px> \
+        /tmp/paper-<safe-id>-main.pdf <run-dir>/figures/<safe-id>
+      ```
+      This writes `<run-dir>/figures/<safe-id>.png` (the `.png` suffix is appended automatically).
+
+    - Set `figure = { label, pageNumber, caption: { en, "zh-TW" }, renderedPath: "figures/<safe-id>.png" }` on the entry. The path is **relative to the run dir** (the ingest step resolves it).
+    - **Fallbacks** — do not block the evaluation:
+      - If you cannot confidently locate the figure region in the preview, omit the `-x -y -W -H` flags in the crop pass to fall back to a full-page render. This is the previous behavior; prefer a cropped figure when you can.
+      - If `pdftocairo` is missing or any render fails: leave `figure = null`.
+11. Replace the corresponding entry in your output array.
 
 ## Output
 

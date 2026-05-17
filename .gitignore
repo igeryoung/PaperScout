@@ -60,6 +60,9 @@ pnpm-debug.log*
 # Hosting/provider local state
 /.vercel/
 
+# Architecture-review PPTX generator venv (rebuild locally on demand)
+/docs/.venv/
+
 # OS/editor noise
 .DS_Store
 Thumbs.db

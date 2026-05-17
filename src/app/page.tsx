@@ -252,6 +252,17 @@ function findSourceLink(paper: RunResultWithDetail['paper'], source: PaperSource
   return paper.sources.find((s) => s.source === source)?.sourceUrl ?? null;
 }
 
+function estimateReadingMinutes(parts: Array<string | null | undefined>): number {
+  const text = parts.filter(Boolean).join(' ');
+  if (!text.trim()) return 1;
+
+  const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length ?? 0;
+  const latinWords = text.match(/[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)*/g)?.length ?? 0;
+  const estimatedWords = latinWords + cjkChars / 2;
+
+  return Math.max(1, Math.ceil(estimatedWords / 220));
+}
+
 function ScoreRing({
   evaluation,
   messages,
@@ -369,7 +380,7 @@ function ExternalLinks({
     paper.pdfUrl ?? arxivUrl ?? openReviewUrl ?? huggingFaceUrl ?? paper.codeLinks[0]?.codeUrl;
 
   return (
-    <div className="flex justify-between gap-4 text-[13px] font-bold text-[#392ee5]">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-bold text-[#392ee5] xl:justify-end">
       <Link href={`/papers/${paper.id}`}>{messages.home.cardViewSummary}</Link>
       {firstExternal ? (
         <a href={firstExternal} target="_blank" rel="noreferrer">
@@ -395,7 +406,6 @@ function HomePaperCard({
 }) {
   const paper = result.paper;
   const evaluation = selectBestEvaluation(paper.evaluations);
-  const visibleTags = paper.tags.slice(0, 5);
   const sourceLabels = messages.common.sources;
   const summary =
     pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
@@ -403,10 +413,13 @@ function HomePaperCard({
     pickLocalized(evaluation?.recommendationReason, locale) ??
     pickLocalized(evaluation?.rankingExplanation, locale) ??
     messages.home.reasonFallback;
+  const readingMinutes = estimateReadingMinutes([paper.abstract, summary, reason]);
 
   return (
     <article className="grid grid-cols-1 items-start gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)_230px]">
-      <PaperThumb result={result} index={index} locale={locale} messages={messages} />
+      <div className="min-w-0">
+        <PaperThumb result={result} index={index} locale={locale} messages={messages} />
+      </div>
 
       <div className="min-w-0">
         <h2 className="mb-2 text-lg leading-snug font-semibold tracking-normal text-[#111827]">
@@ -421,18 +434,52 @@ function HomePaperCard({
           <span>|</span>
           <span>{formatDate(paper.publishedDate)}</span>
         </div>
-        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-[#273142]">{summary}</p>
-        <div className="mb-4 flex flex-wrap gap-2">
-          {visibleTags.map((tag) => (
-            <Link
-              key={tag.id}
-              href={`/library?tags=${encodeURIComponent(tag.tag)}`}
-              className="inline-flex min-h-[26px] items-center rounded-full bg-[#eef0ff] px-3 text-[13px] font-bold text-[#3442c8]"
-            >
-              {tag.tag}
-            </Link>
-          ))}
+        <p className="mb-4 text-sm leading-relaxed text-[#273142]">{summary}</p>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-3.5">
+        <div className="flex items-center gap-4">
+          <ScoreRing evaluation={evaluation} messages={messages} />
+          <span className="text-[13px] whitespace-nowrap text-[#344054]">
+            {messages.home.cardAiScore} ⓘ
+          </span>
         </div>
+        <div className="min-h-[68px] rounded-lg bg-[#eaf8f4] px-3.5 py-3 text-sm leading-snug text-[#195b50]">
+          <strong className="mb-1.5 flex items-center gap-2 text-[13px] text-[#0f9f86]">
+            <Lightbulb aria-hidden className="h-4 w-4" />
+            {messages.home.cardReasonHeader}
+          </strong>
+          <span className="line-clamp-5">{reason}</span>
+        </div>
+      </div>
+
+      <div className="grid gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-3 xl:grid-cols-[280px_minmax(0,1fr)_230px] xl:items-start">
+        {paper.tags.length > 0 ? (
+          <div className="paper-tag-marquee overflow-hidden py-0.5">
+            <div className="paper-tag-marquee__track flex w-max gap-2">
+              {[false, true].map((isDuplicate) => (
+                <div
+                  key={isDuplicate ? 'duplicate' : 'primary'}
+                  aria-hidden={isDuplicate}
+                  className="flex shrink-0 gap-2"
+                >
+                  {paper.tags.map((tag) => (
+                    <Link
+                      key={`${isDuplicate ? 'duplicate' : 'primary'}-${tag.id}`}
+                      href={`/library?tags=${encodeURIComponent(tag.tag)}`}
+                      tabIndex={isDuplicate ? -1 : undefined}
+                      className="inline-flex min-h-[26px] shrink-0 items-center rounded-full bg-[#eef0ff] px-3 text-[13px] font-bold whitespace-nowrap text-[#3442c8]"
+                    >
+                      {tag.tag}
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div aria-hidden />
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -450,23 +497,9 @@ function HomePaperCard({
             <Bookmark aria-hidden className="h-4 w-4" />
             {messages.home.cardReadLater}
           </button>
-          <span className="text-[13px] text-[#667085]">{messages.home.cardReadTime}</span>
-        </div>
-      </div>
-
-      <div className="flex min-w-0 flex-col gap-3.5">
-        <div className="flex items-center gap-4">
-          <ScoreRing evaluation={evaluation} messages={messages} />
-          <span className="text-[13px] whitespace-nowrap text-[#344054]">
-            {messages.home.cardAiScore} ⓘ
+          <span className="text-[13px] text-[#667085]">
+            {messages.home.cardReadTime(readingMinutes)}
           </span>
-        </div>
-        <div className="min-h-[68px] rounded-lg bg-[#eaf8f4] px-3.5 py-3 text-sm leading-snug text-[#195b50]">
-          <strong className="mb-1.5 flex items-center gap-2 text-[13px] text-[#0f9f86]">
-            <Lightbulb aria-hidden className="h-4 w-4" />
-            {messages.home.cardReasonHeader}
-          </strong>
-          <span className="line-clamp-3">{reason}</span>
         </div>
         <ExternalLinks result={result} evaluation={evaluation} messages={messages} />
       </div>

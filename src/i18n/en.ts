@@ -63,7 +63,7 @@ export const messages = {
     cardOpenPaper: 'Open paper ↗',
     cardFavorite: 'Favorite',
     cardReadLater: 'Read later',
-    cardReadTime: 'Reading time ≈ 18 min',
+    cardReadTime: (minutes: number) => `Reading time ≈ ${minutes} min`,
     cardAiScore: 'AI score',
     cardReasonHeader: 'Why recommended',
     cardScoreNa: 'N/A',

@@ -59,7 +59,7 @@ export const messages: Messages = {
     cardOpenPaper: '開啟論文 ↗',
     cardFavorite: '收藏',
     cardReadLater: '稍後閱讀',
-    cardReadTime: '閱讀時間：約 18 分鐘',
+    cardReadTime: (minutes: number) => `閱讀時間：約 ${minutes} 分鐘`,
     cardAiScore: 'AI 評分',
     cardReasonHeader: '推薦原因',
     cardScoreNa: 'N/A',
