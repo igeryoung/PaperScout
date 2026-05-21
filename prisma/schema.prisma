@@ -146,6 +146,7 @@ model DailyRun {
   results     PaperRunResult[]
   evaluations PaperEvaluation[]
   feedback    PaperFeedback[]
+  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([runDate])
   @@index([status])
@@ -216,10 +217,48 @@ model PaperFeedback {
 
   paper Paper     @relation(fields: [paperId], references: [id], onDelete: Cascade)
   run   DailyRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+  user  User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([paperId, runId, userId])
   @@index([paperId])
   @@map("paper_feedback")
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique
+  name            String?
+  avatarUrl       String?   @map("avatar_url")
+  googleId        String    @unique @map("google_id")
+  emailVerified   Boolean   @default(false) @map("email_verified")
+  disabledAt      DateTime? @map("disabled_at")
+  lastLoginAt     DateTime? @map("last_login_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  sessions Session[]
+  runs     DailyRun[]
+  feedback PaperFeedback[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  tokenHash    String   @unique @map("token_hash")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  lastSeenAt   DateTime @default(now()) @map("last_seen_at")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 model PaperTag {

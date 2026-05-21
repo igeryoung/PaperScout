@@ -123,12 +123,12 @@ Outcome: the app has real users and protected workspace routes.
 
 Checklist:
 
-- [ ] Pick auth provider/approach.
-- [ ] Add user/account/session persistence.
-- [ ] Add sign-in, sign-up, sign-out pages.
+- [x] Pick auth provider/approach: Google-only OAuth.
+- [x] Add user/account/session persistence.
+- [x] Add sign-in entry point and sign-out/session APIs.
 - [ ] Add route protection for user workspace pages.
 - [ ] Keep public paper/runs browsing behavior explicit: either public read-only or authenticated-only.
-- [ ] Add auth-aware header state.
+- [x] Add auth-aware header state.
 
 Key decision:
 
@@ -243,7 +243,8 @@ Auth-only:
 
 Names are provisional and should be adapted to the auth provider.
 
-- `User`
+- `User` — implemented for Google identity.
+- `Session` — implemented as server-side session storage.
 - `UserPreference`
 - `SavedPaper`
 - `PaperCollection`

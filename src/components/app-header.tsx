@@ -6,14 +6,17 @@ import { runsRepo } from '@/server/repos/runs';
 import { getLocale } from '@/lib/locale';
 import { getMessages } from '@/i18n';
 import { LocaleSwitcher } from '@/components/locale-switcher';
+import { getCurrentSession } from '@/server/auth/current-user';
 
 export async function AppHeader() {
-  const [latest, locale] = await Promise.all([
+  const [latest, locale, session] = await Promise.all([
     runsRepo.latestCompletedForDisplay(),
     getLocale(),
+    getCurrentSession(),
   ]);
   const t = getMessages(locale).header;
   const latestHref = latest ? `/runs/${latest.id}` : '/library';
+  const displayName = session?.user.name ?? session?.user.email ?? 'User';
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#e5e9f3] bg-white/90 backdrop-blur-xl">
@@ -78,18 +81,41 @@ export async function AppHeader() {
           >
             <Bell aria-hidden className="h-5 w-5" />
           </button>
-          <span
-            aria-label={t.avatarAria}
-            className="h-8 w-8 rounded-full bg-[radial-gradient(circle_at_50%_36%,#f7c7b5_0_22%,transparent_23%),radial-gradient(circle_at_50%_78%,#263238_0_31%,transparent_32%),linear-gradient(#dfe8ff,#f9f5ff)] shadow-[inset_0_0_0_1px_rgba(17,24,39,0.08)]"
-          />
-          <button
-            type="button"
-            disabled
-            aria-label={t.accountMenuAria}
-            className="grid h-9 w-9 cursor-not-allowed place-items-center rounded-[10px] text-[#111827] opacity-75"
-          >
-            <ChevronDown aria-hidden className="h-4 w-4" />
-          </button>
+          {session ? (
+            <>
+              {session.user.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={session.user.avatarUrl}
+                  alt={t.avatarAria}
+                  title={t.signedInAs(displayName)}
+                  className="h-8 w-8 rounded-full object-cover shadow-[inset_0_0_0_1px_rgba(17,24,39,0.08)]"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span
+                  aria-label={t.avatarAria}
+                  title={t.signedInAs(displayName)}
+                  className="h-8 w-8 rounded-full bg-[radial-gradient(circle_at_50%_36%,#f7c7b5_0_22%,transparent_23%),radial-gradient(circle_at_50%_78%,#263238_0_31%,transparent_32%),linear-gradient(#dfe8ff,#f9f5ff)] shadow-[inset_0_0_0_1px_rgba(17,24,39,0.08)]"
+                />
+              )}
+              <button
+                type="button"
+                disabled
+                aria-label={t.accountMenuAria}
+                className="grid h-9 w-9 cursor-not-allowed place-items-center rounded-[10px] text-[#111827] opacity-75"
+              >
+                <ChevronDown aria-hidden className="h-4 w-4" />
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/api/auth/google"
+              className="inline-flex min-h-9 items-center justify-center rounded-[10px] border border-[#d8dfeb] bg-white px-3 text-sm font-bold text-[#111827] hover:border-[#392ee5] hover:text-[#392ee5]"
+            >
+              {t.signInWithGoogle}
+            </Link>
+          )}
         </nav>
       </div>
     </header>

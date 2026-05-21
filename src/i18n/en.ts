@@ -22,6 +22,8 @@ export const messages = {
     localeSwitcherAria: 'Language',
     localeSwitcherOptionEn: 'English',
     localeSwitcherOptionZhTw: '繁體中文',
+    signInWithGoogle: 'Sign in',
+    signedInAs: (name: string) => `Signed in as ${name}`,
   },
   home: {
     emptyTitle: 'No agent run imported yet',

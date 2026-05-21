@@ -21,6 +21,8 @@ export const messages: Messages = {
     localeSwitcherAria: '語言',
     localeSwitcherOptionEn: 'English',
     localeSwitcherOptionZhTw: '繁體中文',
+    signInWithGoogle: '登入',
+    signedInAs: (name: string) => `已登入：${name}`,
   },
   home: {
     emptyTitle: '尚未匯入 agent 更新',

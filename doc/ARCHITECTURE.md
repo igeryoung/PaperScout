@@ -6,9 +6,9 @@ This is the canonical reference for *how* PaperScout CV is built. Pair it with [
 
 | Concern         | Choice                                                              |
 | --------------- | ------------------------------------------------------------------- |
-| Runtime target  | Local single-user web app (no auth in V1; `user_id` nullable)       |
+| Runtime target  | Local web app with Google-only login; workspace ownership is phased |
 | Framework       | Next.js 16 (App Router) + TypeScript                                |
-| Database        | PostgreSQL via Docker (`docker compose up`, host port 5435)         |
+| Database        | Railway PostgreSQL (`nozomi.proxy.rlwy.net:28727/railway`)          |
 | ORM             | Prisma v6 (v7 dropped datasource `url` → too disruptive for V1)     |
 | LLM execution   | **Claude Code skills** (`.claude/skills/`) — user invokes manually  |
 | Ingest          | `scripts/ingest.ts` (`tsx`) — zod-validates + dedups + upserts      |
@@ -40,6 +40,35 @@ The exception list (do **not** add `import 'server-only'` here):
 ### Prisma boundary
 
 No Prisma calls outside `src/server/repos/`. Ingest calls repos; repos call Prisma. Pages and route handlers go through repos too — no direct Prisma in `src/app/`.
+
+### Authentication
+
+Authentication is Google-only OAuth. The app does not store passwords and does
+not expose local email/password registration.
+
+Route surface:
+
+- `GET /api/auth/google` starts the Google OAuth authorization-code flow.
+- `GET /api/auth/google/callback` exchanges the code, verifies Google email
+  ownership, upserts the local user, creates a server-side session, and sets an
+  HTTP-only cookie.
+- `POST /api/auth/logout` deletes the current session.
+- `GET /api/users/me` returns the current user or `401`.
+- `GET /api/sessions/current` / `DELETE /api/sessions/current` inspect or revoke
+  the current session.
+- `GET /api/sessions` / `DELETE /api/sessions/:id` list or revoke active sessions
+  for the signed-in user.
+
+Implementation boundaries:
+
+- OAuth protocol helpers live in `src/server/auth/`.
+- Session and user persistence live in `src/server/repos/`.
+- Route handlers compose those modules and use async `cookies()` from
+  `next/headers`, per Next.js 16.
+- Session cookie values are opaque random tokens. Only SHA-256 token hashes are
+  stored in Postgres.
+- OAuth `state` is signed with `AUTH_SECRET` and stored in an HTTP-only,
+  short-lived cookie for CSRF protection.
 
 ### Skills produce JSON, not DB writes
 
