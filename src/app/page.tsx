@@ -1,6 +1,7 @@
 import 'server-only';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -74,6 +75,71 @@ function EmptyState({ messages }: { messages: Messages }) {
           </p>
         </div>
       </section>
+    </main>
+  );
+}
+
+function HomePagePlaceholder() {
+  return (
+    <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
+      <section className="grid min-h-[216px] items-center gap-10 rounded-[10px] bg-[linear-gradient(100deg,#edf7ff_0%,#f8f0ff_51%,#eaf4ff_100%)] px-5 py-6 shadow-[0_18px_50px_rgba(31,42,68,0.08)] md:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:px-24 xl:px-44">
+        <div className="max-w-[700px]">
+          <div className="mb-4 h-8 w-72 max-w-full animate-pulse rounded bg-white/80" />
+          <div className="mb-5 h-4 w-full max-w-[560px] animate-pulse rounded bg-white/70" />
+          <div className="h-[54px] rounded-[9px] border border-[#d9deea] bg-white shadow-[0_12px_26px_rgba(45,52,88,0.14)]" />
+          <div className="mt-4 flex flex-wrap gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <span
+                key={i}
+                className="h-[27px] w-24 animate-pulse rounded-full bg-[#dfe4ff]"
+              />
+            ))}
+          </div>
+        </div>
+        <div className="hidden min-h-[176px] animate-pulse rounded-[10px] bg-white/50 md:block" />
+      </section>
+
+      <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
+          <div className="border-b border-[#e5e9f3] px-5 pt-2.5">
+            <div className="mb-3 h-5 w-60 animate-pulse rounded bg-[#edf1f7]" />
+          </div>
+          <div className="grid gap-3.5 px-5 py-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-1 gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 xl:grid-cols-[280px_minmax(0,1fr)_230px]"
+              >
+                <div className="h-44 animate-pulse rounded-lg bg-[#edf1f7]" />
+                <div className="space-y-3">
+                  <div className="h-5 w-4/5 animate-pulse rounded bg-[#edf1f7]" />
+                  <div className="h-4 w-1/2 animate-pulse rounded bg-[#edf1f7]" />
+                  <div className="h-16 animate-pulse rounded bg-[#edf1f7]" />
+                </div>
+                <div className="space-y-3">
+                  <div className="h-16 w-16 animate-pulse rounded-full bg-[#edf1f7]" />
+                  <div className="h-[68px] animate-pulse rounded-lg bg-[#eaf8f4]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <aside className="grid content-start gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <section
+              key={i}
+              className="min-h-[132px] rounded-[10px] border border-[#e5e9f3] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+            >
+              <div className="mb-4 h-5 w-36 animate-pulse rounded bg-[#edf1f7]" />
+              <div className="grid gap-2">
+                <div className="h-4 animate-pulse rounded bg-[#edf1f7]" />
+                <div className="h-4 w-2/3 animate-pulse rounded bg-[#edf1f7]" />
+              </div>
+            </section>
+          ))}
+        </aside>
+      </div>
     </main>
   );
 }
@@ -708,20 +774,22 @@ function Pagination({
   );
 }
 
-export default async function HomePage({ searchParams }: HomePageProps) {
-  const sp = await searchParams;
-  const [run, locale] = await Promise.all([
-    runsRepo.latestCompletedForDisplay(),
-    getLocale(sp),
-  ]);
+async function HomePageContent({
+  searchParams,
+  locale,
+}: {
+  searchParams: { page?: string; locale?: string };
+  locale: Locale;
+}) {
+  const run = await runsRepo.latestCompletedForDisplay();
   const messages = getMessages(locale);
   if (!run) return <EmptyState messages={messages} />;
 
-  const requestedPage = parsePageParam(sp.page);
+  const requestedPage = parsePageParam(searchParams.page);
 
   const [summary, recommended, totalResults] = await Promise.all([
     trendsRepo.getRunSummary(run.id),
-    runResultsRepo.findByRunWithDetail(run.id, { recommendedOnly: true }),
+    runResultsRepo.findByRunWithDetail(run.id, { recommendedOnly: true, limit: 3 }),
     runResultsRepo.countByRun(run.id),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalResults / HOME_FEED_PAGE_SIZE));
@@ -794,5 +862,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </aside>
       </div>
     </main>
+  );
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const sp = await searchParams;
+  const locale = await getLocale(sp);
+
+  return (
+    <Suspense fallback={<HomePagePlaceholder />}>
+      <HomePageContent searchParams={sp} locale={locale} />
+    </Suspense>
   );
 }
