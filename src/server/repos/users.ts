@@ -7,7 +7,12 @@ const publicSelect = {
   name: true,
   avatarUrl: true,
   disabledAt: true,
+  lastLoginAt: true,
+  localePreference: true,
+  createdAt: true,
 } as const;
+
+export type LocalePreference = 'en' | 'zh-TW';
 
 export const usersRepo = {
   upsertGoogleUser: async (profile: GoogleProfile) =>
@@ -34,6 +39,13 @@ export const usersRepo = {
   findPublicById: (id: string) =>
     db.user.findUnique({
       where: { id },
+      select: publicSelect,
+    }),
+
+  updateProfile: (id: string, patch: { name?: string; localePreference?: LocalePreference }) =>
+    db.user.update({
+      where: { id },
+      data: patch,
       select: publicSelect,
     }),
 };

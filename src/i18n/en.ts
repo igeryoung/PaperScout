@@ -22,8 +22,17 @@ export const messages = {
     localeSwitcherAria: 'Language',
     localeSwitcherOptionEn: 'English',
     localeSwitcherOptionZhTw: '繁體中文',
-    signInWithGoogle: 'Sign in',
+    signInWithGoogle: 'Sign in with Google',
     signedInAs: (name: string) => `Signed in as ${name}`,
+    userMenu: {
+      account: 'Account',
+      viewHistory: 'View history',
+      viewHistoryDisabledTitle: 'Coming soon',
+      collect: 'Collect',
+      collectDisabledTitle: 'Coming soon',
+      signOut: 'Sign out',
+      signOutFailed: 'Sign out failed. Please try again.',
+    },
   },
   home: {
     emptyTitle: 'No agent run imported yet',
@@ -182,6 +191,21 @@ export const messages = {
   metadata: {
     title: 'PaperScout',
     description: 'Read-only viewer for agent-collected paper trends.',
+  },
+  account: {
+    title: 'Account',
+    emailLabel: 'Email',
+    nameLabel: 'Display name',
+    namePlaceholder: 'Your name',
+    localeLabel: 'Preferred language',
+    localeHelp: 'Used the next time you sign in.',
+    lastLoginLabel: 'Last sign-in',
+    memberSinceLabel: 'Member since',
+    save: 'Save changes',
+    saving: 'Saving…',
+    savedAt: (when: string) => `Saved at ${when}`,
+    saveFailed: 'Could not save changes. Please try again.',
+    nameRequired: 'Name cannot be empty.',
   },
 };
 

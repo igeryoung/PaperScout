@@ -233,6 +233,7 @@ model User {
   emailVerified   Boolean   @default(false) @map("email_verified")
   disabledAt      DateTime? @map("disabled_at")
   lastLoginAt     DateTime? @map("last_login_at")
+  localePreference String?  @map("locale_preference")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
