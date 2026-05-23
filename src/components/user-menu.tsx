@@ -115,20 +115,22 @@ export function UserMenu({ user, labels }: { user: UserMenuUser; labels: UserMen
             </Link>
           </DropdownMenu.Item>
 
-          <DropdownMenu.Item
-            disabled
-            title={labels.viewHistoryDisabledTitle}
-            className="block cursor-not-allowed rounded-md px-3 py-2 text-sm text-[#98a2b3] outline-none"
-          >
-            {labels.viewHistory}
+          <DropdownMenu.Item asChild>
+            <Link
+              href="/library?view=history"
+              className="block cursor-pointer rounded-md px-3 py-2 text-sm text-[#111827] outline-none data-[highlighted]:bg-[#f5f7fb]"
+            >
+              {labels.viewHistory}
+            </Link>
           </DropdownMenu.Item>
 
-          <DropdownMenu.Item
-            disabled
-            title={labels.collectDisabledTitle}
-            className="block cursor-not-allowed rounded-md px-3 py-2 text-sm text-[#98a2b3] outline-none"
-          >
-            {labels.collect}
+          <DropdownMenu.Item asChild>
+            <Link
+              href="/library"
+              className="block cursor-pointer rounded-md px-3 py-2 text-sm text-[#111827] outline-none data-[highlighted]:bg-[#f5f7fb]"
+            >
+              {labels.collect}
+            </Link>
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator className="my-1 h-px bg-[#eef0f7]" />
