@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Suspense } from 'react';
 import './globals.css';
-import { AppHeader } from '@/components/app-header';
+import { AppHeader, AppHeaderPlaceholder } from '@/components/app-header';
 import { getLocale } from '@/lib/locale';
 import { getMessages } from '@/i18n';
 
@@ -36,7 +37,9 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <AppHeader />
+        <Suspense fallback={<AppHeaderPlaceholder locale={locale} />}>
+          <AppHeader locale={locale} />
+        </Suspense>
         <div className="flex-1">{children}</div>
       </body>
     </html>

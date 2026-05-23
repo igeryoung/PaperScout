@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { papersRepo } from '@/server/repos/papers';
 import { runsRepo } from '@/server/repos/runs';
+import { libraryRepo } from '@/server/repos/library';
+import { getCurrentSession } from '@/server/auth/current-user';
 import { PaperDetail } from '@/components/paper-detail';
 import { getLocale } from '@/lib/locale';
 import { getMessages } from '@/i18n';
@@ -16,12 +18,16 @@ interface PaperPageProps {
 
 export default async function PaperPage({ params }: PaperPageProps) {
   const { id } = await params;
-  const [paper, latestRun, locale] = await Promise.all([
+  const [paper, latestRun, locale, session] = await Promise.all([
     papersRepo.findDetailById(id),
     runsRepo.latestCompleted(),
     getLocale(),
+    getCurrentSession(),
   ]);
   if (!paper) notFound();
+  if (session) {
+    await libraryRepo.recordView({ userId: session.user.id, paperId: paper.id });
+  }
   const messages = getMessages(locale);
 
   return (

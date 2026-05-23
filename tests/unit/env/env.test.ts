@@ -19,14 +19,31 @@ describe('env', () => {
   it('does not require an Anthropic API key', async () => {
     vi.stubEnv(
       'DATABASE_URL',
-      'postgresql://paperscout:paperscout@localhost:5435/paperscout?schema=public',
+      'postgresql://postgres:password@nozomi.proxy.rlwy.net:28727/railway',
     );
     vi.stubEnv('LOG_LEVEL', 'debug');
     vi.resetModules();
 
     const { env } = await import('@/lib/env');
 
-    expect(env.DATABASE_URL).toContain('postgresql://paperscout');
+    expect(env.DATABASE_URL).toContain('nozomi.proxy.rlwy.net:28727/railway');
     expect(env).not.toHaveProperty('ANTHROPIC_API_KEY');
+  });
+
+  it('does not require Google auth variables unless the auth routes are used', async () => {
+    vi.stubEnv(
+      'DATABASE_URL',
+      'postgresql://postgres:password@nozomi.proxy.rlwy.net:28727/railway',
+    );
+    vi.stubEnv('APP_BASE_URL', '');
+    vi.stubEnv('AUTH_SECRET', '');
+    vi.stubEnv('GOOGLE_CLIENT_ID', '');
+    vi.stubEnv('GOOGLE_CLIENT_SECRET', '');
+    vi.resetModules();
+
+    const { env } = await import('@/lib/env');
+
+    expect(env.APP_BASE_URL).toBeUndefined();
+    expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
   });
 });

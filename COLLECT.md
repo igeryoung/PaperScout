@@ -4,8 +4,8 @@ One cycle = collect candidates → evaluate them → ingest into Postgres → re
 
 ## Prerequisites (one-time)
 
-- Postgres running locally on port 5435 (`docker compose up -d`)
-- `.env.local` has `DATABASE_URL` pointing at it
+- `.env.local` has `DATABASE_URL` pointing at Railway Postgres:
+  `postgresql://postgres:<PASSWORD>@nozomi.proxy.rlwy.net:28727/railway`
 - `npm run prisma:migrate` has been applied
 - `npm run dev` running in another shell if you want to view `/library`
 

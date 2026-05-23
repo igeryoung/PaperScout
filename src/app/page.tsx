@@ -1,10 +1,10 @@
 import 'server-only';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import {
   ArrowRight,
   BarChart3,
-  Bookmark,
   FileText,
   Grid2X2,
   Lightbulb,
@@ -16,15 +16,15 @@ import {
 } from 'lucide-react';
 import type { PaperEvaluation, PaperSource } from '@prisma/client';
 import { runsRepo } from '@/server/repos/runs';
-import {
-  runResultsRepo,
-  type RunResultWithDetail,
-} from '@/server/repos/runResults';
+import { runResultsRepo, type RunResultWithDetail } from '@/server/repos/runResults';
 import { trendsRepo, type RunSummary, type TagCount } from '@/server/repos/trends';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { getLocale, pickLocalized, type Locale } from '@/lib/locale';
 import { getMessages, type Messages } from '@/i18n';
+import { getCurrentSession } from '@/server/auth/current-user';
+import { libraryRepo } from '@/server/repos/library';
+import { HomePaperActions } from '@/components/home-paper-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,9 +58,7 @@ function EmptyState({ messages }: { messages: Messages }) {
           <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-[#eef0ff] text-[#5b4df1]">
             <Sparkles aria-hidden className="h-7 w-7" />
           </div>
-          <h1 className="text-3xl font-semibold tracking-normal text-[#111827]">
-            {t.emptyTitle}
-          </h1>
+          <h1 className="text-3xl font-semibold tracking-normal text-[#111827]">{t.emptyTitle}</h1>
           <p className="mt-3 text-sm leading-6 text-[#667085]">{t.emptyBody}</p>
           <pre className="mx-auto mt-6 max-w-xl overflow-x-auto rounded-lg bg-[#f2f4f8] p-4 text-left font-mono text-xs text-[#344054]">
             {t.emptyCommands}
@@ -74,6 +72,68 @@ function EmptyState({ messages }: { messages: Messages }) {
           </p>
         </div>
       </section>
+    </main>
+  );
+}
+
+function HomePagePlaceholder() {
+  return (
+    <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
+      <section className="grid min-h-[216px] items-center gap-10 rounded-[10px] bg-[linear-gradient(100deg,#edf7ff_0%,#f8f0ff_51%,#eaf4ff_100%)] px-5 py-6 shadow-[0_18px_50px_rgba(31,42,68,0.08)] md:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:px-24 xl:px-44">
+        <div className="max-w-[700px]">
+          <div className="mb-4 h-8 w-72 max-w-full animate-pulse rounded bg-white/80" />
+          <div className="mb-5 h-4 w-full max-w-[560px] animate-pulse rounded bg-white/70" />
+          <div className="h-[54px] rounded-[9px] border border-[#d9deea] bg-white shadow-[0_12px_26px_rgba(45,52,88,0.14)]" />
+          <div className="mt-4 flex flex-wrap gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <span key={i} className="h-[27px] w-24 animate-pulse rounded-full bg-[#dfe4ff]" />
+            ))}
+          </div>
+        </div>
+        <div className="hidden min-h-[176px] animate-pulse rounded-[10px] bg-white/50 md:block" />
+      </section>
+
+      <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
+          <div className="border-b border-[#e5e9f3] px-5 pt-2.5">
+            <div className="mb-3 h-5 w-60 animate-pulse rounded bg-[#edf1f7]" />
+          </div>
+          <div className="grid gap-3.5 px-5 py-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-1 gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 xl:grid-cols-[280px_minmax(0,1fr)_230px]"
+              >
+                <div className="h-44 animate-pulse rounded-lg bg-[#edf1f7]" />
+                <div className="space-y-3">
+                  <div className="h-5 w-4/5 animate-pulse rounded bg-[#edf1f7]" />
+                  <div className="h-4 w-1/2 animate-pulse rounded bg-[#edf1f7]" />
+                  <div className="h-16 animate-pulse rounded bg-[#edf1f7]" />
+                </div>
+                <div className="space-y-3">
+                  <div className="h-16 w-16 animate-pulse rounded-full bg-[#edf1f7]" />
+                  <div className="h-[68px] animate-pulse rounded-lg bg-[#eaf8f4]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <aside className="grid content-start gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <section
+              key={i}
+              className="min-h-[132px] rounded-[10px] border border-[#e5e9f3] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+            >
+              <div className="mb-4 h-5 w-36 animate-pulse rounded bg-[#edf1f7]" />
+              <div className="grid gap-2">
+                <div className="h-4 animate-pulse rounded bg-[#edf1f7]" />
+                <div className="h-4 w-2/3 animate-pulse rounded bg-[#edf1f7]" />
+              </div>
+            </section>
+          ))}
+        </aside>
+      </div>
     </main>
   );
 }
@@ -215,7 +275,10 @@ function FeedToolbar({ messages }: { messages: Messages }) {
         ))}
       </div>
 
-      <div className="flex items-center gap-3 pb-2.5 max-sm:flex-wrap" aria-label={t.feedControlsAria}>
+      <div
+        className="flex items-center gap-3 pb-2.5 max-sm:flex-wrap"
+        aria-label={t.feedControlsAria}
+      >
         {[t.feedFilterDomain, t.feedFilterTime, t.feedFilterSort].map((label) => (
           <select
             key={label}
@@ -398,17 +461,18 @@ function HomePaperCard({
   index,
   locale,
   messages,
+  userState,
 }: {
   result: RunResultWithDetail;
   index: number;
   locale: Locale;
   messages: Messages;
+  userState: { liked: boolean; readLater: boolean };
 }) {
   const paper = result.paper;
   const evaluation = selectBestEvaluation(paper.evaluations);
   const sourceLabels = messages.common.sources;
-  const summary =
-    pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
+  const summary = pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
   const reason =
     pickLocalized(evaluation?.recommendationReason, locale) ??
     pickLocalized(evaluation?.rankingExplanation, locale) ??
@@ -481,22 +545,13 @@ function HomePaperCard({
           <div aria-hidden />
         )}
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-[33px] cursor-not-allowed items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] opacity-80"
-          >
-            <Star aria-hidden className="h-4 w-4" />
-            {messages.home.cardFavorite}
-          </button>
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-[33px] cursor-not-allowed items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] opacity-80"
-          >
-            <Bookmark aria-hidden className="h-4 w-4" />
-            {messages.home.cardReadLater}
-          </button>
+          <HomePaperActions
+            paperId={paper.id}
+            initialLiked={userState.liked}
+            initialReadLater={userState.readLater}
+            favoriteLabel={messages.home.cardFavorite}
+            readLaterLabel={messages.home.cardReadLater}
+          />
           <span className="text-[13px] text-[#667085]">
             {messages.home.cardReadTime(readingMinutes)}
           </span>
@@ -599,7 +654,7 @@ function SourceMixCard({ summary, messages }: { summary: RunSummary; messages: M
           {summary.sources.map((source) => (
             <li key={source.source} className="flex items-center justify-between text-sm">
               <span className="text-[#344054]">{sourceLabels[source.source]}</span>
-              <span className="font-semibold tabular-nums text-[#392ee5]">
+              <span className="font-semibold text-[#392ee5] tabular-nums">
                 {source.count} ({Math.round((source.count / total) * 100)}%)
               </span>
             </li>
@@ -648,9 +703,7 @@ function Pagination({
 }) {
   const t = messages.home;
   if (totalPages <= 1) {
-    return (
-      <p className="text-center text-sm text-[#667085]">{t.paginationAllShown(totalItems)}</p>
-    );
+    return <p className="text-center text-sm text-[#667085]">{t.paginationAllShown(totalItems)}</p>;
   }
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -708,21 +761,24 @@ function Pagination({
   );
 }
 
-export default async function HomePage({ searchParams }: HomePageProps) {
-  const sp = await searchParams;
-  const [run, locale] = await Promise.all([
-    runsRepo.latestCompletedForDisplay(),
-    getLocale(sp),
-  ]);
+async function HomePageContent({
+  searchParams,
+  locale,
+}: {
+  searchParams: { page?: string; locale?: string };
+  locale: Locale;
+}) {
+  const run = await runsRepo.latestCompletedForDisplay();
   const messages = getMessages(locale);
   if (!run) return <EmptyState messages={messages} />;
 
-  const requestedPage = parsePageParam(sp.page);
+  const requestedPage = parsePageParam(searchParams.page);
 
-  const [summary, recommended, totalResults] = await Promise.all([
+  const [summary, recommended, totalResults, session] = await Promise.all([
     trendsRepo.getRunSummary(run.id),
-    runResultsRepo.findByRunWithDetail(run.id, { recommendedOnly: true }),
+    runResultsRepo.findByRunWithDetail(run.id, { recommendedOnly: true, limit: 3 }),
     runResultsRepo.countByRun(run.id),
+    getCurrentSession(),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalResults / HOME_FEED_PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
@@ -731,6 +787,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     limit: HOME_FEED_PAGE_SIZE,
     offset: (currentPage - 1) * HOME_FEED_PAGE_SIZE,
   });
+  const paperStates = session
+    ? await libraryRepo.findPaperStates({
+        userId: session.user.id,
+        paperIds: results.map((result) => result.paper.id),
+      })
+    : new Map<string, { liked: boolean; status: string }>();
 
   return (
     <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
@@ -772,6 +834,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                   index={index}
                   locale={locale}
                   messages={messages}
+                  userState={{
+                    liked: paperStates.get(result.paper.id)?.liked ?? false,
+                    readLater: paperStates.get(result.paper.id)?.status === 'UNREAD',
+                  }}
                 />
               ))
             )}
@@ -794,5 +860,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </aside>
       </div>
     </main>
+  );
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const sp = await searchParams;
+  const locale = await getLocale(sp);
+
+  return (
+    <Suspense fallback={<HomePagePlaceholder />}>
+      <HomePageContent searchParams={sp} locale={locale} />
+    </Suspense>
   );
 }

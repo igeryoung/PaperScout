@@ -15,6 +15,7 @@ if (RUN_INTEGRATION && TEST_URL) {
 export const SHOULD_RUN_INTEGRATION = RUN_INTEGRATION && !!TEST_URL;
 
 const TRUNCATE_SQL = `TRUNCATE
+  sessions,
   paper_run_results,
   paper_duplicates,
   paper_code_links,
@@ -23,7 +24,8 @@ const TRUNCATE_SQL = `TRUNCATE
   paper_feedback,
   paper_sources,
   papers,
-  daily_runs
+  daily_runs,
+  users
 RESTART IDENTITY CASCADE;`;
 
 export async function setupTestDb(): Promise<void> {

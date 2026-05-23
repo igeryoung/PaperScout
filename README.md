@@ -7,19 +7,17 @@ V1 is a local single-user web app. See [`doc/`](./doc/) for product requirements
 ## Quick start
 
 ```bash
-# 1. Database
-docker compose up -d
-docker compose ps                # postgres should be healthy; host port is 5435
-
-# 2. Env
+# 1. Env
 cp .env.example .env.local
-# edit DATABASE_URL only if your local Postgres settings differ
+# set DATABASE_URL to the Railway Postgres connection string
+# fill Google OAuth variables if you want to use login locally
 
-# 3. Install + run
+# 2. Install + migrate + run
 npm install
+npm run prisma:migrate
 npm run dev                      # http://localhost:3050
 
-# 4. Tests
+# 3. Tests
 npm test
 ```
 
@@ -43,9 +41,42 @@ npm test
 5. Rank, mark top-10 `is_recommended`. UI shows the ranked list with a header locale switcher (English / 繁體中文).
 6. User rates 1–5 stars + optional comment.
 
+## Google Login
+
+PaperScout uses Google as the only login provider and Railway Postgres as the
+application database. Configure these values in `.env.local`:
+
+- `DATABASE_URL` — `postgresql://postgres:<PASSWORD>@nozomi.proxy.rlwy.net:28727/railway`
+- `APP_BASE_URL` — local default is `http://localhost:3050`
+- `AUTH_SECRET` — at least 32 random characters
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+The Google OAuth redirect URI must be:
+
+```text
+http://localhost:3050/api/auth/google/callback
+```
+
+Auth API surface:
+
+```text
+GET    /api/auth/google
+GET    /api/auth/google/callback
+POST   /api/auth/logout
+GET    /api/users/me
+GET    /api/sessions/current
+DELETE /api/sessions/current
+GET    /api/sessions
+DELETE /api/sessions/:id
+```
+
+Sessions are stored server-side in Postgres and the browser receives only an
+HTTP-only session cookie.
+
 ## Known limitations (V1)
 
-- Single user, no auth.
+- Google login is implemented, but workspace ownership features are still in the Phase 6 roadmap.
 - On-demand only (no scheduled runs).
 - In-process background runner — runs may die on dev-server HMR.
 - Feedback is stored but does not influence ranking.
