@@ -47,8 +47,7 @@ export const messages = {
     heroSubtitle:
       'The AI summarizes, scores, and tags the most relevant papers from the latest agent run.',
     heroSearchAria: 'Enter a research interest',
-    heroSearchPlaceholder:
-      'Type a topic you care about — e.g. LLM agents, RAG, diffusion models…',
+    heroSearchPlaceholder: 'Type a topic you care about — e.g. LLM agents, RAG, diffusion models…',
     heroSubmitAria: 'Submit research interest',
     heroSubmitTitle: 'V1 does not yet store personalized interests',
     heroTopicsLabel: 'Hot topics:',
@@ -123,7 +122,8 @@ export const messages = {
     notePlaceholder: 'Plain text notes...',
     saveNote: 'Note',
     emptyPersonalTitle: 'No papers here yet',
-    emptyPersonalBody: 'Add papers from the available papers section or open paper details to build history.',
+    emptyPersonalBody:
+      'Add papers from the available papers section or open paper details to build history.',
     searchPlaceholder: 'Search your collection...',
     statusLabel: 'Status',
     likedLabel: 'Like',
@@ -131,6 +131,8 @@ export const messages = {
     metricTotal: 'Total',
     metricLiked: 'Liked',
     metricUnread: 'Unread',
+    metricReading: 'Reading',
+    metricRead: 'Read',
     metricNotes: 'Notes',
     metricHistory: 'History',
     statuses: {

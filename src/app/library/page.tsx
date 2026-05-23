@@ -2,7 +2,7 @@ import 'server-only';
 
 import Link from 'next/link';
 import { BookmarkPlus } from 'lucide-react';
-import type { Source, UserPaperStatus } from '@prisma/client';
+import type { UserPaperStatus } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { getLocale, pickLocalized } from '@/lib/locale';
 import { formatAuthors, formatDate } from '@/lib/format';
@@ -15,12 +15,19 @@ import { LibraryWorkspace, type LibraryWorkspaceProps } from './library-workspac
 export const dynamic = 'force-dynamic';
 
 interface LibraryPageProps {
-  searchParams: Promise<{ view?: string; collection?: string }>;
+  searchParams: Promise<{ view?: string; collection?: string; status?: string }>;
 }
 
 function parseView(value: string | undefined): LibraryView {
   if (value === 'liked' || value === 'history' || value === 'collection') return value;
   return 'all';
+}
+
+function parseStatus(value: string | undefined): UserPaperStatus | undefined {
+  if (value === 'UNREAD' || value === 'READING' || value === 'READ' || value === 'ARCHIVED') {
+    return value;
+  }
+  return undefined;
 }
 
 function toPaperView(entry: LibraryUserPaper, locale: 'en' | 'zh-TW') {
@@ -45,6 +52,7 @@ function toPaperView(entry: LibraryUserPaper, locale: 'en' | 'zh-TW') {
     status: entry.status,
     note: entry.note ?? '',
     lastViewedAt: entry.lastViewedAt ? formatDate(entry.lastViewedAt) : null,
+    noteCount: entry.note?.trim() ? 1 : 0,
   };
 }
 
@@ -79,26 +87,25 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
 
   const messages = getMessages(locale);
   const view = parseView(params.view);
+  const status = parseStatus(params.status);
   const collections = await libraryRepo.listCollections(session.user.id);
-  const defaultCollection = collections.find((collection) => collection.isDefault) ?? collections[0];
+  const defaultCollection =
+    collections.find((collection) => collection.isDefault) ?? collections[0];
   const selectedCollection =
     view === 'collection'
-      ? collections.find((collection) => collection.id === params.collection) ?? defaultCollection
+      ? (collections.find((collection) => collection.id === params.collection) ?? defaultCollection)
       : defaultCollection;
 
   const activeView = view === 'collection' && selectedCollection ? 'collection' : view;
   const addTargetCollectionId = selectedCollection?.id;
 
-  const [stats, entries, availablePapers] = await Promise.all([
+  const [stats, entries] = await Promise.all([
     libraryRepo.stats(session.user.id),
     libraryRepo.listEntries({
       userId: session.user.id,
       view: activeView,
       collectionId: activeView === 'collection' ? selectedCollection?.id : undefined,
-    }),
-    libraryRepo.listAvailablePapers({
-      userId: session.user.id,
-      collectionId: addTargetCollectionId,
+      status,
     }),
   ]);
 
@@ -132,16 +139,17 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
       lastViewed: messages.library.lastViewed,
       metrics: {
         total: messages.library.metricTotal,
-        liked: messages.library.metricLiked,
         unread: messages.library.metricUnread,
+        reading: messages.library.metricReading,
+        read: messages.library.metricRead,
         notes: messages.library.metricNotes,
-        history: messages.library.metricHistory,
       },
       statuses: messages.library.statuses,
       sources: messages.common.sources,
     },
     activeView,
     activeCollectionId: addTargetCollectionId ?? null,
+    activeStatus: status ?? null,
     collections: collections.map((collection) => ({
       id: collection.id,
       name: collection.name,
@@ -151,13 +159,6 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
     })),
     stats,
     papers: entries.map((entry) => toPaperView(entry, locale)),
-    availablePapers: availablePapers.map((paper) => ({
-      id: paper.id,
-      title: paper.title,
-      authors: formatAuthors(paper.authors, 2),
-      source: paper.primarySource as Source,
-      publishedDate: formatDate(paper.publishedDate),
-    })),
   };
 
   return <LibraryWorkspace {...props} />;

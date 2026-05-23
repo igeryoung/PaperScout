@@ -75,22 +75,25 @@ export const libraryRepo = {
   },
 
   stats: async (userId: string) => {
-    const [total, liked, unread, notes, history] = await Promise.all([
+    const [total, liked, unread, reading, read, notes, history] = await Promise.all([
       db.userPaper.count({ where: { userId } }),
       db.userPaper.count({ where: { userId, liked: true } }),
       db.userPaper.count({ where: { userId, status: 'UNREAD' } }),
+      db.userPaper.count({ where: { userId, status: 'READING' } }),
+      db.userPaper.count({ where: { userId, status: 'READ' } }),
       db.userPaper.count({
         where: { userId, AND: [{ note: { not: null } }, { note: { not: '' } }] },
       }),
       db.paperViewHistory.count({ where: { userId } }),
     ]);
-    return { total, liked, unread, notes, history };
+    return { total, liked, unread, reading, read, notes, history };
   },
 
   listEntries: async (input: {
     userId: string;
     view: LibraryView;
     collectionId?: string;
+    status?: UserPaperStatus;
     limit?: number;
   }): Promise<LibraryUserPaper[]> => {
     const limit = input.limit ?? 60;
@@ -103,7 +106,11 @@ export const libraryRepo = {
       const paperIds = await collectionPaperIds(collection.id);
       if (paperIds.length === 0) return [];
       return db.userPaper.findMany({
-        where: { userId: input.userId, paperId: { in: paperIds } },
+        where: {
+          userId: input.userId,
+          paperId: { in: paperIds },
+          ...(input.status ? { status: input.status } : {}),
+        },
         orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
         take: limit,
         include: userPaperInclude,
@@ -129,7 +136,11 @@ export const libraryRepo = {
       if (paperIds.length === 0) return [];
 
       const entries = await db.userPaper.findMany({
-        where: { userId: input.userId, paperId: { in: paperIds } },
+        where: {
+          userId: input.userId,
+          paperId: { in: paperIds },
+          ...(input.status ? { status: input.status } : {}),
+        },
         include: userPaperInclude,
       });
       const byPaperId = new Map(entries.map((entry) => [entry.paperId, entry]));
@@ -143,6 +154,7 @@ export const libraryRepo = {
       where: {
         userId: input.userId,
         ...(input.view === 'liked' ? { liked: true } : {}),
+        ...(input.status ? { status: input.status } : {}),
       },
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       take: limit,
@@ -150,11 +162,7 @@ export const libraryRepo = {
     });
   },
 
-  listAvailablePapers: async (input: {
-    userId: string;
-    collectionId?: string;
-    limit?: number;
-  }) => {
+  listAvailablePapers: async (input: { userId: string; collectionId?: string; limit?: number }) => {
     const limit = input.limit ?? 12;
     const excludedIds = input.collectionId
       ? await collectionPaperIds(input.collectionId)
@@ -277,11 +285,7 @@ export const libraryRepo = {
       },
     }),
 
-  removePaper: async (input: {
-    userId: string;
-    paperId: string;
-    collectionId?: string | null;
-  }) => {
+  removePaper: async (input: { userId: string; paperId: string; collectionId?: string | null }) => {
     if (input.collectionId) {
       return db.paperCollectionItem.deleteMany({
         where: {

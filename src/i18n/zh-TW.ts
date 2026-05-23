@@ -127,6 +127,8 @@ export const messages: Messages = {
     metricTotal: '總數',
     metricLiked: '收藏',
     metricUnread: '未讀',
+    metricReading: '閱讀中',
+    metricRead: '已讀完',
     metricNotes: '筆記',
     metricHistory: '紀錄',
     statuses: {
