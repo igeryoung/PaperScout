@@ -5,7 +5,6 @@ import { Suspense } from 'react';
 import {
   ArrowRight,
   BarChart3,
-  Bookmark,
   FileText,
   Grid2X2,
   Lightbulb,
@@ -17,15 +16,15 @@ import {
 } from 'lucide-react';
 import type { PaperEvaluation, PaperSource } from '@prisma/client';
 import { runsRepo } from '@/server/repos/runs';
-import {
-  runResultsRepo,
-  type RunResultWithDetail,
-} from '@/server/repos/runResults';
+import { runResultsRepo, type RunResultWithDetail } from '@/server/repos/runResults';
 import { trendsRepo, type RunSummary, type TagCount } from '@/server/repos/trends';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { getLocale, pickLocalized, type Locale } from '@/lib/locale';
 import { getMessages, type Messages } from '@/i18n';
+import { getCurrentSession } from '@/server/auth/current-user';
+import { libraryRepo } from '@/server/repos/library';
+import { HomePaperActions } from '@/components/home-paper-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,9 +58,7 @@ function EmptyState({ messages }: { messages: Messages }) {
           <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-[#eef0ff] text-[#5b4df1]">
             <Sparkles aria-hidden className="h-7 w-7" />
           </div>
-          <h1 className="text-3xl font-semibold tracking-normal text-[#111827]">
-            {t.emptyTitle}
-          </h1>
+          <h1 className="text-3xl font-semibold tracking-normal text-[#111827]">{t.emptyTitle}</h1>
           <p className="mt-3 text-sm leading-6 text-[#667085]">{t.emptyBody}</p>
           <pre className="mx-auto mt-6 max-w-xl overflow-x-auto rounded-lg bg-[#f2f4f8] p-4 text-left font-mono text-xs text-[#344054]">
             {t.emptyCommands}
@@ -89,10 +86,7 @@ function HomePagePlaceholder() {
           <div className="h-[54px] rounded-[9px] border border-[#d9deea] bg-white shadow-[0_12px_26px_rgba(45,52,88,0.14)]" />
           <div className="mt-4 flex flex-wrap gap-2">
             {Array.from({ length: 6 }).map((_, i) => (
-              <span
-                key={i}
-                className="h-[27px] w-24 animate-pulse rounded-full bg-[#dfe4ff]"
-              />
+              <span key={i} className="h-[27px] w-24 animate-pulse rounded-full bg-[#dfe4ff]" />
             ))}
           </div>
         </div>
@@ -281,7 +275,10 @@ function FeedToolbar({ messages }: { messages: Messages }) {
         ))}
       </div>
 
-      <div className="flex items-center gap-3 pb-2.5 max-sm:flex-wrap" aria-label={t.feedControlsAria}>
+      <div
+        className="flex items-center gap-3 pb-2.5 max-sm:flex-wrap"
+        aria-label={t.feedControlsAria}
+      >
         {[t.feedFilterDomain, t.feedFilterTime, t.feedFilterSort].map((label) => (
           <select
             key={label}
@@ -464,17 +461,18 @@ function HomePaperCard({
   index,
   locale,
   messages,
+  userState,
 }: {
   result: RunResultWithDetail;
   index: number;
   locale: Locale;
   messages: Messages;
+  userState: { liked: boolean; readLater: boolean };
 }) {
   const paper = result.paper;
   const evaluation = selectBestEvaluation(paper.evaluations);
   const sourceLabels = messages.common.sources;
-  const summary =
-    pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
+  const summary = pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
   const reason =
     pickLocalized(evaluation?.recommendationReason, locale) ??
     pickLocalized(evaluation?.rankingExplanation, locale) ??
@@ -547,22 +545,13 @@ function HomePaperCard({
           <div aria-hidden />
         )}
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-[33px] cursor-not-allowed items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] opacity-80"
-          >
-            <Star aria-hidden className="h-4 w-4" />
-            {messages.home.cardFavorite}
-          </button>
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-[33px] cursor-not-allowed items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] opacity-80"
-          >
-            <Bookmark aria-hidden className="h-4 w-4" />
-            {messages.home.cardReadLater}
-          </button>
+          <HomePaperActions
+            paperId={paper.id}
+            initialLiked={userState.liked}
+            initialReadLater={userState.readLater}
+            favoriteLabel={messages.home.cardFavorite}
+            readLaterLabel={messages.home.cardReadLater}
+          />
           <span className="text-[13px] text-[#667085]">
             {messages.home.cardReadTime(readingMinutes)}
           </span>
@@ -665,7 +654,7 @@ function SourceMixCard({ summary, messages }: { summary: RunSummary; messages: M
           {summary.sources.map((source) => (
             <li key={source.source} className="flex items-center justify-between text-sm">
               <span className="text-[#344054]">{sourceLabels[source.source]}</span>
-              <span className="font-semibold tabular-nums text-[#392ee5]">
+              <span className="font-semibold text-[#392ee5] tabular-nums">
                 {source.count} ({Math.round((source.count / total) * 100)}%)
               </span>
             </li>
@@ -714,9 +703,7 @@ function Pagination({
 }) {
   const t = messages.home;
   if (totalPages <= 1) {
-    return (
-      <p className="text-center text-sm text-[#667085]">{t.paginationAllShown(totalItems)}</p>
-    );
+    return <p className="text-center text-sm text-[#667085]">{t.paginationAllShown(totalItems)}</p>;
   }
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -787,10 +774,11 @@ async function HomePageContent({
 
   const requestedPage = parsePageParam(searchParams.page);
 
-  const [summary, recommended, totalResults] = await Promise.all([
+  const [summary, recommended, totalResults, session] = await Promise.all([
     trendsRepo.getRunSummary(run.id),
     runResultsRepo.findByRunWithDetail(run.id, { recommendedOnly: true, limit: 3 }),
     runResultsRepo.countByRun(run.id),
+    getCurrentSession(),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalResults / HOME_FEED_PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
@@ -799,6 +787,12 @@ async function HomePageContent({
     limit: HOME_FEED_PAGE_SIZE,
     offset: (currentPage - 1) * HOME_FEED_PAGE_SIZE,
   });
+  const paperStates = session
+    ? await libraryRepo.findPaperStates({
+        userId: session.user.id,
+        paperIds: results.map((result) => result.paper.id),
+      })
+    : new Map<string, { liked: boolean; status: string }>();
 
   return (
     <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
@@ -840,6 +834,10 @@ async function HomePageContent({
                   index={index}
                   locale={locale}
                   messages={messages}
+                  userState={{
+                    liked: paperStates.get(result.paper.id)?.liked ?? false,
+                    readLater: paperStates.get(result.paper.id)?.status === 'UNREAD',
+                  }}
                 />
               ))
             )}

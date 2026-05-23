@@ -188,6 +188,23 @@ export const libraryRepo = {
     });
   },
 
+  findPaperStates: async (input: { userId: string; paperIds: string[] }) => {
+    if (input.paperIds.length === 0)
+      return new Map<string, { liked: boolean; status: UserPaperStatus }>();
+    const rows = await db.userPaper.findMany({
+      where: {
+        userId: input.userId,
+        paperId: { in: input.paperIds },
+      },
+      select: {
+        paperId: true,
+        liked: true,
+        status: true,
+      },
+    });
+    return new Map(rows.map((row) => [row.paperId, { liked: row.liked, status: row.status }]));
+  },
+
   createCollection: async (input: {
     userId: string;
     name: string;

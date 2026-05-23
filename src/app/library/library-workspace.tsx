@@ -19,7 +19,6 @@ import {
   MessageSquare,
   MoreVertical,
   Plus,
-  Save,
   Search,
   Trash2,
 } from 'lucide-react';
@@ -31,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 type CollectionView = {
@@ -268,18 +266,6 @@ export function LibraryWorkspace({
     });
   };
 
-  const saveNote = (event: FormEvent<HTMLFormElement>, paperId: string) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const note = String(form.get('note') ?? '');
-    void runMutation(async () => {
-      await jsonRequest(`/api/library/papers/${paperId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ note }),
-      });
-    });
-  };
-
   const removePaper = (paperId: string) => {
     const collectionId = activeView === 'collection' ? activeCollectionId : null;
     void runMutation(async () => {
@@ -473,66 +459,60 @@ export function LibraryWorkspace({
             filteredPapers.map((paper) => (
               <article
                 key={paper.id}
-                className="relative grid min-h-[214px] grid-cols-[210px_minmax(360px,1fr)_292px_150px] gap-[22px] rounded-[10px] border border-[#dfe5ef] bg-white py-5 pr-4 pl-[14px] shadow-[0_12px_32px_rgba(24,34,64,0.055)]"
+                className="relative grid min-h-[214px] grid-cols-[210px_minmax(640px,1fr)_150px] gap-[22px] rounded-[10px] border border-[#dfe5ef] bg-white py-5 pr-4 pl-[14px] shadow-[0_12px_32px_rgba(24,34,64,0.055)]"
               >
-                <div className="flex flex-col items-center gap-2.5">
-                  <Select
-                    value={paper.status}
-                    onValueChange={(status) =>
-                      updatePaper(paper.id, { status: status as UserPaperStatus })
-                    }
-                  >
-                    <SelectTrigger
-                      className={cn(
-                        'h-[27px] min-w-[96px] rounded-full px-3 text-xs font-extrabold',
-                        statusTone(paper.status),
-                      )}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {labels.statuses[status]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex flex-col items-center justify-start gap-2.5">
                   <Thumb paper={paper} />
                 </div>
 
-                <div className="min-w-0">
+                <div className="grid min-w-0 grid-rows-[auto_1fr]">
                   <h2 className="mb-1 text-[16.5px] leading-snug font-extrabold text-[#101828]">
                     <Link href={`/papers/${paper.id}`} className="hover:underline">
                       {paper.title}
                     </Link>
                   </h2>
-                  <p className="text-[12.5px] leading-relaxed text-[#667085]">{paper.authors}</p>
-                  <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#667085]">
-                    {labels.sources[paper.source]}&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-                    {paper.publishedDate}
-                  </p>
-                  <p className="mt-2 line-clamp-3 text-[12.5px] leading-relaxed text-[#475467]">
-                    {paper.summary}
-                  </p>
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {paper.tags.slice(0, 5).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-[#eeedff] px-2 py-1 text-[11.5px] font-extrabold text-[#5848f5]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {paper.tags.length > 5 ? (
-                      <span className="rounded-full bg-[#eef1f6] px-2 py-1 text-[11.5px] font-extrabold text-[#667085]">
-                        + {paper.tags.length - 5}
-                      </span>
-                    ) : null}
+                  <div className="grid min-h-0 grid-cols-[minmax(300px,1fr)_292px] gap-[22px] pt-1">
+                    <div className="min-w-0">
+                      <p className="text-[12.5px] leading-relaxed text-[#667085]">
+                        {paper.authors}
+                      </p>
+                      <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#667085]">
+                        {labels.sources[paper.source]}&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+                        {paper.publishedDate}
+                      </p>
+                      <p className="mt-2 line-clamp-4 text-[12.5px] leading-relaxed text-[#475467]">
+                        {paper.summary}
+                      </p>
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {paper.tags.slice(0, 5).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-[#eeedff] px-2 py-1 text-[11.5px] font-extrabold text-[#5848f5]"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {paper.tags.length > 5 ? (
+                          <span className="rounded-full bg-[#eef1f6] px-2 py-1 text-[11.5px] font-extrabold text-[#667085]">
+                            + {paper.tags.length - 5}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="flex min-h-0 flex-col justify-end">
+                      <div className="h-[95%] min-h-[128px] overflow-hidden rounded-lg border border-[#d8ebe5] bg-[linear-gradient(135deg,#f9fffc,#edf8f5)] px-4 py-3">
+                        <div className="mb-1 text-[13px] font-extrabold text-[#087d6c]">
+                          ✧ AI 摘要
+                        </div>
+                        <p className="line-clamp-6 text-xs leading-relaxed text-[#536276]">
+                          {paper.summary}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-center pt-[42px]">
+                <div className="flex flex-col items-center justify-center pt-[22px]">
                   <div className="absolute top-[22px] right-8 flex h-[22px] items-center gap-[18px] text-[#536276]">
                     <Link href={`/papers/${paper.id}`} aria-label={labels.openPaper}>
                       <ExternalLink aria-hidden className="h-[18px] w-[18px]" />
@@ -564,30 +544,6 @@ export function LibraryWorkspace({
                     </button>
                     <MoreVertical aria-hidden className="h-[18px] w-[18px]" />
                   </div>
-                  <form
-                    onSubmit={(event) => saveNote(event, paper.id)}
-                    className="h-[118px] overflow-hidden rounded-lg border border-[#d8ebe5] bg-[linear-gradient(135deg,#f9fffc,#edf8f5)] px-4 py-3"
-                  >
-                    <div className="mb-1 flex items-center justify-between gap-2 text-[13px] font-extrabold text-[#087d6c]">
-                      <span>✧ AI 摘要</span>
-                      <button
-                        type="submit"
-                        disabled={busy || isRefreshing}
-                        className="text-[#5848f5]"
-                      >
-                        <Save aria-hidden className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <Textarea
-                      name="note"
-                      defaultValue={paper.note}
-                      placeholder={labels.notePlaceholder}
-                      className="min-h-[70px] resize-none border-0 bg-transparent p-0 text-xs leading-relaxed text-[#536276] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                  </form>
-                </div>
-
-                <div className="flex flex-col items-center justify-center pt-[22px]">
                   <div
                     className="relative my-[11px] h-[78px] w-[78px] rounded-full"
                     style={{
@@ -607,6 +563,28 @@ export function LibraryWorkspace({
                     <br />
                     ▣&nbsp;&nbsp;{labels.saveNote}： {paper.noteCount}
                   </div>
+                  <Select
+                    value={paper.status}
+                    onValueChange={(status) =>
+                      updatePaper(paper.id, { status: status as UserPaperStatus })
+                    }
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        'mt-2 h-[27px] min-w-[96px] rounded-full px-3 text-xs font-extrabold',
+                        statusTone(paper.status),
+                      )}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {labels.statuses[status]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </article>
             ))
