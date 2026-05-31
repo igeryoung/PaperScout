@@ -63,6 +63,38 @@ export const FigureSchema = z.object({
   renderedPath: z.string().min(1),
 });
 
+const DigestExperimentsSchema = z
+  .object({
+    datasets: localizedString(),
+    baselines: localizedString(),
+    metrics: localizedString(),
+    mainResults: localizedString(),
+    ablation: localizedString(),
+  })
+  .strict();
+
+const DigestStrengthsLimitationsSchema = z
+  .object({
+    strengths: localizedString(),
+    limitations: localizedString(),
+  })
+  .strict();
+
+export const DigestSchema = z
+  .object({
+    tldr: localizedString(),
+    problemMotivation: localizedString(),
+    keyContributions: localizedString(),
+    methodOverview: localizedString(),
+    experiments: DigestExperimentsSchema,
+    resultsInterpretation: localizedString(),
+    strengthsLimitations: DigestStrengthsLimitationsSchema,
+    aiCommentary: localizedString(),
+  })
+  .strict();
+
+export type Digest = z.infer<typeof DigestSchema>;
+
 export const EvaluationSchema = z
   .object({
     joinKey: JoinKeySchema,
@@ -80,6 +112,7 @@ export const EvaluationSchema = z
     pdfAnalysisStatus: PdfAnalysisStatusEnum.nullable(),
     tableFigureAnalysis: z.unknown().nullable().default(null),
     figure: FigureSchema.nullable().default(null),
+    digest: DigestSchema.nullable().default(null),
   })
   .superRefine((val, ctx) => {
     if (val.evaluationStage === 'FULL_PDF') {
@@ -113,6 +146,20 @@ export const EvaluationSchema = z
             message: 'weaknesses required (≥1 per locale) when pdfAnalysisStatus = SUCCESS',
           });
         }
+        if (!val.digest) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['digest'],
+            message: 'digest required when pdfAnalysisStatus = SUCCESS',
+          });
+        }
+      } else if (val.digest !== null) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['digest'],
+          message:
+            'digest must be null when pdfAnalysisStatus != SUCCESS (FULL_PDF stage but PDF unreadable)',
+        });
       }
     } else {
       if (val.pdfAnalysisStatus !== null) {
@@ -127,6 +174,13 @@ export const EvaluationSchema = z
           code: 'custom',
           path: ['figure'],
           message: 'figure must be null when evaluationStage = ABSTRACT_SCREENING',
+        });
+      }
+      if (val.digest !== null) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['digest'],
+          message: 'digest must be null when evaluationStage = ABSTRACT_SCREENING',
         });
       }
     }

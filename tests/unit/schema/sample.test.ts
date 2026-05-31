@@ -15,12 +15,12 @@ describe('committed sample data', () => {
     }
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect(parsed.data).toHaveLength(3);
-      expect(parsed.data.map((c) => c.source).sort()).toEqual([
-        'ARXIV',
-        'HUGGINGFACE',
-        'OPENREVIEW',
+      expect(parsed.data).toHaveLength(2);
+      expect(parsed.data.map((c) => c.sourcePaperId).sort()).toEqual([
+        'RxWILaXuhb',
+        'u6JLh0BO5h',
       ]);
+      expect(parsed.data.every((c) => c.source === 'OPENREVIEW')).toBe(true);
     }
   });
 
@@ -34,7 +34,11 @@ describe('committed sample data', () => {
     }
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect(parsed.data).toHaveLength(3);
+      expect(parsed.data).toHaveLength(2);
+      expect(parsed.data.map((e) => e.joinKey.sourcePaperId).sort()).toEqual([
+        'RxWILaXuhb',
+        'u6JLh0BO5h',
+      ]);
       // Total = sum of 5 dimensions (already enforced by schema; redundant but explicit)
       for (const e of parsed.data) {
         const sum =
@@ -54,6 +58,13 @@ describe('committed sample data', () => {
         if (e.figure) {
           expect(e.figure.caption.en.length).toBeGreaterThan(0);
           expect(e.figure.caption['zh-TW'].length).toBeGreaterThan(0);
+          expect(e.figure.renderedPath).toMatch(/^figures\/.+\.png$/);
+        }
+        if (e.digest) {
+          expect(e.digest.tldr.en.length).toBeGreaterThan(0);
+          expect(e.digest.tldr['zh-TW'].length).toBeGreaterThan(0);
+          expect(e.digest.experiments.mainResults.en.length).toBeGreaterThan(0);
+          expect(e.digest.strengthsLimitations.limitations['zh-TW'].length).toBeGreaterThan(0);
         }
         if (e.strengths) {
           // List lengths should match across locales (skill guideline).

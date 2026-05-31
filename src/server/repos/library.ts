@@ -205,6 +205,12 @@ export const libraryRepo = {
     return new Map(rows.map((row) => [row.paperId, { liked: row.liked, status: row.status }]));
   },
 
+  findUserPaperDetail: (input: { userId: string; paperId: string }) =>
+    db.userPaper.findUnique({
+      where: { userId_paperId: { userId: input.userId, paperId: input.paperId } },
+      select: { liked: true, status: true, note: true },
+    }),
+
   createCollection: async (input: {
     userId: string;
     name: string;

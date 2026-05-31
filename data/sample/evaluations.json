@@ -1,62 +1,74 @@
 [
   {
     "joinKey": {
-      "source": "ARXIV",
-      "sourcePaperId": "2605.12345"
+      "source": "OPENREVIEW",
+      "sourcePaperId": "u6JLh0BO5h"
     },
     "evaluationStage": "FULL_PDF",
     "scores": {
-      "novelty": 16,
+      "novelty": 19,
       "methodologicalRigor": 19,
-      "experimentalQuality": 16,
-      "venueSourceCredibility": 9,
-      "authorInstitutionReputation": 9,
-      "total": 69
+      "experimentalQuality": 14,
+      "venueSourceCredibility": 13,
+      "authorInstitutionReputation": 11,
+      "total": 76
     },
     "summary": {
-      "en": "ViT-Lite proposes progressive token merging within vision transformers, achieving a 3x FLOPs reduction while matching or beating standard ViT baselines across classification, detection, and segmentation.",
-      "zh-TW": "ViT-Lite 在 vision transformer 中引入逐層 token 合併機制，將 FLOPs 降低為原本的三分之一，並在分類、偵測與分割三類任務上達到與標準 ViT baseline 相當甚至更佳的表現。"
+      "en": "Jet Expansions reframe transformer interpretability as functional decomposition: applying jet operators (generalized truncated Taylor series) to residual streams rewrites an LLM as a sum of explicit input→output paths plus a complementary remainder, subsuming Logit Lens as the zeroth-order case and enabling dataset-free n-gram extraction.",
+      "zh-TW": "Jet Expansions 將 transformer 可解釋性重新定義為函數分解：對 residual stream 套用 jet 算子（廣義的截斷 Taylor 展開），把 LLM 重寫成明確的 input→output 路徑加上互補餘項，並把 Logit Lens 視為其零階情形，進一步支援無資料集的 n-gram 萃取。"
     },
     "recommendationReason": {
-      "en": "Solid efficiency contribution with comprehensive cross-task evaluation and released code; incremental novelty over prior token-pruning work but well-executed.",
-      "zh-TW": "在效率改進上有紮實貢獻，跨任務的實驗評估完整且開源了程式碼；相較先前 token-pruning 工作的新穎性偏增量式，但執行得宜。"
+      "en": "Principled mathematical framework that unifies several existing interpretability tools (Logit Lens, path expansion) and demonstrates new dataset-free capabilities; the RLHF toxicity finding — that alignment masks rather than erases toxic associations — is empirically striking.",
+      "zh-TW": "提出原理紮實的數學框架，統一了多種既有的可解釋性工具（Logit Lens、path expansion），並展示出新的無資料集分析能力；其關於 RLHF 的發現──對齊只是遮蔽而非消除有毒關聯──在實證上頗具衝擊力。"
     },
     "keyContribution": {
-      "en": "A learnable token-merging operator applied progressively across transformer layers, parameterized by importance scores derived from attention norms.",
-      "zh-TW": "一種可學習的 token 合併運算子，會在 transformer 各層中逐層套用，並以 attention norm 推導出的重要性分數做為參數。"
+      "en": "A jet-operator-based framework that recursively expands residual computations into explicit input→output polynomial paths plus a remainder, generalizing Logit Lens to higher orders and enabling corpus-free extraction of n-gram statistics from pretrained LLMs.",
+      "zh-TW": "提出以 jet 算子為基礎的框架，遞迴地把 residual 計算展開為明確的 input→output 多項式路徑加上餘項，將 Logit Lens 推廣至更高階，並能直接從預訓練 LLM 中無資料萃取 n-gram 統計。"
     },
     "methodologySummary": {
-      "en": "Extends ViT with a per-layer token-merge operator: at each layer, tokens are scored by attention norms; the bottom-k are merged with their nearest neighbors via a weighted sum. Trained on ImageNet-1k with no extra supervision; downstream tasks fine-tune the standard heads.",
-      "zh-TW": "在 ViT 之上加入每層的 token 合併運算子：每一層依 attention norm 為 token 評分，將分數最低的 k 個 token 與其最近鄰透過加權加總合併。整體在 ImageNet-1k 上訓練，未使用額外監督；下游任務則僅微調標準 head。"
+      "en": "Models a transformer as L stacked residual blocks and applies the disentanglement lemma (a jet at a sum of inputs equals a convex combination of jets at each input, up to error) recursively. Algorithm 1 expands per-block jets and accumulates a remainder; Algorithm 2 unrolls to 2^L paths. The framework specializes to jet lens (k=0 recovers Logit Lens; k≥1 gives iterative/joint variants) and to jet n-grams via function-specific evaluation over the vocabulary.",
+      "zh-TW": "將 transformer 視為 L 層 residual block 堆疊，遞迴套用 disentanglement lemma（在多輸入之和上的 jet，可表示為各別輸入上 jet 的凸組合，含誤差項）。Algorithm 1 逐層計算 jet 並累積餘項；Algorithm 2 進一步展開出 2^L 條路徑。框架可特化為 jet lens（k=0 回到 Logit Lens；k≥1 為 iterative 或 joint 版本），以及在詞彙空間上做函數式評估的 jet n-grams。"
     },
     "strengths": {
       "en": [
-        "Clear FLOPs/accuracy tradeoff with results on three diverse benchmarks",
-        "Code and pretrained models released for reproducibility",
-        "Ablations on merge schedule, k-values, and merge position"
+        "Genuinely new framing — interpretability as function decomposition, not data-driven attribution.",
+        "Formal grounding: Lemma 1 disentanglement, jet algebra propositions, and explicit recursion all stated as theorems.",
+        "Subsumes and generalizes Logit Lens (zeroth-order jet) and path expansion in a single framework.",
+        "Empirically strong finding — RLHF leaves toxic bi-gram mass nearly unchanged (0.102 → 0.093) while ToxiGen score collapses (21.25 → 0.0), showing alignment masks rather than erases.",
+        "Validated across GPT-2, GPT-Neo, Llama-2, OLMo; expansion logits hit ~0.99 cosine similarity with original logits."
       ],
       "zh-TW": [
-        "FLOPs 與準確率的取捨清晰，並在三個性質不同的 benchmark 上提供結果",
-        "釋出程式碼與預訓練模型，可重現性高",
-        "對合併排程、k 值與合併位置都做了消融實驗"
+        "提出真正新穎的視角──把可解釋性視為函數分解，而非以資料驅動的歸因。",
+        "形式化基礎紮實：Lemma 1 disentanglement、jet 代數命題與展開遞迴皆以定理形式呈現。",
+        "在單一框架中包含並推廣了 Logit Lens（零階 jet）與 path expansion。",
+        "實證上有亮點──RLHF 後有毒 bi-gram 質量幾乎不變（0.102 → 0.093），而 ToxiGen 分數驟降（21.25 → 0.0），顯示對齊僅是遮蔽而非消除。",
+        "於 GPT-2、GPT-Neo、Llama-2、OLMo 等模型上驗證，展開後 logits 與原 logits 餘弦相似度約 0.99。"
       ]
     },
     "weaknesses": {
       "en": [
-        "Comparison limited to ViT-family baselines; no comparison vs. recent SSM- or Mamba-based architectures",
-        "Latency results omitted on consumer hardware; FLOPs reduction may not translate to wall-clock speedup",
-        "Limited discussion of failure modes (e.g. small-object detection)"
+        "Not an exact decomposition in the Taylor sense — remainders don't vanish with k for general nonlinearities; the framework is best read as algebraic rewriting, not approximation.",
+        "Empirical depth is uneven — the toxicity story is strong, but jet lens / linguistic-MLP findings are presented as illustrative case studies with limited quantitative ablation.",
+        "Costly at scale — evaluating many higher-order paths can be expensive; the paper acknowledges this and defers heuristics to future work.",
+        "Only bi/tri-grams are explored; longer-context paths remain hypothetical."
       ],
       "zh-TW": [
-        "比較對象僅限於 ViT 系列 baseline，未與近期 SSM 或 Mamba 系列架構對照",
-        "未提供消費級硬體上的延遲量測；FLOPs 降低不一定能轉換為實際 wall-clock 加速",
-        "對失效情境（如小物件偵測）的討論不足"
+        "並非 Taylor 意義下的精確展開──對一般非線性而言，餘項並不會隨 k 增加而消失；本框架應視為代數重寫，而非數值近似。",
+        "實證深度不一致──毒性分析確實有力，但 jet lens 與語言學 MLP 的發現多以案例研究呈現，定量消融有限。",
+        "規模化成本高──高階路徑數量眾多，評估成本可能高昂；論文已坦承並將啟發式策略留作未來工作。",
+        "目前僅展示 bi/tri-gram，更長脈絡的路徑分析尚屬假設。"
       ]
     },
-    "tags": ["vision-transformer", "efficiency", "token-merging"],
+    "tags": [
+      "interpretability",
+      "mechanistic-interpretability",
+      "transformer",
+      "logit-lens",
+      "language-model"
+    ],
     "rankingExplanation": {
-      "en": "Strong methodology and breadth of experiments; novelty is incremental over prior token-pruning work but the cross-task validation and reproducibility lift the score into recommend territory.",
-      "zh-TW": "方法論紮實、實驗涵蓋面廣；新穎性相對先前 token-pruning 工作偏增量，但跨任務驗證與可重現性將整體分數推進至推薦區間。"
+      "en": "Scores high on novelty and methodological rigor — the jet-operator framing is a real theoretical contribution that grounds existing tools rather than yet another circuit-discovery technique. Experimental quality is solid but somewhat illustrative outside the toxicity result. Venue credibility is high (ICLR 2026 Poster) and the author roster (Oxford/UCL/Rochester) is strong without being a brand-name-only roster.",
+      "zh-TW": "在新穎性與方法論嚴謹度上得分都高──jet 算子框架是真正的理論貢獻，是為既有工具奠基，而非又一個 circuit discovery 變體。實驗品質紮實，但除了毒性分析之外多偏案例式呈現。場域可信度高（ICLR 2026 Poster），作者組成（Oxford／UCL／Rochester）穩健而非靠單一大牌。"
     },
     "recommendationDecision": "RECOMMEND",
     "pdfAnalysisStatus": "SUCCESS",
@@ -65,117 +77,210 @@
       "label": "Figure 1",
       "pageNumber": 2,
       "caption": {
-        "en": "Overview of the progressive token-merging operator: tokens are scored by attention norms and the lowest-k are merged with their nearest neighbors at each transformer layer.",
-        "zh-TW": "逐層 token 合併運算子總覽：每個 transformer 層以 attention norm 為 token 評分，並將分數最低的 k 個 token 與其最近鄰合併。"
+        "en": "Jet Expansions restructure residual computations into explicit input→output paths and a complementary remainder. From these paths we can extract logits, and n-grams without retraining or additional data.",
+        "zh-TW": "Jet Expansions 將 residual 計算重組為明確的 input→output 路徑與互補餘項；由這些路徑可直接萃取 logits 與 n-gram，無需重新訓練或額外資料。"
       },
-      "renderedPath": "figures/2605.12345.png"
-    }
-  },
-  {
-    "joinKey": {
-      "source": "HUGGINGFACE",
-      "sourcePaperId": "2605.09876"
+      "renderedPath": "figures/u6JLh0BO5h.png"
     },
-    "evaluationStage": "FULL_PDF",
-    "scores": {
-      "novelty": 21,
-      "methodologicalRigor": 20,
-      "experimentalQuality": 17,
-      "venueSourceCredibility": 11,
-      "authorInstitutionReputation": 12,
-      "total": 81
-    },
-    "summary": {
-      "en": "DiffSeg shows that pretrained text-to-image diffusion models can perform open-vocabulary segmentation without any segmentation supervision, achieving SOTA zero-shot results across three benchmarks.",
-      "zh-TW": "DiffSeg 證明預訓練的文字到圖像 diffusion 模型可在完全無分割監督的情況下執行 open-vocabulary 分割，並在三個 benchmark 上取得 SOTA 等級的 zero-shot 表現。"
-    },
-    "recommendationReason": {
-      "en": "Genuinely novel reuse of generative models for discriminative segmentation. The boundary-aware refinement closes a known gap in prior diffusion-based segmentation approaches.",
-      "zh-TW": "將生成式模型重新用於判別式分割任務的想法具有實質新穎性；其 boundary-aware refinement 模組補足了先前 diffusion-based 分割方法的已知缺陷。"
-    },
-    "keyContribution": {
-      "en": "A boundary-aware refinement module operating on cross-attention maps from pretrained diffusion models, enabling supervision-free open-vocabulary segmentation.",
-      "zh-TW": "一個作用於預訓練 diffusion 模型 cross-attention 圖上的 boundary-aware refinement 模組，使得無監督的 open-vocabulary 分割成為可能。"
-    },
-    "methodologySummary": {
-      "en": "Extracts cross-attention maps between text tokens and image patches at multiple diffusion timesteps, aggregates them, and applies a boundary-aware module that uses gradient information from the diffusion latent space to sharpen segmentation boundaries. No segmentation labels are used at any stage.",
-      "zh-TW": "於多個 diffusion timestep 萃取文字 token 與影像 patch 之間的 cross-attention 圖並進行聚合，再以 boundary-aware 模組搭配 diffusion 潛在空間的梯度資訊銳化分割邊界。整個流程不使用任何分割標註。"
-    },
-    "strengths": {
-      "en": [
-        "Genuinely novel reuse of generative pretraining for a discriminative task",
-        "Strong zero-shot results on three diverse benchmarks (VOC, COCO, ADE20K)",
-        "Scaling analysis showing segmentation quality improves with diffusion model size",
-        "Clear ablation on the boundary-aware refinement component"
-      ],
-      "zh-TW": [
-        "將生成式預訓練重新用於判別式任務，想法具實質新穎性",
-        "在三個性質不同的 benchmark（VOC、COCO、ADE20K）上 zero-shot 表現皆強",
-        "提供 scaling 分析，顯示分割品質隨 diffusion 模型規模成長",
-        "對 boundary-aware refinement 模組的消融實驗清楚"
-      ]
-    },
-    "weaknesses": {
-      "en": [
-        "Inference is slow due to multi-timestep cross-attention extraction",
-        "Limited comparison to recent SAM-based zero-shot baselines"
-      ],
-      "zh-TW": [
-        "因需在多個 timestep 上萃取 cross-attention，推論速度偏慢",
-        "與近期 SAM-based zero-shot baseline 的比較不夠完整"
-      ]
-    },
-    "tags": ["diffusion", "segmentation", "open-vocabulary", "vision-language-model"],
-    "rankingExplanation": {
-      "en": "Top score driven by novelty and rigor: opens a clear new direction (generative-pretraining → discriminative tasks) with credible empirical evidence and a thoughtful boundary-aware refinement.",
-      "zh-TW": "高分主要由新穎性與嚴謹度推動：開啟了一條清晰的新方向（由生成式預訓練導向判別式任務），並提供可信的實證與經過深思的 boundary-aware refinement 模組。"
-    },
-    "recommendationDecision": "RECOMMEND",
-    "pdfAnalysisStatus": "SUCCESS",
-    "tableFigureAnalysis": null,
-    "figure": {
-      "label": "Figure 2",
-      "pageNumber": 4,
-      "caption": {
-        "en": "Boundary-aware refinement: cross-attention maps from multiple diffusion timesteps are aggregated and sharpened using gradients from the latent space to produce segmentation masks without any segmentation supervision.",
-        "zh-TW": "Boundary-aware refinement：聚合多個 diffusion timestep 的 cross-attention 圖，並以潛在空間的梯度進行銳化，在完全無分割監督的情況下產生分割遮罩。"
+    "digest": {
+      "tldr": {
+        "en": "Jet Expansions decompose an LLM into explicit input→output polynomial paths plus a remainder, subsuming Logit Lens and enabling corpus-free n-gram and toxicity analysis directly from the weights.",
+        "zh-TW": "Jet Expansions 把 LLM 分解為明確的 input→output 多項式路徑加上餘項，將 Logit Lens 納為特例，並可直接從模型權重做無資料的 n-gram 與毒性分析。"
       },
-      "renderedPath": "figures/2605.09876.png"
+      "problemMotivation": {
+        "en": "LLMs distribute knowledge across deeply entangled parameters, making interpretability hard. Existing mechanistic-interpretability tools depend on curated data and hypotheses about which components matter, leading to findings that don't transfer cleanly across distributions. The authors argue the real challenge is structural: we lack a principled way to *systematically* rewrite the computation into less-entangled, end-to-end components.",
+        "zh-TW": "LLM 將知識散佈於高度糾纏的參數中，使可解釋性極為困難。既有的 mechanistic interpretability 工具仰賴人工選擇的資料與「哪些元件重要」的假設，導致結論難以跨分佈遷移。作者主張真正的挑戰是結構性的：我們缺乏一種能「系統性地」把運算重寫為較不糾纏、輸入到輸出端到端元件的原理化方法。"
+      },
+      "keyContributions": {
+        "en": "1. A jet-operator framework that rewrites residual computations as a sum of explicit polynomial paths plus a remainder, with a formal disentanglement lemma at its core.\n2. Concrete generalizations of well-known tools: zeroth-order jet = Logit Lens; higher-order = iterative / joint jet lens; function-evaluations over V^{n-1} = jet n-grams.\n3. Empirical case studies across GPT-2/GPT-Neo/Llama-2/OLMo showing the expansion tracks model output (~0.99 cosine sim), identifying MLPs with specific linguistic roles, and revealing that RLHF masks rather than erases toxic associations.",
+        "zh-TW": "1. 提出以 jet 算子為核心的框架，把 residual 計算重寫為明確多項式路徑與餘項之和，並以形式化的 disentanglement lemma 作為基礎。\n2. 對知名工具給出具體推廣：零階 jet 即 Logit Lens；高階對應 iterative 或 joint jet lens；於 V^{n-1} 上做函數式評估即 jet n-grams。\n3. 於 GPT-2、GPT-Neo、Llama-2、OLMo 上的案例研究顯示，展開後輸出與模型輸出餘弦相似度約 0.99，可辨識出具特定語言功能的 MLP，並揭示 RLHF 只是遮蔽而非消除有毒關聯。"
+      },
+      "methodOverview": {
+        "en": "The model is treated as L stacked residual blocks Dec ∘ (id + γ_ℓ) ∘ Enc. At each block, the authors apply the disentanglement lemma — a jet of a sum equals a convex combination of jets of each summand, up to a (k+1)-order remainder — to factor entangled residual streams into sub-streams (see figure above). Algorithm 1 applies this per-block; Algorithm 2 unrolls it to produce 2^L explicit paths. Once the model is rewritten this way, *jet lens* picks one residual term and reads it through the decoder (recovering Logit Lens at k=0), and *jet n-grams* exhaustively evaluate short paths over the vocabulary to produce a symbolic bi/tri-gram table without any probing data.",
+        "zh-TW": "模型被視為 L 層 residual block 堆疊：Dec ∘ (id + γ_ℓ) ∘ Enc。每一層套用 disentanglement lemma──「多輸入之和上的 jet 等於各輸入 jet 的凸組合，並含一個 (k+1) 階餘項」──把糾纏的 residual stream 拆解為子流（見上方圖示）。Algorithm 1 逐層套用；Algorithm 2 將其展開為 2^L 條明確路徑。重寫之後，jet lens 取一個 residual 項並經由 decoder 讀出（k=0 即 Logit Lens），而 jet n-grams 則對短路徑在詞彙上做窮舉式評估，產出符號化的 bi/tri-gram 表，過程中完全不需要 probe 資料。"
+      },
+      "experiments": {
+        "datasets": {
+          "en": "- 100 example input sentences for jet-lens cosine-similarity measurements\n- ToxiGen (toxicity benchmark)\n- RealToxicityPrompts (RTP, challenging prompt subsets)\n- Models analyzed: GPT-2, GPT-2-large, GPT-Neo-2.7B, Llama-2-7B, Llama-2-7B-chat, CodeLlama-7B, CodeLlama-Python-7B, OLMo-7B",
+          "zh-TW": "- 100 個輸入語句用以量測 jet lens 的餘弦相似度\n- ToxiGen（毒性 benchmark）\n- RealToxicityPrompts（RTP，含難度分層的挑戰性提示）\n- 分析模型：GPT-2、GPT-2-large、GPT-Neo-2.7B、Llama-2-7B、Llama-2-7B-chat、CodeLlama-7B、CodeLlama-Python-7B、OLMo-7B"
+        },
+        "baselines": {
+          "en": "- Logit Lens (recovered as the k=0 jet lens)\n- Path expansion (Elhage et al., 2021) — generalized by jet expansions\n- ToxiGen-based scoring and RTP prompting as data-driven toxicity baselines",
+          "zh-TW": "- Logit Lens（即 k=0 的 jet lens）\n- Path expansion（Elhage et al., 2021）──被 jet 展開推廣\n- 以 ToxiGen 評分與 RTP 提示作為資料驅動的毒性 baseline"
+        },
+        "metrics": {
+          "en": "- Cosine similarity between jet-expansion logits and original model logits\n- ΔLogit when intervening on (removing) specific MLPs\n- ToxiGen toxicity score\n- Mass of \"toxic\" bi-grams under jet n-grams\n- RTP challenging-prompt completion rate",
+          "zh-TW": "- jet 展開 logits 與原模型 logits 的餘弦相似度\n- 移除特定 MLP 時的 ΔLogit\n- ToxiGen 毒性分數\n- jet n-grams 下「有毒」bi-gram 的質量\n- RTP 難題提示的完成率"
+        },
+        "mainResults": {
+          "en": "Joint and iterative jet lenses produce logits with ~0.99 cosine similarity to the originals at k=1, confirming the expansion tracks the model. MLP interventions identify modules with specific linguistic roles (e.g. an OLMo-7B MLP whose removal kills a −9.73 ΔLogit \"-than\" suffix function). Toxicity: Llama-2-7B-chat's ToxiGen score drops from 21.25 to 0.0, but its toxic jet bi-gram mass barely moves (0.102 → 0.093) and RTP-hard completion rate only goes 88% → 84%.",
+          "zh-TW": "Joint 與 iterative jet lens 於 k=1 時產生的 logits 與原始 logits 餘弦相似度約 0.99，證實展開能追蹤模型行為。MLP 干預可辨識具特定語言角色的模組（例如 OLMo-7B 某 MLP 移除後使「-than」後綴功能 ΔLogit 達 −9.73）。毒性面：Llama-2-7B-chat 的 ToxiGen 分數由 21.25 降至 0.0，但 jet 毒性 bi-gram 質量幾乎不變（0.102 → 0.093），且 RTP 困難題完成率僅由 88% 降到 84%。"
+        },
+        "ablation": {
+          "en": "Comparing logit-lens (k=0) versus iterative jet lens (k=1) across model sizes shows higher-order jets correlate more tightly with model output, especially on GPT-Neo (where naive logit-lens is known to fail). The MLP-intervention table acts as a per-component ablation, isolating each module's linguistic role by ΔLogit.",
+          "zh-TW": "比較 logit lens（k=0）與 iterative jet lens（k=1）在不同模型規模上的表現顯示，高階 jet 與模型輸出的關聯更緊密，尤其在 GPT-Neo（已知 naive logit lens 失效）上更明顯。MLP 干預表本身即為元件級消融，藉 ΔLogit 隔離各模組的語言角色。"
+        }
+      },
+      "resultsInterpretation": {
+        "en": "The high cosine similarity numbers establish that jet expansions are not merely a theoretical curiosity — they actually recapitulate the model's logit behavior. The most consequential empirical finding is the RLHF result: a benchmark-passing aligned model still has toxic associations latent in its weights, and a data-free index built from the framework can detect them. That's a strong argument for using jet expansions as a complement to behavioral toxicity benchmarks.",
+        "zh-TW": "高餘弦相似度數字證明 jet 展開不只是理論玩物──它確實能重現模型的 logit 行為。最具份量的實證發現是 RLHF 結果：能通過行為層 benchmark 的對齊模型，其權重中仍潛藏有毒關聯，而由本框架建立的無資料指標能偵測之。這為「以 jet 展開作為行為毒性 benchmark 的補充工具」提供了強而有力的論據。"
+      },
+      "strengthsLimitations": {
+        "strengths": {
+          "en": "- A genuinely new framing — interpretability as function decomposition, not data-driven attribution.\n- Formal grounding via Lemma 1 (disentanglement) and explicit jet-algebra propositions.\n- Subsumes Logit Lens and path expansion within a single framework.\n- Empirically validated across 4+ LLM families with ~0.99 cosine similarity to original logits.\n- High-impact RLHF finding: alignment masks rather than erases toxic knowledge.",
+          "zh-TW": "- 真正新穎的視角──把可解釋性定義為函數分解，而非資料驅動的歸因。\n- 透過 Lemma 1（disentanglement）與明確的 jet 代數命題建立形式化基礎。\n- 在單一框架中涵蓋 Logit Lens 與 path expansion。\n- 於 4 個以上 LLM 家族驗證，與原模型 logits 餘弦相似度約 0.99。\n- 高影響力的 RLHF 發現：對齊僅是遮蔽而非消除有毒知識。"
+        },
+        "limitations": {
+          "en": "- Not an exact Taylor approximation — remainders generally don't vanish with k; the rewriting is algebraic.\n- Empirical depth is uneven: the toxicity result is strong, but jet-lens and MLP-role findings are largely illustrative.\n- Higher-order paths can be costly; scaling heuristics deferred to future work.\n- Only bi/tri-gram paths demonstrated; longer-context paths remain hypothetical.",
+          "zh-TW": "- 並非 Taylor 意義下的精確近似──餘項通常不會隨 k 消失；本質上是代數重寫。\n- 實證深度不一：毒性分析有力，但 jet lens 與 MLP 角色的發現多偏案例式。\n- 高階路徑成本高，規模化啟發式留待未來工作。\n- 目前僅展示 bi/tri-gram 路徑，更長脈絡的路徑仍屬假設。"
+        }
+      },
+      "aiCommentary": {
+        "en": "The strongest claim isn't really \"we built a better interpretability tool\" but rather \"interpretability has been doing the right thing for the wrong reason\" — Logit Lens worked because it is, structurally, a zeroth-order jet. That theoretical realignment alone justifies the paper. The RLHF mask-vs-erase result is the kind of finding that should embarrass behavioral safety benchmarks; if it replicates on newer aligned models, jet-style data-free indices become a credible addition to red-teaming. The limitation worth tracking is cost: 2^L paths is fine for small L, intractable for frontier models.",
+        "zh-TW": "本文最有力的主張其實不是「我們做了更好的可解釋性工具」，而是「整個可解釋性領域過去做對了事，但理由是錯的」──Logit Lens 之所以可行，是因為它在結構上就是零階 jet。光是這項理論校準就足以撐起整篇論文。RLHF「遮蔽而非消除」的結果，是會讓行為層安全 benchmark 難堪的那種發現；若能在更新的對齊模型上重現，jet 式的無資料指標將是 red-teaming 流程的合理補充。值得追蹤的限制是成本：2^L 條路徑對小型 L 尚可，對前沿模型則明顯難以負擔。"
+      }
     }
   },
   {
     "joinKey": {
       "source": "OPENREVIEW",
-      "sourcePaperId": "cv-sparse-recon-2026"
+      "sourcePaperId": "RxWILaXuhb"
     },
-    "evaluationStage": "ABSTRACT_SCREENING",
+    "evaluationStage": "FULL_PDF",
     "scores": {
-      "novelty": 14,
-      "methodologicalRigor": 15,
-      "experimentalQuality": 13,
+      "novelty": 13,
+      "methodologicalRigor": 17,
+      "experimentalQuality": 16,
       "venueSourceCredibility": 13,
-      "authorInstitutionReputation": 8,
-      "total": 63
+      "authorInstitutionReputation": 10,
+      "total": 69
     },
     "summary": {
-      "en": "Self-supervised geometric consistency loss for sparse-view 3D reconstruction, with reported PSNR improvements over recent NeRF and Gaussian-Splatting baselines on DTU and BlendedMVS.",
-      "zh-TW": "針對 sparse-view 3D 重建提出自監督幾何一致性損失，於 DTU 與 BlendedMVS 上 PSNR 優於近期 NeRF 與 Gaussian-Splatting baseline。"
+      "en": "Time-o1 is a transform-enhanced loss for time-series forecasting that applies SVD to the label sequence, keeps the top-K decorrelated components, and aligns the forecast with them — addressing the autocorrelation bias and excessive-task-count problems of standard temporal MSE.",
+      "zh-TW": "Time-o1 是針對時間序列預測的「轉換增強型損失函數」：對 label 序列做 SVD，保留前 K 個去相關成分，並讓預測與這些成分對齊，藉此處理標準 temporal MSE 在自相關偏差與任務數過多上的兩項缺陷。"
     },
     "recommendationReason": {
-      "en": "Reasonable contribution to sparse-view reconstruction with CVPR venue credibility. Stage-1 score did not make the top-15 cutoff for full-PDF analysis.",
-      "zh-TW": "在 sparse-view 重建方向上有合理貢獻，加上 CVPR 級別場域的可信度。Stage-1 分數未進入前 15 名，故未進行完整 PDF 分析。"
+      "en": "Clean theoretical motivation (Theorem 3.1 quantifies the autocorrelation bias), a simple plug-and-play loss, broad benchmark coverage with code released. Improvement over the closest baseline FreDF is small but consistent.",
+      "zh-TW": "理論動機乾淨（Theorem 3.1 量化了自相關偏差），方法是即插即用的損失函數，benchmark 涵蓋面廣且開源。相較最相近的 baseline FreDF，提升幅度雖小但穩定。"
     },
-    "keyContribution": null,
-    "methodologySummary": null,
-    "strengths": null,
-    "weaknesses": null,
-    "tags": ["3d-reconstruction", "self-supervised", "sparse-view", "novel-view-synthesis"],
+    "keyContribution": {
+      "en": "A model-agnostic loss that replaces step-wise MSE on raw labels with ℓ1 alignment on the top-K SVD components of the label sequence, eliminating autocorrelation bias under Theorem 3.1 and cutting the effective number of forecast tasks.",
+      "zh-TW": "提出一個與模型無關的損失函數，將原始 label 上的逐步 MSE 替換為對 label 序列前 K 個 SVD 成分的 ℓ1 對齊，依 Theorem 3.1 消除自相關偏差，並有效降低預測任務數量。"
+    },
+    "methodologySummary": {
+      "en": "Given a batch of label sequences Y, the method standardizes Y, computes SVD to obtain a projection matrix P* keeping the top-K singular vectors, projects both Y and forecast Ŷ into the component space (Z = YP*, Ẑ = ŶP*), and computes an ℓ1 loss between them. The final loss is L_α,γ = α·L_ortho + (1−α)·L_MSE, with γ controlling the ratio of retained components (K = round(γ·T)). The figure above shows the empirical effect: heavy off-diagonal autocorrelation in Y becomes near-diagonal in Z, and variance is concentrated in the leading components.",
+      "zh-TW": "給定一批 label 序列 Y，方法先對 Y 標準化，做 SVD 取得保留前 K 個奇異向量的投影矩陣 P*，將 Y 與預測 Ŷ 投影到成分空間（Z = YP*, Ẑ = ŶP*），再以 ℓ1 損失對齊。最終損失為 L_α,γ = α·L_ortho + (1−α)·L_MSE，其中 γ 控制保留成分比例（K = round(γ·T)）。上方圖示呈現實證效果：Y 中強烈的非對角自相關在 Z 中近似對角，且變異集中於前幾個成分。"
+    },
+    "strengths": {
+      "en": [
+        "Theorem 3.1 cleanly quantifies the autocorrelation bias and shows it vanishes when components are decorrelated — a principled justification for the design.",
+        "Model-agnostic plug-and-play loss; integrates with Fredformer, iTransformer, FreTS, DLinear and improves all of them.",
+        "Broad benchmark coverage: ETT (4), ECL, Traffic, Weather, PEMS, plus loss-function comparison against FreDF / Koopman / Dilate / Soft-DTW / DPTA.",
+        "Carefully designed ablations isolate the two factors (decorrelation vs. task reduction) and show they are complementary.",
+        "Code released at github.com/Master-PLC/Time-o1, easing reproducibility."
+      ],
+      "zh-TW": [
+        "Theorem 3.1 清楚量化自相關偏差，並證明只要成分去相關偏差就會消失──為設計提供原理性依據。",
+        "與模型無關的即插即用損失，已驗證能改善 Fredformer、iTransformer、FreTS、DLinear。",
+        "Benchmark 涵蓋廣：ETT（4 個子集）、ECL、Traffic、Weather、PEMS，並與 FreDF、Koopman、Dilate、Soft-DTW、DPTA 等損失函數比較。",
+        "消融實驗設計細緻，分別隔離去相關與任務減少兩項因素，並證實其互補性。",
+        "程式碼開源於 github.com/Master-PLC/Time-o1，方便重現。"
+      ]
+    },
+    "weaknesses": {
+      "en": [
+        "Improvement over FreDF (the closest competitor) is small — often <0.005 MSE — and at this scale it's not always clearly outside benchmark noise.",
+        "Conceptual novelty is modest: PCA/SVD on labels rather than on inputs is a clean angle but a small step from prior frequency-domain alignment work.",
+        "Computational overhead of the SVD step (and the matrix Y from the entire training set) is not analyzed against batchwise approaches.",
+        "Hyperparameters α and γ require dataset-specific tuning, contradicting some of the paper's \"plug-and-play\" framing."
+      ],
+      "zh-TW": [
+        "相較最接近的 FreDF，提升幅度偏小（通常 <0.005 MSE），這個量級不一定明顯超出 benchmark 雜訊。",
+        "概念上的新穎性中等：對 label 而非對 input 做 PCA／SVD 是個乾淨的切點，但相較先前頻域對齊工作只是小步推進。",
+        "未分析 SVD 步驟（以及對整個訓練集 Y 的處理）相較 batchwise 做法的計算成本。",
+        "超參數 α 與 γ 需要依資料集個別調校，與論文「即插即用」的定位略有矛盾。"
+      ]
+    },
+    "tags": [
+      "time-series",
+      "forecasting",
+      "loss-function",
+      "svd",
+      "decorrelation"
+    ],
     "rankingExplanation": {
-      "en": "Stage-1 abstract-only assessment. Promising direction with moderate venue credibility; full-PDF analysis not attempted because Stage-1 score fell outside the top-15 cutoff.",
-      "zh-TW": "Stage-1 僅依摘要評估。研究方向具潛力且場域可信度中等；因 Stage-1 分數未進入前 15 名，未進行完整 PDF 分析。"
+      "en": "Solid methodological work with a clean theorem and thorough empirical evaluation. Novelty is incremental over FreDF and prior shape-alignment losses, which caps the score. Experimental quality is the strongest dimension — 9 datasets, 10+ baselines, controlled ablations, code released. Venue is NeurIPS poster (top tier) but not Spotlight/Oral.",
+      "zh-TW": "方法論紮實、定理乾淨、實驗評估完整。新穎性相較 FreDF 與先前形狀對齊損失偏增量式，限制了整體分數。實驗品質是最強的一項──9 個資料集、10 個以上 baseline、受控消融、開源程式碼。場域為 NeurIPS poster（頂級會議），但非 Spotlight 或 Oral。"
     },
-    "recommendationDecision": "STORE_ONLY",
-    "pdfAnalysisStatus": null,
-    "tableFigureAnalysis": null
+    "recommendationDecision": "RECOMMEND",
+    "pdfAnalysisStatus": "SUCCESS",
+    "tableFigureAnalysis": null,
+    "figure": {
+      "label": "Figure 1",
+      "pageNumber": 4,
+      "caption": {
+        "en": "The autocorrelations and volumes in the label sequence Y and latent components Z.",
+        "zh-TW": "label 序列 Y 與潛在成分 Z 中的自相關性與變異量。"
+      },
+      "renderedPath": "figures/RxWILaXuhb.png"
+    },
+    "digest": {
+      "tldr": {
+        "en": "Time-o1 replaces temporal MSE with ℓ1 alignment on the top-K SVD components of the label sequence, cutting autocorrelation bias and the number of effective forecast tasks.",
+        "zh-TW": "Time-o1 把 temporal MSE 替換為對 label 序列前 K 個 SVD 成分的 ℓ1 對齊，同時降低自相關偏差與有效預測任務數。"
+      },
+      "problemMotivation": {
+        "en": "Temporal MSE — the de-facto loss for time-series forecasting — has two structural flaws. First, it assumes label steps are independent, which is false in practice and biases the loss away from the true label-sequence likelihood. Second, the number of tasks equals the forecast horizon T, which makes long-horizon optimization brittle. Prior frequency-domain losses (FreDF) only partially decorrelate components when T is finite, so the bias is reduced but not eliminated.",
+        "zh-TW": "Temporal MSE──時間序列預測的事實標準損失函數──存在兩個結構性缺陷。其一，它假設 label 各步彼此獨立，但實際並非如此，因而與真實 label 序列的似然存在偏差。其二，任務數等於預測長度 T，使長預測長度的最佳化十分脆弱。先前的頻域損失（FreDF）在 T 有限時僅能部分去相關，偏差雖減但未消除。"
+      },
+      "keyContributions": {
+        "en": "1. A formal characterization of the autocorrelation bias (Theorem 3.1): Bias = ‖y−ŷ‖²_Σ⁻¹ − ‖y−ŷ‖² − ½·log|Σ|, vanishing when components are decorrelated.\n2. A loss that applies SVD to the label matrix Y to get a data-adapted projection P*, then aligns forecast and label in the resulting decorrelated, significance-ranked component space.\n3. A two-knob design: α blends the transformed loss with raw MSE, γ controls the ratio K/T of retained components — both shown empirically to favor α near 1 and γ < 1.",
+        "zh-TW": "1. 對自相關偏差給出形式化刻畫（Theorem 3.1）：Bias = ‖y−ŷ‖²_Σ⁻¹ − ‖y−ŷ‖² − ½·log|Σ|，當成分去相關時偏差為零。\n2. 對 label 矩陣 Y 做 SVD 取得隨資料調整的投影 P*，再於去相關且依重要性排序的成分空間中對齊預測與 label。\n3. 兩個旋鈕的設計：α 控制轉換損失與原始 MSE 的混合比，γ 控制保留成分比例 K/T；實驗顯示 α 接近 1、γ 小於 1 時效果最佳。"
+      },
+      "methodOverview": {
+        "en": "Algorithm 1 standardizes Y, computes the SVD Y = UΛP*^T keeping K = round(γ·T) right singular vectors, projects both labels and forecasts into the component space (Z = YP*, Ẑ = ŶP*), and computes L_ortho = ‖Ẑ − Z‖_1 (ℓ1 for robustness across components of very different scales — see figure above). The final loss is L_α,γ = α·L_ortho + (1−α)·L_MSE. Because P* is data-adapted (not a fixed Fourier basis), the resulting components are strictly decorrelated for any finite T, fixing FreDF's limitation. The forecast model g is unchanged; only the loss changes.",
+        "zh-TW": "Algorithm 1 先將 Y 標準化，做 SVD Y = UΛP*^T 並保留 K = round(γ·T) 個右奇異向量，再把 label 與預測投影到成分空間（Z = YP*, Ẑ = ŶP*），計算 L_ortho = ‖Ẑ − Z‖_1（採用 ℓ1 是因為不同成分的尺度差異極大──見上方圖示）。最終損失為 L_α,γ = α·L_ortho + (1−α)·L_MSE。由於 P* 是隨資料調整而非固定的 Fourier basis，得到的成分在任意有限 T 下都嚴格去相關，補足了 FreDF 的限制。預測模型 g 本身不變，只有損失函數改變。"
+      },
+      "experiments": {
+        "datasets": {
+          "en": "- ETT family: ETTm1, ETTm2, ETTh1, ETTh2\n- ECL (electricity)\n- Traffic\n- Weather\n- PEMS03, PEMS08 (traffic)\n- M4 (short-term, appendix)",
+          "zh-TW": "- ETT 系列：ETTm1、ETTm2、ETTh1、ETTh2\n- ECL（電力）\n- Traffic\n- Weather\n- PEMS03、PEMS08（交通）\n- M4（短期，附錄）"
+        },
+        "baselines": {
+          "en": "- Forecast architectures: Transformer, Autoformer, FEDformer, iTransformer, Fredformer, DLinear, TiDE, FreTS, TimesNet, MICN\n- Loss functions: TMSE/DF, FreDF, Koopman, Dilate, Soft-DTW, DPTA\n- Transformations: RPCA, plain SVD, Factor Analysis",
+          "zh-TW": "- 預測模型：Transformer、Autoformer、FEDformer、iTransformer、Fredformer、DLinear、TiDE、FreTS、TimesNet、MICN\n- 損失函數：TMSE/DF、FreDF、Koopman、Dilate、Soft-DTW、DPTA\n- 轉換方式：RPCA、單純 SVD、Factor Analysis"
+        },
+        "metrics": {
+          "en": "- MSE\n- MAE\n(reported per dataset and averaged over forecast horizons T ∈ {96, 192, 336, 720})",
+          "zh-TW": "- MSE\n- MAE\n（逐資料集呈現，並對預測長度 T ∈ {96, 192, 336, 720} 平均）"
+        },
+        "mainResults": {
+          "en": "Time-o1 ranks first on 8 of 9 datasets in Table 1 (e.g., ETTm1 MSE 0.380 vs Fredformer 0.387, ETTh1 0.431 vs 0.447). Against other losses (Table 2), Time-o1 edges out FreDF by a small margin (e.g., Fredformer/ETTh1: 0.431 vs 0.438 MSE) and beats Dilate/Soft-DTW/DPTA more clearly. Plugged into iTransformer on Weather, it reduces MSE by 6.9%.",
+          "zh-TW": "Time-o1 在 Table 1 的 9 個資料集中有 8 個排名第一（例如 ETTm1 MSE 0.380 vs Fredformer 0.387；ETTh1 0.431 vs 0.447）。在 Table 2 損失函數比較中，相較 FreDF 領先幅度有限（Fredformer/ETTh1：0.431 vs 0.438），但相對 Dilate／Soft-DTW／DPTA 領先較明顯。將其套用於 iTransformer 處理 Weather 資料時，MSE 降低 6.9%。"
+        },
+        "ablation": {
+          "en": "Table 3 isolates the two factors: decorrelation-only (Time-o1‡) and reduction-only (Time-o1†) each beat the DF baseline; combining them gives the best score on all four reported datasets, confirming the two contributions are complementary rather than redundant. Sensitivity studies show α≈1 and γ in [0.3, 0.7] are usually best.",
+          "zh-TW": "Table 3 分別隔離兩項因素：僅去相關（Time-o1‡）與僅任務減少（Time-o1†）皆勝過 DF baseline；兩者結合後在四個資料集上皆取得最佳，證實兩項貢獻互補而非冗餘。敏感度實驗顯示 α≈1、γ 約於 [0.3, 0.7] 通常表現最佳。"
+        }
+      },
+      "resultsInterpretation": {
+        "en": "The framing — \"the loss, not the architecture, is the bottleneck\" — is the most useful takeaway. Empirically, Time-o1 improves every base model it's plugged into, which is the right kind of evidence for a model-agnostic loss. The improvement over the strongest direct competitor (FreDF) is small in absolute MSE but consistent across datasets, and the ablation cleanly attributes the gains to the two stated mechanisms. The largest gains come on long-horizon and high-variance datasets (Weather, ETTh2), exactly where autocorrelation bias and task-count are most punishing.",
+        "zh-TW": "「瓶頸是損失函數而非模型架構」是本文最有用的洞見。實證上，Time-o1 改善了每一個被套用的 base model，這正是一個與模型無關的損失函數所需要的證據。相較最強的直接對手 FreDF，絕對 MSE 提升不大但跨資料集穩定，且消融實驗能乾淨地把改善歸因到所宣稱的兩個機制。最大幅度的提升出現在長預測長度與高變異資料集（Weather、ETTh2），正是自相關偏差與任務數量代價最重的情境。"
+      },
+      "strengthsLimitations": {
+        "strengths": {
+          "en": "- Clean theoretical framing: Theorem 3.1 quantifies the autocorrelation bias and shows it vanishes under decorrelation.\n- Truly model-agnostic — plugged into 4+ architectures with consistent gains.\n- Wide empirical coverage (9 datasets, 10+ baselines, 6 competing losses) with code released.\n- Ablations cleanly attribute gains to decorrelation vs. task reduction and show they are complementary.\n- Identifies an underexamined research lever: applying decomposition to *labels* rather than inputs.",
+          "zh-TW": "- 理論框架清楚：Theorem 3.1 量化自相關偏差，並證明在去相關條件下偏差為零。\n- 真正與模型無關──套用於 4 個以上架構皆穩定提升。\n- 實證涵蓋廣（9 個資料集、10 個以上 baseline、6 種對比損失）並開源程式碼。\n- 消融實驗能把改善乾淨地歸因到去相關與任務減少兩項因素，且證實兩者互補。\n- 指出一個被忽略的研究方向：對 label 而非 input 做分解。"
+        },
+        "limitations": {
+          "en": "- Improvements over FreDF are small in absolute terms (often <0.005 MSE) — not always clearly outside benchmark noise.\n- Novelty is incremental: PCA/SVD on labels is a clean angle but a small step from prior frequency-domain alignment work.\n- Computational overhead of SVD on the entire training-set label matrix vs. batchwise alternatives is not analyzed.\n- The \"plug-and-play\" framing is undermined by per-dataset α and γ tuning.",
+          "zh-TW": "- 相較 FreDF 的絕對提升偏小（常 <0.005 MSE），不一定明顯超出 benchmark 雜訊。\n- 新穎性偏增量：對 label 做 PCA／SVD 是個乾淨切點，但相較先前頻域對齊工作只是小步推進。\n- 未分析對整體訓練集 label 矩陣做 SVD 相較 batchwise 做法的計算成本。\n- 「即插即用」的定位被「需逐資料集調 α 與 γ」削弱。"
+        }
+      },
+      "aiCommentary": {
+        "en": "The most interesting move in this paper isn't the math, it's the reframing: prior frequency-domain losses asked \"what's a basis in which labels look decorrelated?\" and answered with a fixed Fourier basis; Time-o1 answers with the data-adapted SVD basis, which is correct in principle and slightly better in practice. Whether this is the new SOTA loss or just a refined FreDF depends on how reliably its margin survives careful re-tuning of FreDF — that comparison would have made the paper much stronger. The deeper, underexplored question the paper hints at is what *other* label decompositions (wavelets? data-adapted bases conditioned on history?) could do.",
+        "zh-TW": "本文最有趣的步驟其實不在數學，而在重新框架：先前的頻域損失問「在哪個基底下 label 看起來去相關？」並以固定的 Fourier basis 作答；Time-o1 則改以隨資料調整的 SVD basis 回答，這在原理上正確、實證上略勝。它究竟是新一代 SOTA 損失還是改良版 FreDF，取決於在「對 FreDF 仔細重新調參」之後優勢能否保留──這個比較若能做，本文會強很多。論文真正指向但未深入探討的問題是：對 label 採用其他分解（小波？條件於歷史的資料適應基底？）會帶來什麼結果。"
+      }
+    }
   }
 ]

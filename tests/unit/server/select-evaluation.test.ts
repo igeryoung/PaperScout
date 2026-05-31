@@ -27,6 +27,7 @@ function evalRow(overrides: Partial<PaperEvaluation>): PaperEvaluation {
     recommendationDecision: 'STORE_ONLY',
     pdfAnalysisStatus: null,
     tableFigureAnalysis: null,
+    digest: null,
     createdAt: new Date(),
     ...overrides,
   };

@@ -205,6 +205,7 @@ model PaperEvaluation {
   recommendationDecision           RecommendationDecision @map("recommendation_decision")
   pdfAnalysisStatus                PdfAnalysisStatus?     @map("pdf_analysis_status")
   tableFigureAnalysis              Json?                  @map("table_figure_analysis")
+  digest                           Json?
   createdAt                        DateTime               @default(now()) @map("created_at")
 
   paper Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
@@ -212,6 +213,7 @@ model PaperEvaluation {
 
   @@unique([paperId, runId, evaluationStage])
   @@index([paperId, llmPromptVersion])
+  @@index([runId])
   @@map("paper_evaluations")
 }
 

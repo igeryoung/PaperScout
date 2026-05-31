@@ -3,11 +3,18 @@
 
 import { db } from '@/lib/db';
 import type {
-  PaperEvaluation,
+  EvaluationStage,
   PdfAnalysisStatus,
   Source,
 } from '@prisma/client';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
+
+type SummaryEvalRow = {
+  paperId: string;
+  evaluationStage: EvaluationStage;
+  totalScore: number;
+  pdfAnalysisStatus: PdfAnalysisStatus | null;
+};
 
 export interface SourceCount {
   source: Source;
@@ -50,14 +57,14 @@ function median(values: number[]): number {
     : sorted[mid];
 }
 
-function bestEvalPerPaper(evals: PaperEvaluation[]): Map<string, PaperEvaluation> {
-  const byPaper = new Map<string, PaperEvaluation[]>();
+function bestEvalPerPaper(evals: SummaryEvalRow[]): Map<string, SummaryEvalRow> {
+  const byPaper = new Map<string, SummaryEvalRow[]>();
   for (const e of evals) {
     const arr = byPaper.get(e.paperId) ?? [];
     arr.push(e);
     byPaper.set(e.paperId, arr);
   }
-  const best = new Map<string, PaperEvaluation>();
+  const best = new Map<string, SummaryEvalRow>();
   for (const [paperId, list] of byPaper) {
     const picked = selectBestEvaluation(list);
     if (picked) best.set(paperId, picked);
@@ -101,6 +108,12 @@ export const trendsRepo = {
       }),
       db.paperEvaluation.findMany({
         where: { runId },
+        select: {
+          paperId: true,
+          evaluationStage: true,
+          totalScore: true,
+          pdfAnalysisStatus: true,
+        },
       }),
     ]);
 

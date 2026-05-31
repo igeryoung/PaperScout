@@ -57,6 +57,26 @@ function makeEvaluation(joinKey: { source: string; sourcePaperId: string }, over
     recommendationDecision: 'RECOMMEND',
     pdfAnalysisStatus: 'SUCCESS',
     tableFigureAnalysis: null,
+    figure: null,
+    digest: {
+      tldr: L('tldr'),
+      problemMotivation: L('problem motivation'),
+      keyContributions: L('key contributions'),
+      methodOverview: L('method overview'),
+      experiments: {
+        datasets: L('datasets'),
+        baselines: L('baselines'),
+        metrics: L('metrics'),
+        mainResults: L('main results'),
+        ablation: L('ablation'),
+      },
+      resultsInterpretation: L('results interpretation'),
+      strengthsLimitations: {
+        strengths: L('digest strengths'),
+        limitations: L('digest limitations'),
+      },
+      aiCommentary: L('ai commentary'),
+    },
     ...overrides,
   };
 }

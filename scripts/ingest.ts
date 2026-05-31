@@ -296,6 +296,7 @@ async function main() {
       recommendationDecision: e.recommendationDecision,
       pdfAnalysisStatus: e.pdfAnalysisStatus,
       tableFigureAnalysis: e.tableFigureAnalysis,
+      digest: e.digest,
     });
     await tagsRepo.addAll(paperId, e.tags, 'LLM_GENERATED');
 

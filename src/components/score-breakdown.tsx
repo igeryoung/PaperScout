@@ -33,43 +33,40 @@ const TIER_BG: Record<ScoreTier, string> = {
 export function ScoreBreakdown({ evaluation, messages }: ScoreBreakdownProps) {
   const t = messages.scoreBreakdown;
   const totalTier = scoreTier(evaluation.totalScore, 100);
+  const totalColor =
+    totalTier === 'good'
+      ? 'text-emerald-600'
+      : totalTier === 'mid'
+        ? 'text-amber-600'
+        : 'text-rose-600';
   return (
-    <div className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm font-medium">{t.total}</span>
-        <span className={`text-xl font-semibold tabular-nums`}>
-          <span
-            className={
-              totalTier === 'good'
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : totalTier === 'mid'
-                  ? 'text-amber-600 dark:text-amber-400'
-                  : 'text-rose-600 dark:text-rose-400'
-            }
-          >
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#5848f5]">
+          {t.total}
+        </h3>
+        <div className="mt-1 flex items-baseline gap-1.5">
+          <span className={`text-3xl font-extrabold tabular-nums ${totalColor}`}>
             {evaluation.totalScore}
           </span>
-          <span className="text-muted-foreground"> / 100</span>
-        </span>
+          <span className="text-sm font-semibold text-[#98a2b3]">/ 100</span>
+        </div>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {DIMENSION_DEFS.map((d) => {
           const value = evaluation[d.field];
           const pct = d.max > 0 ? (value / d.max) * 100 : 0;
           const tier = scoreTier(value, d.max);
           return (
             <div key={d.field} className="space-y-1">
-              <div className="flex items-baseline justify-between text-xs">
-                <span>{t[d.key]}</span>
-                <span className="text-muted-foreground tabular-nums">
+              <div className="flex items-baseline justify-between text-[12px]">
+                <span className="text-[#475467]">{t[d.key]}</span>
+                <span className="font-semibold tabular-nums text-[#667085]">
                   {value} / {d.max}
                 </span>
               </div>
-              <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
-                <div
-                  className={`h-full ${TIER_BG[tier]}`}
-                  style={{ width: `${pct}%` }}
-                />
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#eef0f6]">
+                <div className={`h-full rounded-full ${TIER_BG[tier]}`} style={{ width: `${pct}%` }} />
               </div>
             </div>
           );

@@ -4,7 +4,7 @@ import type {
   PdfAnalysisStatus,
   RecommendationDecision,
 } from '@prisma/client';
-import type { LocalizedString, LocalizedStringList } from '@/server/schema/evaluation';
+import type { Digest, LocalizedString, LocalizedStringList } from '@/server/schema/evaluation';
 
 export const evaluationsRepo = {
   upsert: (input: {
@@ -29,6 +29,7 @@ export const evaluationsRepo = {
     recommendationDecision: RecommendationDecision;
     pdfAnalysisStatus: PdfAnalysisStatus | null;
     tableFigureAnalysis?: unknown;
+    digest: Digest | null;
   }) =>
     db.paperEvaluation.upsert({
       where: {
@@ -60,6 +61,7 @@ export const evaluationsRepo = {
         recommendationDecision: input.recommendationDecision,
         pdfAnalysisStatus: input.pdfAnalysisStatus,
         tableFigureAnalysis: (input.tableFigureAnalysis ?? null) as never,
+        digest: (input.digest ?? null) as never,
       },
       update: {
         llmModel: input.llmModel,
@@ -80,6 +82,7 @@ export const evaluationsRepo = {
         recommendationDecision: input.recommendationDecision,
         pdfAnalysisStatus: input.pdfAnalysisStatus,
         tableFigureAnalysis: (input.tableFigureAnalysis ?? null) as never,
+        digest: (input.digest ?? null) as never,
       },
     }),
 

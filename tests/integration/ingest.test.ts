@@ -58,22 +58,21 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
     await setupTestDb();
   });
 
-  it('sample run: 3 papers, ranks 1..3, 2 recommended (matches RECOMMEND decisions)', async () => {
+  it('sample run: 2 papers, ranks 1..2, 2 recommended (matches RECOMMEND decisions)', async () => {
     const dir = copyRunDir(SAMPLE_DIR);
     const r = runIngest(dir);
     expect(r.status, r.stderr).toBe(0);
 
     const { db } = await import('@/lib/db');
     const papers = await db.paper.findMany();
-    expect(papers.length).toBe(3);
+    expect(papers.length).toBe(2);
 
     const evals = await db.paperEvaluation.findMany();
-    expect(evals.length).toBe(3);
+    expect(evals.length).toBe(2);
 
     const results = await db.paperRunResult.findMany({ orderBy: { finalRank: 'asc' } });
-    expect(results.map((r) => r.finalRank)).toEqual([1, 2, 3]);
+    expect(results.map((r) => r.finalRank)).toEqual([1, 2]);
     expect(results.every((r) => r.finalRank !== null)).toBe(true);
-    // Sample: 2 RECOMMEND + 1 STORE_ONLY → 2 recommended.
     expect(results.filter((r) => r.isRecommended).length).toBe(2);
   }, 60_000);
 
@@ -97,11 +96,11 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
       expect(caption?.['zh-TW']?.length ?? 0).toBeGreaterThan(0);
     }
 
-    // The figureLabel sort puts "Figure 1" before "Figure 2".
+    // The current sample carries one highlighted figure for each paper.
     expect(figures[0].figureLabel).toBe('Figure 1');
     expect(figures[0].pageNumber).toBe(2);
-    expect(figures[1].figureLabel).toBe('Figure 2');
-    expect(figures[1].pageNumber).toBe(4);
+    expect(figures[1].figureLabel).toBe('Figure 1');
+    expect(figures[1].pageNumber).toBe(2);
 
     // Final ingest summary mentions the figure counts.
     expect(r.stdout).toMatch(/figures: 2 ok/);
@@ -122,7 +121,7 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
     const runs = await db.dailyRun.findMany();
     expect(runs.length).toBe(1);
     const results = await db.paperRunResult.findMany({ orderBy: { finalRank: 'asc' } });
-    expect(results.map((r) => r.finalRank)).toEqual([1, 2, 3]);
+    expect(results.map((r) => r.finalRank)).toEqual([1, 2]);
   }, 90_000);
 
   it('Phase 2.5 reference run: F1>F3>F4>F2>F5, 3 recommended, F5 keeps UNAVAILABLE', async () => {
