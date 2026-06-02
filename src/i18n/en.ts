@@ -65,6 +65,12 @@ export const messages = {
     feedControlsAria: 'List controls',
     feedTitleSr: 'Recommended papers',
     feedNoResults: 'No papers produced in this run yet.',
+    loadingHero: 'Loading trend summary',
+    loadingFeedMeta: 'Loading feed status',
+    loadingFeed: 'Loading paper feed',
+    loadingHotTags: 'Loading hot tags',
+    loadingRecommendations: 'Loading recent recommendations',
+    loadingSourceMix: 'Loading source mix',
     summaryFallback:
       'This paper is ingested into PaperScout — open it to see sources, summary, and full evaluation.',
     reasonFallback: 'This paper was flagged as recommended in the agent evaluation.',

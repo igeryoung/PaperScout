@@ -9,6 +9,7 @@ import {
   Grid2X2,
   Lightbulb,
   List,
+  LoaderCircle,
   Shield,
   Sparkles,
   Star,
@@ -41,6 +42,13 @@ const HOME_FEED_PAGE_SIZE = 10;
 
 interface HomePageProps {
   searchParams: Promise<{ page?: string; locale?: string }>;
+}
+
+interface HomeDataPromises {
+  summary: Promise<RunSummary>;
+  recommended: Promise<RunResultWithDetail[]>;
+  totalResults: Promise<number>;
+  session: ReturnType<typeof getCurrentSession>;
 }
 
 function parsePageParam(value: string | undefined): number {
@@ -135,6 +143,91 @@ function HomePagePlaceholder() {
         </aside>
       </div>
     </main>
+  );
+}
+
+function LoadingIcon({ label }: { label: string }) {
+  return (
+    <span
+      role="status"
+      aria-label={label}
+      className="inline-grid h-8 w-8 place-items-center rounded-full bg-[#eef0ff] text-[#5b4df1]"
+    >
+      <LoaderCircle aria-hidden className="h-4 w-4 animate-spin" />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
+function LoadingPanel({ label, minHeight = 132 }: { label: string; minHeight?: number }) {
+  return (
+    <section
+      className="grid place-items-center rounded-[10px] border border-[#e5e9f3] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+      style={{ minHeight }}
+    >
+      <LoadingIcon label={label} />
+    </section>
+  );
+}
+
+function HeroLoading({ messages }: { messages: Messages }) {
+  return (
+    <section className="grid min-h-[216px] items-center gap-10 rounded-[10px] bg-[linear-gradient(100deg,#edf7ff_0%,#f8f0ff_51%,#eaf4ff_100%)] px-5 py-6 shadow-[0_18px_50px_rgba(31,42,68,0.08)] md:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:px-24 xl:px-44">
+      <div className="max-w-[700px]">
+        <div className="mb-4 flex items-center gap-3">
+          <LoadingIcon label={messages.home.loadingHero} />
+          <div className="h-8 w-72 max-w-full animate-pulse rounded bg-white/80" />
+        </div>
+        <div className="mb-5 h-4 w-full max-w-[560px] animate-pulse rounded bg-white/70" />
+        <div className="h-[54px] rounded-[9px] border border-[#d9deea] bg-white shadow-[0_12px_26px_rgba(45,52,88,0.14)]" />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <span key={i} className="h-[27px] w-24 animate-pulse rounded-full bg-[#dfe4ff]" />
+          ))}
+        </div>
+      </div>
+      <div className="hidden min-h-[176px] animate-pulse rounded-[10px] bg-white/50 md:block" />
+    </section>
+  );
+}
+
+function FeedMetaLoading({ messages }: { messages: Messages }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-4">
+      <LoadingIcon label={messages.home.loadingFeedMeta} />
+      <div className="grid flex-1 gap-2">
+        <span className="h-4 w-3/4 animate-pulse rounded bg-[#edf1f7]" />
+        <span className="h-4 w-1/3 animate-pulse rounded bg-[#edf1f7]" />
+      </div>
+    </div>
+  );
+}
+
+function FeedResultsLoading({ messages }: { messages: Messages }) {
+  return (
+    <>
+      <div className="flex items-center gap-3 rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-4">
+        <LoadingIcon label={messages.home.loadingFeed} />
+        <span className="h-4 w-48 max-w-full animate-pulse rounded bg-[#edf1f7]" />
+      </div>
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-1 gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 xl:grid-cols-[280px_minmax(0,1fr)_230px]"
+        >
+          <div className="h-44 animate-pulse rounded-lg bg-[#edf1f7]" />
+          <div className="space-y-3">
+            <div className="h-5 w-4/5 animate-pulse rounded bg-[#edf1f7]" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-[#edf1f7]" />
+            <div className="h-16 animate-pulse rounded bg-[#edf1f7]" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-16 w-16 animate-pulse rounded-full bg-[#edf1f7]" />
+            <div className="h-[68px] animate-pulse rounded-lg bg-[#eaf8f4]" />
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -760,6 +853,193 @@ function Pagination({
   );
 }
 
+async function HeroSection({
+  summary,
+  messages,
+}: {
+  summary: Promise<RunSummary>;
+  messages: Messages;
+}) {
+  return <Hero summary={await summary} messages={messages} />;
+}
+
+async function FeedMeta({
+  run,
+  summary,
+  totalResults,
+  currentPage,
+  messages,
+}: {
+  run: Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>;
+  summary: Promise<RunSummary>;
+  totalResults: Promise<number>;
+  currentPage: number;
+  messages: Messages;
+}) {
+  if (!run) return null;
+  const [resolvedSummary, resolvedTotalResults] = await Promise.all([summary, totalResults]);
+  const totalPages = Math.max(1, Math.ceil(resolvedTotalResults / HOME_FEED_PAGE_SIZE));
+  const displayPage = Math.min(currentPage, totalPages);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#667085]">
+      <span>
+        {messages.home.runMeta(
+          formatDate(run.completedAt ?? run.createdAt),
+          resolvedSummary.totalPapers,
+          resolvedSummary.recommendedCount,
+          displayPage,
+        )}
+      </span>
+      <Link href={`/runs/${run.id}`} className="font-semibold text-[#392ee5]">
+        {messages.home.viewFullRun}
+      </Link>
+    </div>
+  );
+}
+
+async function FeedResults({
+  runId,
+  requestedPage,
+  totalResults,
+  session,
+  locale,
+  messages,
+}: {
+  runId: string;
+  requestedPage: number;
+  totalResults: Promise<number>;
+  session: HomeDataPromises['session'];
+  locale: Locale;
+  messages: Messages;
+}) {
+  const resolvedTotalResults = await totalResults;
+  const totalPages = Math.max(1, Math.ceil(resolvedTotalResults / HOME_FEED_PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const results = await runResultsRepo.findByRunWithDetail(runId, {
+    recommendedOnly: false,
+    limit: HOME_FEED_PAGE_SIZE,
+    offset: (currentPage - 1) * HOME_FEED_PAGE_SIZE,
+  });
+  const resolvedSession = await session;
+  const paperStates = resolvedSession
+    ? await libraryRepo.findPaperStates({
+        userId: resolvedSession.user.id,
+        paperIds: results.map((result) => result.paper.id),
+      })
+    : new Map<string, { liked: boolean; status: string }>();
+
+  return (
+    <>
+      {results.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-6 text-sm text-[#667085]">
+          {messages.home.feedNoResults}
+        </div>
+      ) : (
+        results.map((result, index) => (
+          <HomePaperCard
+            key={result.id}
+            result={result}
+            index={index}
+            locale={locale}
+            messages={messages}
+            userState={{
+              liked: paperStates.get(result.paper.id)?.liked ?? false,
+              readLater: paperStates.get(result.paper.id)?.status === 'UNREAD',
+            }}
+          />
+        ))
+      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={resolvedTotalResults}
+        messages={messages}
+      />
+    </>
+  );
+}
+
+function FeedSection({
+  run,
+  data,
+  requestedPage,
+  locale,
+  messages,
+}: {
+  run: NonNullable<Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>>;
+  data: HomeDataPromises;
+  requestedPage: number;
+  locale: Locale;
+  messages: Messages;
+}) {
+  return (
+    <section
+      className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+      aria-labelledby="feed-title"
+    >
+      <FeedToolbar messages={messages} />
+      <div className="sr-only" id="feed-title">
+        {messages.home.feedTitleSr}
+      </div>
+      <div className="grid gap-3.5 px-5 py-4">
+        <Suspense fallback={<FeedMetaLoading messages={messages} />}>
+          <FeedMeta
+            run={run}
+            summary={data.summary}
+            totalResults={data.totalResults}
+            currentPage={requestedPage}
+            messages={messages}
+          />
+        </Suspense>
+        <Suspense fallback={<FeedResultsLoading messages={messages} />}>
+          <FeedResults
+            runId={run.id}
+            requestedPage={requestedPage}
+            totalResults={data.totalResults}
+            session={data.session}
+            locale={locale}
+            messages={messages}
+          />
+        </Suspense>
+      </div>
+    </section>
+  );
+}
+
+async function HotTagsSection({
+  summary,
+  messages,
+}: {
+  summary: Promise<RunSummary>;
+  messages: Messages;
+}) {
+  return <HotTagsCard tags={(await summary).topTags} messages={messages} />;
+}
+
+async function RecentRecommendationsSection({
+  recommended,
+  messages,
+}: {
+  recommended: Promise<RunResultWithDetail[]>;
+  messages: Messages;
+}) {
+  const resolvedRecommended = await recommended;
+  return resolvedRecommended.length > 0 ? (
+    <RecentRecommendationsCard recommended={resolvedRecommended} messages={messages} />
+  ) : null;
+}
+
+async function SourceMixSection({
+  summary,
+  messages,
+}: {
+  summary: Promise<RunSummary>;
+  messages: Messages;
+}) {
+  return <SourceMixCard summary={await summary} messages={messages} />;
+}
+
 async function HomePageContent({
   searchParams,
   locale,
@@ -772,89 +1052,49 @@ async function HomePageContent({
   if (!run) return <EmptyState messages={messages} />;
 
   const requestedPage = parsePageParam(searchParams.page);
-
-  const [summary, recommended, totalResults, session] = await Promise.all([
-    trendsRepo.getRunSummary(run.id),
-    runResultsRepo.findByRunWithDetail(run.id, { recommendedOnly: true, limit: 3 }),
-    runResultsRepo.countByRun(run.id),
-    getCurrentSession(),
-  ]);
-  const totalPages = Math.max(1, Math.ceil(totalResults / HOME_FEED_PAGE_SIZE));
-  const currentPage = Math.min(requestedPage, totalPages);
-  const results = await runResultsRepo.findByRunWithDetail(run.id, {
-    recommendedOnly: false,
-    limit: HOME_FEED_PAGE_SIZE,
-    offset: (currentPage - 1) * HOME_FEED_PAGE_SIZE,
-  });
-  const paperStates = session
-    ? await libraryRepo.findPaperStates({
-        userId: session.user.id,
-        paperIds: results.map((result) => result.paper.id),
-      })
-    : new Map<string, { liked: boolean; status: string }>();
+  const data: HomeDataPromises = {
+    summary: trendsRepo.getRunSummary(run.id),
+    recommended: runResultsRepo.findByRunWithDetail(run.id, {
+      recommendedOnly: true,
+      limit: 3,
+    }),
+    totalResults: runResultsRepo.countByRun(run.id),
+    session: getCurrentSession(),
+  };
 
   return (
     <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
-      <Hero summary={summary} messages={messages} />
+      <Suspense fallback={<HeroLoading messages={messages} />}>
+        <HeroSection summary={data.summary} messages={messages} />
+      </Suspense>
 
       <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <section
-          className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
-          aria-labelledby="feed-title"
-        >
-          <FeedToolbar messages={messages} />
-          <div className="sr-only" id="feed-title">
-            {messages.home.feedTitleSr}
-          </div>
-          <div className="grid gap-3.5 px-5 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#667085]">
-              <span>
-                {messages.home.runMeta(
-                  formatDate(run.completedAt ?? run.createdAt),
-                  summary.totalPapers,
-                  summary.recommendedCount,
-                  currentPage,
-                )}
-              </span>
-              <Link href={`/runs/${run.id}`} className="font-semibold text-[#392ee5]">
-                {messages.home.viewFullRun}
-              </Link>
-            </div>
-
-            {results.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-6 text-sm text-[#667085]">
-                {messages.home.feedNoResults}
-              </div>
-            ) : (
-              results.map((result, index) => (
-                <HomePaperCard
-                  key={result.id}
-                  result={result}
-                  index={index}
-                  locale={locale}
-                  messages={messages}
-                  userState={{
-                    liked: paperStates.get(result.paper.id)?.liked ?? false,
-                    readLater: paperStates.get(result.paper.id)?.status === 'UNREAD',
-                  }}
-                />
-              ))
-            )}
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={totalResults}
-              messages={messages}
-            />
-          </div>
-        </section>
+        <FeedSection
+          run={run}
+          data={data}
+          requestedPage={requestedPage}
+          locale={locale}
+          messages={messages}
+        />
 
         <aside className="grid content-start gap-3" aria-label={messages.home.sidebarAria}>
-          <HotTagsCard tags={summary.topTags} messages={messages} />
-          {recommended.length > 0 ? (
-            <RecentRecommendationsCard recommended={recommended} messages={messages} />
-          ) : null}
-          <SourceMixCard summary={summary} messages={messages} />
+          <Suspense
+            fallback={<LoadingPanel label={messages.home.loadingHotTags} minHeight={132} />}
+          >
+            <HotTagsSection summary={data.summary} messages={messages} />
+          </Suspense>
+          <Suspense
+            fallback={
+              <LoadingPanel label={messages.home.loadingRecommendations} minHeight={156} />
+            }
+          >
+            <RecentRecommendationsSection recommended={data.recommended} messages={messages} />
+          </Suspense>
+          <Suspense
+            fallback={<LoadingPanel label={messages.home.loadingSourceMix} minHeight={132} />}
+          >
+            <SourceMixSection summary={data.summary} messages={messages} />
+          </Suspense>
           <PersonalCard messages={messages} />
         </aside>
       </div>
