@@ -1,3 +1,13 @@
+import {
+  BarChart3,
+  BookOpen,
+  MessageSquare,
+  Settings2,
+  Sparkles,
+  Target,
+  type LucideIcon,
+} from 'lucide-react';
+
 import { pickLocalized, type Locale } from '@/lib/locale';
 import type { Messages } from '@/i18n';
 
@@ -12,11 +22,46 @@ export interface DigestShape {
   aiCommentary: LocalizedField;
 }
 
-const SECTION_LABEL = 'text-[11px] font-bold uppercase tracking-[0.08em] text-[#5848f5]';
-const SUBSECTION_LABEL =
-  'text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#475467]';
-const CARD =
-  'rounded-2xl border border-[#e5e9f3] bg-white p-5 shadow-[0_12px_32px_rgba(24,34,64,0.055)]';
+type PaperDetailMessages = Messages['paperDetail'];
+
+const DIGEST_SECTIONS: Array<{
+  key: keyof DigestShape;
+  titleKey: keyof PaperDetailMessages;
+  Icon: LucideIcon;
+  anchorId: string;
+}> = [
+  { key: 'tldr', titleKey: 'digestTldr', Icon: BookOpen, anchorId: 'digest-tldr' },
+  {
+    key: 'problemMotivation',
+    titleKey: 'digestProblemMotivation',
+    Icon: Target,
+    anchorId: 'digest-problem',
+  },
+  {
+    key: 'keyContributions',
+    titleKey: 'digestKeyContributions',
+    Icon: Sparkles,
+    anchorId: 'digest-contributions',
+  },
+  {
+    key: 'methodOverview',
+    titleKey: 'digestMethodOverview',
+    Icon: Settings2,
+    anchorId: 'digest-method',
+  },
+  {
+    key: 'resultsInterpretation',
+    titleKey: 'digestResultsInterpretation',
+    Icon: BarChart3,
+    anchorId: 'digest-results',
+  },
+  {
+    key: 'aiCommentary',
+    titleKey: 'digestAiCommentary',
+    Icon: MessageSquare,
+    anchorId: 'digest-commentary',
+  },
+];
 
 export function PaperDigest({
   digest,
@@ -27,47 +72,41 @@ export function PaperDigest({
   locale: Locale;
   messages: Messages;
 }) {
-  const t = messages.paperDetail;
   return (
-    <section className={CARD}>
-      <h2 className={SECTION_LABEL}>{t.aiDigest}</h2>
-      <div className="mt-4 space-y-5">
-        <DigestBlock title={t.digestTldr} value={digest.tldr} locale={locale} />
-        <DigestBlock
-          title={t.digestProblemMotivation}
-          value={digest.problemMotivation}
-          locale={locale}
-        />
-        <DigestBlock
-          title={t.digestKeyContributions}
-          value={digest.keyContributions}
-          locale={locale}
-        />
-        <DigestBlock
-          title={t.digestMethodOverview}
-          value={digest.methodOverview}
-          locale={locale}
-        />
-        <DigestBlock
-          title={t.digestResultsInterpretation}
-          value={digest.resultsInterpretation}
-          locale={locale}
-        />
-        <DigestBlock
-          title={t.digestAiCommentary}
-          value={digest.aiCommentary}
-          locale={locale}
-        />
+    <section id="digest" className="scroll-mt-[120px] space-y-4">
+      <h2 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5848f5]">
+        <Sparkles aria-hidden className="h-4 w-4" />
+        {messages.paperDetail.aiDigest}
+      </h2>
+      <div className="space-y-4">
+        {DIGEST_SECTIONS.map((sec) => {
+          const titleValue = messages.paperDetail[sec.titleKey];
+          if (typeof titleValue !== 'string') return null;
+          return (
+            <DigestCard
+              key={sec.key}
+              Icon={sec.Icon}
+              anchorId={sec.anchorId}
+              title={titleValue}
+              value={digest[sec.key]}
+              locale={locale}
+            />
+          );
+        })}
       </div>
     </section>
   );
 }
 
-function DigestBlock({
+function DigestCard({
+  Icon,
+  anchorId,
   title,
   value,
   locale,
 }: {
+  Icon: LucideIcon;
+  anchorId: string;
   title: string;
   value: LocalizedField;
   locale: Locale;
@@ -75,12 +114,20 @@ function DigestBlock({
   const text = pickLocalized(value, locale);
   if (!text) return null;
   return (
-    <div>
-      <h3 className={SUBSECTION_LABEL}>{title}</h3>
-      <div className="mt-1.5">
+    <article
+      id={anchorId}
+      className="scroll-mt-[120px] rounded-[10px] border border-[#e5e9f3] bg-white p-5 shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+    >
+      <header className="flex items-center gap-2.5">
+        <span className="grid h-8 w-8 place-items-center rounded-[8px] bg-[#eef0ff] text-[#5b4df1]">
+          <Icon aria-hidden className="h-4 w-4" />
+        </span>
+        <h3 className="text-[14px] font-bold text-[#111827]">{title}</h3>
+      </header>
+      <div className="mt-3">
         <MarkdownLite text={text} />
       </div>
-    </div>
+    </article>
   );
 }
 

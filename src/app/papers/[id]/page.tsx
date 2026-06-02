@@ -1,10 +1,8 @@
 import 'server-only';
 
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { UserPaperStatus } from '@prisma/client';
 import { papersRepo } from '@/server/repos/papers';
-import { runsRepo } from '@/server/repos/runs';
 import { libraryRepo } from '@/server/repos/library';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { PaperDetail } from '@/components/paper-detail';
@@ -19,9 +17,8 @@ interface PaperPageProps {
 
 export default async function PaperPage({ params }: PaperPageProps) {
   const { id } = await params;
-  const [paper, latestRun, locale, session] = await Promise.all([
+  const [paper, locale, session] = await Promise.all([
     papersRepo.findDetailById(id),
-    runsRepo.latestCompleted(),
     getLocale(),
     getCurrentSession(),
   ]);
@@ -41,15 +38,7 @@ export default async function PaperPage({ params }: PaperPageProps) {
   const messages = getMessages(locale);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-8 sm:py-10">
-      <div className="mb-6 text-sm">
-        <Link
-          href={latestRun ? `/runs/${latestRun.id}` : '/library'}
-          className="inline-flex items-center gap-1 text-[#667085] transition-colors hover:text-[#5848f5]"
-        >
-          ← {latestRun ? messages.paperPage.backToRun : messages.paperPage.backToLibrary}
-        </Link>
-      </div>
+    <main className="mx-auto max-w-6xl px-6 pt-4 pb-10">
       <PaperDetail
         paper={paper}
         locale={locale}

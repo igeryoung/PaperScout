@@ -1,5 +1,12 @@
 import type { PaperEvaluation, UserPaperStatus } from '@prisma/client';
-import { Code2, ExternalLink, FileText, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import {
+  CheckCircle2,
+  Code2,
+  ExternalLink,
+  FileText,
+  XCircle,
+} from 'lucide-react';
 
 import { ScoreBreakdown } from '@/components/score-breakdown';
 import { PaperDetailActions } from '@/components/paper-detail-actions';
@@ -20,7 +27,7 @@ interface PaperDetailProps {
 
 const SECTION_LABEL = 'text-[11px] font-bold uppercase tracking-[0.08em] text-[#5848f5]';
 const CARD =
-  'rounded-2xl border border-[#e5e9f3] bg-white p-5 shadow-[0_12px_32px_rgba(24,34,64,0.055)]';
+  'rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]';
 
 function sourceIcon(source: 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE') {
   if (source === 'ARXIV') return <FileText aria-hidden className="h-4 w-4" />;
@@ -48,7 +55,6 @@ function decisionTone(decision: 'RECOMMEND' | 'STORE_ONLY' | 'LOW_QUALITY') {
 export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: PaperDetailProps) {
   const evaluation = selectBestEvaluation(paper.evaluations);
   const summary = pickLocalized(evaluation?.summary, locale);
-  const reason = pickLocalized(evaluation?.recommendationReason, locale);
   const strengths = evaluation ? pickLocalizedList(evaluation.strengths, locale) : [];
   const weaknesses = evaluation ? pickLocalizedList(evaluation.weaknesses, locale) : [];
   const figureCaption = pickLocalized(paper.figure?.caption, locale);
@@ -56,9 +62,16 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
   const sourceLabels = messages.common.sources;
   const t = messages.paperDetail;
 
-  const links: Array<{ key: string; href: string; label: string; icon: React.ReactNode }> = [];
+  const score =
+    evaluation !== null ? Math.max(0, Math.min(100, evaluation.totalScore)) : null;
+
+  const arxivSource = paper.sources.find((s) => s.source === 'ARXIV');
+  const openReviewSource = paper.sources.find((s) => s.source === 'OPENREVIEW');
+  const huggingFaceSource = paper.sources.find((s) => s.source === 'HUGGINGFACE');
+
+  const sidebarLinks: Array<{ key: string; href: string; label: string; icon: React.ReactNode }> = [];
   if (paper.pdfUrl) {
-    links.push({
+    sidebarLinks.push({
       key: 'pdf',
       href: paper.pdfUrl,
       label: messages.common.pdf,
@@ -66,7 +79,7 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
     });
   }
   paper.sources.forEach((s) => {
-    links.push({
+    sidebarLinks.push({
       key: s.id,
       href: s.sourceUrl,
       label: sourceLabels[s.source],
@@ -74,7 +87,7 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
     });
   });
   paper.codeLinks.forEach((c) => {
-    links.push({
+    sidebarLinks.push({
       key: c.id,
       href: c.codeUrl,
       label: messages.common.code,
@@ -82,55 +95,139 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
     });
   });
 
+  const quickLinks: Array<{ key: string; href: string; label: string }> = [];
+  if (paper.pdfUrl) quickLinks.push({ key: 'pdf', href: paper.pdfUrl, label: messages.common.pdf });
+  if (arxivSource)
+    quickLinks.push({ key: 'arxiv', href: arxivSource.sourceUrl, label: `${sourceLabels.ARXIV} ↗` });
+  if (openReviewSource)
+    quickLinks.push({
+      key: 'openreview',
+      href: openReviewSource.sourceUrl,
+      label: `${sourceLabels.OPENREVIEW} ↗`,
+    });
+  if (huggingFaceSource)
+    quickLinks.push({
+      key: 'huggingface',
+      href: huggingFaceSource.sourceUrl,
+      label: `${sourceLabels.HUGGINGFACE} ↗`,
+    });
+  paper.codeLinks.forEach((c) =>
+    quickLinks.push({ key: c.id, href: c.codeUrl, label: messages.common.code }),
+  );
+
   return (
-    <article className="space-y-6">
-      <header className="rounded-2xl border border-[#e5e9f3] bg-gradient-to-b from-white to-[#fbfbff] p-6 shadow-[0_12px_32px_rgba(24,34,64,0.055)] sm:p-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-[#f7f9ff] px-2.5 py-0.5 text-xs font-bold text-[#475467]">
-            {sourceLabels[paper.primarySource]}
-          </span>
-          {evaluation ? (
-            <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-white px-2.5 py-0.5 text-xs font-medium text-[#667085]">
-              {stageLabel(evaluation, messages)}
-            </span>
-          ) : null}
-          {evaluation?.recommendationDecision ? (
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${decisionTone(evaluation.recommendationDecision)}`}
+    <article>
+      <header
+        className={`${CARD} overflow-hidden`}
+        style={{
+          background:
+            'radial-gradient(circle at 88% 30%, rgba(124,101,255,0.14), transparent 26%), #fff',
+        }}
+      >
+        <div className="grid items-start gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-[#f7f9ff] px-2.5 py-0.5 text-xs font-bold text-[#475467]">
+                {sourceLabels[paper.primarySource]}
+              </span>
+              {evaluation ? (
+                <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-white px-2.5 py-0.5 text-xs font-medium text-[#667085]">
+                  {stageLabel(evaluation, messages)}
+                </span>
+              ) : null}
+              {evaluation?.recommendationDecision ? (
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${decisionTone(evaluation.recommendationDecision)}`}
+                >
+                  {messages.common.decisions[evaluation.recommendationDecision]}
+                </span>
+              ) : null}
+            </div>
+            <h1 className="mt-4 text-[26px] font-extrabold leading-tight tracking-tight text-[#111827] sm:text-[30px] md:text-[32px]">
+              {paper.title}
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-[#475467]">
+              {formatAuthors(paper.authors)}
+            </p>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-[#667085]">
+              <span>
+                {t.publishedPrefix} {formatDate(paper.publishedDate)}
+              </span>
+              {paper.venue ? (
+                <>
+                  <span aria-hidden>|</span>
+                  <span className="font-semibold text-[#475467]">{paper.venue}</span>
+                </>
+              ) : null}
+            </p>
+          </div>
+
+          {score !== null && evaluation ? (
+            <div
+              role="img"
+              aria-label={`${t.scoreOverall}: ${evaluation.totalScore} / 100`}
+              className="grid h-24 w-24 shrink-0 place-items-center rounded-full max-md:justify-self-start"
+              style={{
+                background: `radial-gradient(circle at center, #fff 0 59%, transparent 60%), conic-gradient(#5b4df1 0 ${score}%, #e8ecf5 ${score}% 100%)`,
+              }}
             >
-              {messages.common.decisions[evaluation.recommendationDecision]}
-            </span>
+              <div className="text-center">
+                <strong className="block text-[26px] leading-none text-[#392ee5]">
+                  {(score / 10).toFixed(1)}
+                </strong>
+                <span className="mt-1 block text-[11px] font-semibold text-[#667085]">
+                  / 10
+                </span>
+              </div>
+            </div>
           ) : null}
         </div>
-        <h1 className="mt-4 text-2xl font-extrabold leading-tight tracking-tight text-[#111827] sm:text-3xl">
-          {paper.title}
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-[#475467]">
-          {formatAuthors(paper.authors)}
-        </p>
-        <p className="mt-1 text-sm text-[#667085]">
-          {t.publishedPrefix} {formatDate(paper.publishedDate)}
-          {paper.venue ? <span className="mx-2">·</span> : null}
-          {paper.venue ? <span className="font-medium text-[#475467]">{paper.venue}</span> : null}
-        </p>
+
         {paper.tags.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {paper.tags.map((tag) => (
-              <span
-                key={tag.id}
-                className="rounded-full bg-[#eeedff] px-2 py-1 text-[11.5px] font-extrabold text-[#5848f5]"
-              >
-                {tag.tag}
-              </span>
+          <div className="border-t border-[#edf1f7] px-5 py-3 sm:px-6">
+            <div className="paper-tag-marquee overflow-hidden py-0.5">
+              <div className="paper-tag-marquee__track flex w-max gap-2">
+                {[false, true].map((isDuplicate) => (
+                  <div
+                    key={isDuplicate ? 'duplicate' : 'primary'}
+                    aria-hidden={isDuplicate}
+                    className="flex shrink-0 gap-2"
+                  >
+                    {paper.tags.map((tag) => (
+                      <Link
+                        key={`${isDuplicate ? 'duplicate' : 'primary'}-${tag.id}`}
+                        href={`/library?tags=${encodeURIComponent(tag.tag)}`}
+                        tabIndex={isDuplicate ? -1 : undefined}
+                        className="inline-flex min-h-[26px] shrink-0 items-center rounded-full bg-[#eef0ff] px-3 text-[13px] font-bold whitespace-nowrap text-[#3442c8]"
+                      >
+                        {tag.tag}
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {quickLinks.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#edf1f7] px-5 py-3 text-[13px] font-bold text-[#392ee5] sm:px-6">
+            {quickLinks.map((link) => (
+              <a key={link.key} href={link.href} target="_blank" rel="noreferrer">
+                {link.label}
+              </a>
             ))}
           </div>
         ) : null}
       </header>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
         <div className="space-y-6">
           {paper.figure ? (
-            <figure className={`${CARD} space-y-3`}>
+            <figure
+              id="figure"
+              className={`${CARD} scroll-mt-[120px] space-y-3 p-5`}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element -- served from our own /api/papers/[id]/figure route. */}
               <img
                 src={`/api/papers/${paper.id}/figure`}
@@ -141,7 +238,7 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
                 }
                 loading="eager"
                 decoding="async"
-                className="mx-auto max-h-[28rem] w-auto max-w-full rounded-xl border border-[#e5e9f3] bg-[#f7f9ff] object-contain"
+                className="mx-auto max-h-[28rem] w-auto max-w-full rounded-lg border border-[#e5e9f3] bg-[#fbfcff] object-contain"
               />
               {figureCaption ? (
                 <figcaption className="text-center text-xs leading-relaxed text-[#667085]">
@@ -160,31 +257,21 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
           ) : null}
 
           {summary ? (
-            <section className={CARD}>
+            <section id="summary" className={`${CARD} scroll-mt-[120px] p-5`}>
               <h2 className={SECTION_LABEL}>{t.summary}</h2>
               <p className="mt-3 text-[15px] leading-relaxed text-[#1f2937]">{summary}</p>
-            </section>
-          ) : null}
-
-          {reason ? (
-            <section className="rounded-2xl border border-[#e0deff] bg-gradient-to-br from-[#fbfaff] to-[#f4f1ff] p-5 shadow-[0_12px_32px_rgba(57,46,229,0.06)]">
-              <div className="flex items-center gap-2">
-                <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#eeedff] text-[#5848f5]">
-                  <Sparkles aria-hidden className="h-4 w-4" />
-                </span>
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#5848f5]">
-                  {t.whyRecommended}
-                </h2>
-              </div>
-              <p className="mt-3 text-[14.5px] leading-relaxed text-[#3a3573]">{reason}</p>
             </section>
           ) : null}
 
           {strengths.length > 0 || weaknesses.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {strengths.length > 0 ? (
-                <section className="rounded-2xl border border-[#cfe9df] bg-[#f3faf7] p-5 shadow-[0_12px_32px_rgba(8,125,108,0.04)]">
-                  <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#087d6c]">
+                <section
+                  id="strengths"
+                  className="scroll-mt-[120px] rounded-[10px] border border-[#cfe9df] bg-[#f3faf7] p-5 shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+                >
+                  <h2 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#087d6c]">
+                    <CheckCircle2 aria-hidden className="h-4 w-4" />
                     {t.strengths}
                   </h2>
                   <ul className="mt-3 space-y-2 text-[14px] leading-relaxed text-[#1f2937]">
@@ -201,8 +288,12 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
                 </section>
               ) : null}
               {weaknesses.length > 0 ? (
-                <section className="rounded-2xl border border-[#f4cdd2] bg-[#fff7f7] p-5 shadow-[0_12px_32px_rgba(180,35,24,0.04)]">
-                  <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#b42318]">
+                <section
+                  id="weaknesses"
+                  className="scroll-mt-[120px] rounded-[10px] border border-[#f4cdd2] bg-[#fff7f7] p-5 shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+                >
+                  <h2 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#b42318]">
+                    <XCircle aria-hidden className="h-4 w-4" />
                     {t.weaknesses}
                   </h2>
                   <ul className="mt-3 space-y-2 text-[14px] leading-relaxed text-[#1f2937]">
@@ -222,10 +313,31 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
           ) : null}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+        <aside className="space-y-4 lg:sticky lg:top-[120px] lg:self-start">
           {evaluation ? (
-            <section className={CARD}>
+            <section className={`${CARD} p-5`}>
               <ScoreBreakdown evaluation={evaluation} messages={messages} />
+            </section>
+          ) : null}
+
+          {sidebarLinks.length > 0 ? (
+            <section className={`${CARD} p-5`}>
+              <h2 className={SECTION_LABEL}>{t.links}</h2>
+              <ul className="mt-3 space-y-2">
+                {sidebarLinks.map((link) => (
+                  <li key={link.key}>
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-[33px] w-full items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] font-semibold text-[#344054] transition-colors hover:border-[#c9c8ff] hover:bg-[#fbfaff] hover:text-[#392ee5]"
+                    >
+                      {link.icon}
+                      <span className="truncate">{link.label}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </section>
           ) : null}
 
@@ -251,27 +363,6 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
               statuses: messages.library.statuses,
             }}
           />
-
-          {links.length > 0 ? (
-            <section className={CARD}>
-              <h2 className={SECTION_LABEL}>{t.links}</h2>
-              <ul className="mt-3 space-y-2">
-                {links.map((link) => (
-                  <li key={link.key}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex min-h-[36px] w-full items-center gap-2 rounded-[10px] border border-[#d9e1ee] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#344054] transition-colors hover:border-[#c9c8ff] hover:bg-[#fbfaff] hover:text-[#5848f5]"
-                    >
-                      {link.icon}
-                      <span className="truncate">{link.label}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
         </aside>
       </div>
     </article>

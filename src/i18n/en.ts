@@ -181,6 +181,7 @@ export const messages = {
     strengths: 'Strengths',
     weaknesses: 'Weaknesses',
     links: 'Links',
+    scoreOverall: 'Overall score',
     actionsHeader: 'Your activity',
     save: 'Save',
     saved: 'Saved',

@@ -177,6 +177,7 @@ export const messages: Messages = {
     strengths: '優點',
     weaknesses: '缺點',
     links: '連結',
+    scoreOverall: '整體分數',
     actionsHeader: '你的紀錄',
     save: '收藏',
     saved: '已收藏',

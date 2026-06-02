@@ -39,17 +39,31 @@ export function ScoreBreakdown({ evaluation, messages }: ScoreBreakdownProps) {
       : totalTier === 'mid'
         ? 'text-amber-600'
         : 'text-rose-600';
+  const score = Math.max(0, Math.min(100, evaluation.totalScore));
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#5848f5]">
-          {t.total}
-        </h3>
-        <div className="mt-1 flex items-baseline gap-1.5">
-          <span className={`text-3xl font-extrabold tabular-nums ${totalColor}`}>
-            {evaluation.totalScore}
-          </span>
-          <span className="text-sm font-semibold text-[#98a2b3]">/ 100</span>
+      <div className="flex items-center gap-3.5">
+        <div
+          aria-hidden
+          className="grid h-14 w-14 shrink-0 place-items-center rounded-full"
+          style={{
+            background: `radial-gradient(circle at center, #fff 0 59%, transparent 60%), conic-gradient(#5b4df1 0 ${score}%, #e8ecf5 ${score}% 100%)`,
+          }}
+        >
+          <strong className="text-[15px] leading-none text-[#392ee5]">
+            {(score / 10).toFixed(1)}
+          </strong>
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#5848f5]">
+            {t.total}
+          </h3>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className={`text-3xl font-extrabold tabular-nums ${totalColor}`}>
+              {evaluation.totalScore}
+            </span>
+            <span className="text-sm font-semibold text-[#98a2b3]">/ 100</span>
+          </div>
         </div>
       </div>
       <div className="space-y-2.5">
