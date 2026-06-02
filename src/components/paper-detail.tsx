@@ -16,6 +16,7 @@ import type { PaperWithDetail } from '@/server/repos/papers';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { pickLocalized, pickLocalizedList, type Locale } from '@/lib/locale';
+import { formatSourceLabel } from '@/lib/source-label';
 import type { Messages } from '@/i18n';
 
 interface PaperDetailProps {
@@ -61,6 +62,11 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
   const figureCaption = pickLocalized(paper.figure?.caption, locale);
   const digest = (evaluation?.digest ?? null) as DigestShape | null;
   const sourceLabels = messages.common.sources;
+  const primarySourceLabel = formatSourceLabel({
+    source: paper.primarySource,
+    venue: paper.venue,
+    sourceLabels,
+  });
   const t = messages.paperDetail;
 
   const score =
@@ -129,7 +135,7 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-[#f7f9ff] px-2.5 py-0.5 text-xs font-bold text-[#475467]">
-                {sourceLabels[paper.primarySource]}
+                {primarySourceLabel}
               </span>
               {evaluation ? (
                 <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-white px-2.5 py-0.5 text-xs font-medium text-[#667085]">

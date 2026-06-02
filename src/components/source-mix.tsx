@@ -26,19 +26,19 @@ export function SourceMix({ sources, messages }: SourceMixProps) {
         {sources.map((s) =>
           s.count > 0 ? (
             <div
-              key={s.source}
+              key={s.key}
               className={SOURCE_COLORS[s.source]}
               style={{ width: `${(s.count / total) * 100}%` }}
-              title={`${sourceLabels[s.source]}: ${s.count}`}
+              title={`${s.label ?? sourceLabels[s.source]}: ${s.count}`}
             />
           ) : null,
         )}
       </div>
       <ul className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
         {sources.map((s) => (
-          <li key={s.source} className="flex items-center gap-1.5">
+          <li key={s.key} className="flex items-center gap-1.5">
             <span className={`inline-block h-2 w-2 rounded-sm ${SOURCE_COLORS[s.source]}`} />
-            <span className="text-foreground">{sourceLabels[s.source]}</span>
+            <span className="text-foreground">{s.label ?? sourceLabels[s.source]}</span>
             <span className="tabular-nums">{s.count}</span>
             <span>({Math.round((s.count / total) * 100)}%)</span>
           </li>

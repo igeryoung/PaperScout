@@ -6,6 +6,7 @@ import type { UserPaperStatus } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { getLocale, pickLocalized } from '@/lib/locale';
 import { formatAuthors, formatDate } from '@/lib/format';
+import { formatSourceLabel } from '@/lib/source-label';
 import { getMessages } from '@/i18n';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { libraryRepo, type LibraryUserPaper, type LibraryView } from '@/server/repos/library';
@@ -30,7 +31,7 @@ function parseStatus(value: string | undefined): UserPaperStatus | undefined {
   return undefined;
 }
 
-function toPaperView(entry: LibraryUserPaper, locale: 'en' | 'zh-TW') {
+function toPaperView(entry: LibraryUserPaper, locale: 'en' | 'zh-TW', messages: ReturnType<typeof getMessages>) {
   const evaluation = selectBestEvaluation(entry.paper.evaluations);
   const summary = pickLocalized(evaluation?.summary, locale);
   return {
@@ -38,6 +39,11 @@ function toPaperView(entry: LibraryUserPaper, locale: 'en' | 'zh-TW') {
     title: entry.paper.title,
     authors: formatAuthors(entry.paper.authors, 3),
     source: entry.paper.primarySource,
+    sourceLabel: formatSourceLabel({
+      source: entry.paper.primarySource,
+      venue: entry.paper.venue,
+      sourceLabels: messages.common.sources,
+    }),
     publishedDate: formatDate(entry.paper.publishedDate),
     storedDate: formatDate(entry.createdAt),
     pdfUrl: entry.paper.pdfUrl,
@@ -158,7 +164,7 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
       count: collection._count.items,
     })),
     stats,
-    papers: entries.map((entry) => toPaperView(entry, locale)),
+    papers: entries.map((entry) => toPaperView(entry, locale, messages)),
   };
 
   return <LibraryWorkspace {...props} />;

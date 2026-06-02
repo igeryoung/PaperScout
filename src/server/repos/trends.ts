@@ -8,6 +8,7 @@ import type {
   Source,
 } from '@prisma/client';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
+import { formatConferenceLabel } from '@/lib/source-label';
 
 type SummaryEvalRow = {
   paperId: string;
@@ -17,7 +18,9 @@ type SummaryEvalRow = {
 };
 
 export interface SourceCount {
+  key: string;
   source: Source;
+  label: string | null;
   count: number;
 }
 
@@ -93,11 +96,13 @@ export const trendsRepo = {
       };
     }
 
-    const [sourceGroups, tagGroups, evals] = await Promise.all([
-      db.paperSource.groupBy({
-        by: ['source'],
+    const [sourceRows, tagGroups, evals] = await Promise.all([
+      db.paperSource.findMany({
         where: { paperId: { in: paperIds } },
-        _count: { source: true },
+        select: {
+          source: true,
+          paper: { select: { venue: true } },
+        },
       }),
       db.paperTag.groupBy({
         by: ['tag'],
@@ -117,9 +122,24 @@ export const trendsRepo = {
       }),
     ]);
 
-    const sources: SourceCount[] = sourceGroups
-      .map((g) => ({ source: g.source, count: g._count.source }))
-      .sort((a, b) => b.count - a.count);
+    const sourceCounts = new Map<string, SourceCount>();
+    for (const row of sourceRows) {
+      const label =
+        row.source === 'OPENREVIEW' && row.paper.venue?.trim()
+          ? formatConferenceLabel(row.paper.venue)
+          : null;
+      const key = label ? `${row.source}:${label}` : row.source;
+      const existing = sourceCounts.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        sourceCounts.set(key, { key, source: row.source, label, count: 1 });
+      }
+    }
+    const sources: SourceCount[] = [...sourceCounts.values()].sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.key.localeCompare(b.key);
+    });
 
     const topTags: TagCount[] = tagGroups.map((g) => ({
       tag: g.tag,

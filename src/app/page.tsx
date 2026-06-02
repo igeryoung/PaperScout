@@ -22,6 +22,7 @@ import { trendsRepo, type RunSummary, type TagCount } from '@/server/repos/trend
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { getLocale, pickLocalized, type Locale } from '@/lib/locale';
+import { formatSourceLabel } from '@/lib/source-label';
 import { getMessages, type Messages } from '@/i18n';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { libraryRepo } from '@/server/repos/library';
@@ -569,6 +570,11 @@ function HomePaperCard({
   const reason =
     pickLocalized(evaluation?.recommendationReason, locale) ??
     messages.home.reasonFallback;
+  const primarySourceLabel = formatSourceLabel({
+    source: paper.primarySource,
+    venue: paper.venue,
+    sourceLabels,
+  });
   const readingMinutes = estimateReadingMinutes([paper.abstract, summary, reason]);
 
   return (
@@ -586,7 +592,7 @@ function HomePaperCard({
         <div className="mb-2 flex flex-wrap gap-2 text-[13px] text-[#667085]">
           <span>{formatAuthors(paper.authors, 3)}</span>
           <span>|</span>
-          <span>{sourceLabels[paper.primarySource]}</span>
+          <span>{primarySourceLabel}</span>
           <span>|</span>
           <span>{formatDate(paper.publishedDate)}</span>
         </div>
@@ -717,7 +723,12 @@ function RecentRecommendationsCard({
                 <Link href={`/papers/${r.paper.id}`}>{r.paper.title}</Link>
               </h4>
               <p className="text-xs text-[#667085]">
-                {sourceLabels[r.paper.primarySource]} | {formatDate(r.paper.publishedDate)}
+                {formatSourceLabel({
+                  source: r.paper.primarySource,
+                  venue: r.paper.venue,
+                  sourceLabels,
+                })}{' '}
+                | {formatDate(r.paper.publishedDate)}
               </p>
             </div>
             <span className="text-[#5b4df1]">♡</span>
@@ -744,8 +755,8 @@ function SourceMixCard({ summary, messages }: { summary: RunSummary; messages: M
       ) : (
         <ul className="grid gap-3">
           {summary.sources.map((source) => (
-            <li key={source.source} className="flex items-center justify-between text-sm">
-              <span className="text-[#344054]">{sourceLabels[source.source]}</span>
+            <li key={source.key} className="flex items-center justify-between text-sm">
+              <span className="text-[#344054]">{source.label ?? sourceLabels[source.source]}</span>
               <span className="font-semibold text-[#392ee5] tabular-nums">
                 {source.count} ({Math.round((source.count / total) * 100)}%)
               </span>

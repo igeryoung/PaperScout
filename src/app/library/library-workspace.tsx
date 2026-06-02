@@ -45,6 +45,7 @@ type PaperView = {
   title: string;
   authors: string;
   source: Source;
+  sourceLabel: string;
   publishedDate: string;
   storedDate: string;
   pdfUrl: string | null;
@@ -477,7 +478,7 @@ export function LibraryWorkspace({
                         {paper.authors}
                       </p>
                       <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#667085]">
-                        {labels.sources[paper.source]}&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+                        {paper.sourceLabel}&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
                         {paper.publishedDate}
                       </p>
                       <p className="mt-2 line-clamp-4 text-[12.5px] leading-relaxed text-[#475467]">
