@@ -11,6 +11,7 @@ import {
 import { ScoreBreakdown } from '@/components/score-breakdown';
 import { PaperDetailActions } from '@/components/paper-detail-actions';
 import { PaperDigest, type DigestShape } from '@/components/paper-digest';
+import { StickySidebar } from '@/components/sticky-sidebar';
 import type { PaperWithDetail } from '@/server/repos/papers';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { formatAuthors, formatDate } from '@/lib/format';
@@ -313,7 +314,7 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
           ) : null}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-[120px] lg:self-start">
+        <StickySidebar className="space-y-4 lg:self-start">
           {evaluation ? (
             <section className={`${CARD} p-5`}>
               <ScoreBreakdown evaluation={evaluation} messages={messages} />
@@ -363,7 +364,7 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
               statuses: messages.library.statuses,
             }}
           />
-        </aside>
+        </StickySidebar>
       </div>
     </article>
   );
