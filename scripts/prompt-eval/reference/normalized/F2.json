@@ -14,11 +14,8 @@
   },
   "recommendationDecision": "STORE_ONLY",
   "recommendationReason": "Solid execution of mobile-ViT engineering with multi-task validation (ImageNet, COCO, ADE20K) and on-device latency measurement. Novelty is incremental over EfficientFormer v1 and prior efficient-ViT NAS works.",
-  "rankingExplanation": "PDF confirms incremental nature: novelty=9 (FFN-ratio search + minor block tweaks over v1), methodologicalRigor=17 (proper supernet + sandwich rule + multi-platform latency), experimentalQuality=15 (three benchmarks, three hardware platforms, real ablations). Total 61 → STORE_ONLY (just below the 65 RECOMMEND threshold).",
   "summary": "EfficientFormerV2 revisits ViT design choices for mobile devices and proposes a fine-grained joint NAS over depth, width, and FFN expansion ratios that jointly optimizes a Mobile Efficiency Score (MES), achieving MobileNetV2-level latency at 3.5% higher top-1 on ImageNet-1K.",
   "pdfAnalysisStatus": "SUCCESS",
-  "keyContribution": "Fine-grained per-block NAS over FFN expansion ratios alongside depth and width, with a joint MES objective that simultaneously optimizes latency and parameter count, applied to a unified-FFN supernet.",
-  "methodologySummary": "Builds on EfficientFormer-L1 by unifying token mixers (drop residual local mixers, use depth-wise FFN globally), adding talking-head attention with locality, dual-path attention downsampling, and stride attention at higher resolutions. The supernet is pretrained with the slimmable-network sandwich rule, then a frontier-search algorithm jointly minimizes ΔAccuracy/ΔMES over depth/width/expansion actions.",
   "strengths": [
     "MES objective is a clean joint formulation of size and latency that better matches mobile-deployment reality than searching over a single metric.",
     "Latency measured on three platforms (iPhone 12 NPU, Pixel 6 CPU, A100 GPU), reducing single-device bias.",

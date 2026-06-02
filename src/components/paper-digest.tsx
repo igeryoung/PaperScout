@@ -8,18 +8,7 @@ export interface DigestShape {
   problemMotivation: LocalizedField;
   keyContributions: LocalizedField;
   methodOverview: LocalizedField;
-  experiments: {
-    datasets: LocalizedField;
-    baselines: LocalizedField;
-    metrics: LocalizedField;
-    mainResults: LocalizedField;
-    ablation: LocalizedField;
-  };
   resultsInterpretation: LocalizedField;
-  strengthsLimitations: {
-    strengths: LocalizedField;
-    limitations: LocalizedField;
-  };
   aiCommentary: LocalizedField;
 }
 
@@ -59,20 +48,10 @@ export function PaperDigest({
           value={digest.methodOverview}
           locale={locale}
         />
-        <DigestExperiments
-          experiments={digest.experiments}
-          locale={locale}
-          messages={messages}
-        />
         <DigestBlock
           title={t.digestResultsInterpretation}
           value={digest.resultsInterpretation}
           locale={locale}
-        />
-        <DigestStrengthsLimitations
-          strengthsLimitations={digest.strengthsLimitations}
-          locale={locale}
-          messages={messages}
         />
         <DigestBlock
           title={t.digestAiCommentary}
@@ -100,86 +79,6 @@ function DigestBlock({
       <h3 className={SUBSECTION_LABEL}>{title}</h3>
       <div className="mt-1.5">
         <MarkdownLite text={text} />
-      </div>
-    </div>
-  );
-}
-
-function DigestExperiments({
-  experiments,
-  locale,
-  messages,
-}: {
-  experiments: DigestShape['experiments'];
-  locale: Locale;
-  messages: Messages;
-}) {
-  const t = messages.paperDetail;
-  const rows: Array<{ label: string; value: LocalizedField }> = [
-    { label: t.digestExperimentsDatasets, value: experiments.datasets },
-    { label: t.digestExperimentsBaselines, value: experiments.baselines },
-    { label: t.digestExperimentsMetrics, value: experiments.metrics },
-    { label: t.digestExperimentsMainResults, value: experiments.mainResults },
-    { label: t.digestExperimentsAblation, value: experiments.ablation },
-  ];
-  const visible = rows.filter((row) => Boolean(pickLocalized(row.value, locale)));
-  if (visible.length === 0) return null;
-  return (
-    <div>
-      <h3 className={SUBSECTION_LABEL}>{t.digestExperiments}</h3>
-      <div className="mt-2 space-y-3 rounded-xl border border-[#e5e9f3] bg-[#fbfbff] p-4">
-        {visible.map((row) => (
-          <div key={row.label}>
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#5848f5]">
-              {row.label}
-            </div>
-            <div className="mt-1">
-              <MarkdownLite text={pickLocalized(row.value, locale) ?? ''} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DigestStrengthsLimitations({
-  strengthsLimitations,
-  locale,
-  messages,
-}: {
-  strengthsLimitations: DigestShape['strengthsLimitations'];
-  locale: Locale;
-  messages: Messages;
-}) {
-  const t = messages.paperDetail;
-  const strengths = pickLocalized(strengthsLimitations.strengths, locale);
-  const limitations = pickLocalized(strengthsLimitations.limitations, locale);
-  if (!strengths && !limitations) return null;
-  return (
-    <div>
-      <h3 className={SUBSECTION_LABEL}>{t.digestStrengthsLimitations}</h3>
-      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {strengths ? (
-          <div className="rounded-xl border border-[#cfe9df] bg-[#f3faf7] p-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#087d6c]">
-              {t.digestStrengths}
-            </div>
-            <div className="mt-1.5">
-              <MarkdownLite text={strengths} />
-            </div>
-          </div>
-        ) : null}
-        {limitations ? (
-          <div className="rounded-xl border border-[#f4cdd2] bg-[#fff7f7] p-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#b42318]">
-              {t.digestLimitations}
-            </div>
-            <div className="mt-1.5">
-              <MarkdownLite text={limitations} />
-            </div>
-          </div>
-        ) : null}
       </div>
     </div>
   );

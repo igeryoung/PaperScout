@@ -49,9 +49,6 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
   const evaluation = selectBestEvaluation(paper.evaluations);
   const summary = pickLocalized(evaluation?.summary, locale);
   const reason = pickLocalized(evaluation?.recommendationReason, locale);
-  const rankingExplanation = pickLocalized(evaluation?.rankingExplanation, locale);
-  const keyContribution = pickLocalized(evaluation?.keyContribution, locale);
-  const methodologySummary = pickLocalized(evaluation?.methodologySummary, locale);
   const strengths = evaluation ? pickLocalizedList(evaluation.strengths, locale) : [];
   const weaknesses = evaluation ? pickLocalizedList(evaluation.weaknesses, locale) : [];
   const figureCaption = pickLocalized(paper.figure?.caption, locale);
@@ -180,46 +177,6 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
                 </h2>
               </div>
               <p className="mt-3 text-[14.5px] leading-relaxed text-[#3a3573]">{reason}</p>
-            </section>
-          ) : null}
-
-          {rankingExplanation ? (
-            <section className={CARD}>
-              <h2 className={SECTION_LABEL}>{t.rankingNote}</h2>
-              <p className="mt-3 text-sm leading-relaxed text-[#475467]">{rankingExplanation}</p>
-            </section>
-          ) : null}
-
-          {paper.abstract ? (
-            <section className={CARD}>
-              <details className="group" open>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
-                  <h2 className={SECTION_LABEL}>{t.abstract}</h2>
-                  <span className="text-[11px] font-bold text-[#5848f5] group-open:hidden">
-                    {t.abstractShowMore}
-                  </span>
-                  <span className="hidden text-[11px] font-bold text-[#5848f5] group-open:inline">
-                    {t.abstractShowLess}
-                  </span>
-                </summary>
-                <p className="mt-3 text-[14.5px] leading-relaxed text-[#1f2937]">{paper.abstract}</p>
-              </details>
-            </section>
-          ) : null}
-
-          {keyContribution ? (
-            <section className={CARD}>
-              <h2 className={SECTION_LABEL}>{t.keyContribution}</h2>
-              <p className="mt-3 text-[14.5px] leading-relaxed text-[#1f2937]">{keyContribution}</p>
-            </section>
-          ) : null}
-
-          {methodologySummary ? (
-            <section className={CARD}>
-              <h2 className={SECTION_LABEL}>{t.methodology}</h2>
-              <p className="mt-3 text-[14.5px] leading-relaxed text-[#1f2937]">
-                {methodologySummary}
-              </p>
             </section>
           ) : null}
 

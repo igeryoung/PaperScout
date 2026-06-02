@@ -475,7 +475,6 @@ function HomePaperCard({
   const summary = pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
   const reason =
     pickLocalized(evaluation?.recommendationReason, locale) ??
-    pickLocalized(evaluation?.rankingExplanation, locale) ??
     messages.home.reasonFallback;
   const readingMinutes = estimateReadingMinutes([paper.abstract, summary, reason]);
 

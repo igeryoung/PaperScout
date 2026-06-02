@@ -53,8 +53,6 @@ describe('committed sample data', () => {
         expect(e.summary['zh-TW'].length).toBeGreaterThan(0);
         expect(e.recommendationReason.en.length).toBeGreaterThan(0);
         expect(e.recommendationReason['zh-TW'].length).toBeGreaterThan(0);
-        expect(e.rankingExplanation.en.length).toBeGreaterThan(0);
-        expect(e.rankingExplanation['zh-TW'].length).toBeGreaterThan(0);
         if (e.figure) {
           expect(e.figure.caption.en.length).toBeGreaterThan(0);
           expect(e.figure.caption['zh-TW'].length).toBeGreaterThan(0);
@@ -63,8 +61,8 @@ describe('committed sample data', () => {
         if (e.digest) {
           expect(e.digest.tldr.en.length).toBeGreaterThan(0);
           expect(e.digest.tldr['zh-TW'].length).toBeGreaterThan(0);
-          expect(e.digest.experiments.mainResults.en.length).toBeGreaterThan(0);
-          expect(e.digest.strengthsLimitations.limitations['zh-TW'].length).toBeGreaterThan(0);
+          expect(e.digest.resultsInterpretation.en.length).toBeGreaterThan(0);
+          expect(e.digest.aiCommentary['zh-TW'].length).toBeGreaterThan(0);
         }
         if (e.strengths) {
           // List lengths should match across locales (skill guideline).

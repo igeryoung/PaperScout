@@ -63,32 +63,13 @@ export const FigureSchema = z.object({
   renderedPath: z.string().min(1),
 });
 
-const DigestExperimentsSchema = z
-  .object({
-    datasets: localizedString(),
-    baselines: localizedString(),
-    metrics: localizedString(),
-    mainResults: localizedString(),
-    ablation: localizedString(),
-  })
-  .strict();
-
-const DigestStrengthsLimitationsSchema = z
-  .object({
-    strengths: localizedString(),
-    limitations: localizedString(),
-  })
-  .strict();
-
 export const DigestSchema = z
   .object({
     tldr: localizedString(),
     problemMotivation: localizedString(),
     keyContributions: localizedString(),
     methodOverview: localizedString(),
-    experiments: DigestExperimentsSchema,
     resultsInterpretation: localizedString(),
-    strengthsLimitations: DigestStrengthsLimitationsSchema,
     aiCommentary: localizedString(),
   })
   .strict();
@@ -102,12 +83,9 @@ export const EvaluationSchema = z
     scores: ScoresSchema,
     summary: localizedString(),
     recommendationReason: localizedString(),
-    keyContribution: localizedString().nullable(),
-    methodologySummary: localizedString().nullable(),
     strengths: localizedStringList.nullable(),
     weaknesses: localizedStringList.nullable(),
     tags: TagList.default([]),
-    rankingExplanation: localizedString(),
     recommendationDecision: RecommendationDecisionEnum,
     pdfAnalysisStatus: PdfAnalysisStatusEnum.nullable(),
     tableFigureAnalysis: z.unknown().nullable().default(null),
@@ -124,14 +102,6 @@ export const EvaluationSchema = z
         });
       }
       if (val.pdfAnalysisStatus === 'SUCCESS') {
-        if (!val.keyContribution || !val.methodologySummary) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['keyContribution'],
-            message:
-              'keyContribution and methodologySummary required when pdfAnalysisStatus = SUCCESS',
-          });
-        }
         if (!val.strengths || val.strengths.en.length === 0 || val.strengths['zh-TW'].length === 0) {
           ctx.addIssue({
             code: 'custom',

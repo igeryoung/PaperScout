@@ -39,6 +39,7 @@
 # Local agent/tool state
 /.claude/settings.local.json
 /.omc/
+/.playwright-mcp/
 
 # Local runtime services
 /.local/

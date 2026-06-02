@@ -14,11 +14,8 @@
   },
   "recommendationDecision": "RECOMMEND",
   "recommendationReason": "Substantial scaling and engineering achievement with broad downstream evaluation, but the core architectural changes are inherited from PaLM and prior scaling literature; algorithmic novelty is modest.",
-  "rankingExplanation": "PDF analysis tightens novelty=11 (engineering recipe; architectural changes are derivative). methodologicalRigor=19 from training-stability ablations + MFU engineering. experimentalQuality=17 from breadth across 8+ task families. authorInstitutionReputation=14 — Google Research, all flagship affiliations (median rule yields a high but consistent score). Total 73 → RECOMMEND.",
   "summary": "ViT-22B presents a recipe for stably training a 22B-parameter Vision Transformer (parallel attention/MLP, QK normalization, omitted biases) and evaluates the resulting frozen-feature model across classification, OOD, segmentation, depth, video, fairness, robustness, and distillation tasks.",
   "pdfAnalysisStatus": "SUCCESS",
-  "keyContribution": "Three minimal architectural modifications — parallel layers, query/key LayerNorm, and bias removal on QKV/LayerNorm — that, combined with explicit JAX-xmap sharding, enable stable training of a 22B-parameter dense ViT achieving 54.9% MFU on TPUv4.",
-  "methodologySummary": "Architecturally a parallel-block ViT with QK-norm to control attention-logit growth observed at the 8B scale; trained on a 4B-image extension of JFT for 177k steps with multi-label sigmoid cross-entropy. The implementation uses jax.xmap with asynchronous parallel linear operations to overlap communication and computation across a 2D mesh, with row/column sharding alternated to control reduce-scatter cost.",
   "strengths": [
     "QK normalization is a clean, well-documented intervention: Fig. 1 shows divergent attention-logit growth without it, validated on an 8B-scale ablation.",
     "JAX-xmap engineering hits 54.9% MFU on TPUv4, materially above PaLM's reported 46.2% — a real systems contribution.",

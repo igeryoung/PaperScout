@@ -14,8 +14,6 @@ export const evaluationsRepo = {
     llmModel: string;
     llmPromptVersion: string;
     summary: LocalizedString | null;
-    keyContribution: LocalizedString | null;
-    methodologySummary: LocalizedString | null;
     strengths: LocalizedStringList | null;
     weaknesses: LocalizedStringList | null;
     noveltyScore: number;
@@ -24,7 +22,6 @@ export const evaluationsRepo = {
     venueSourceCredibilityScore: number;
     authorInstitutionReputationScore: number;
     totalScore: number;
-    rankingExplanation: LocalizedString | null;
     recommendationReason: LocalizedString | null;
     recommendationDecision: RecommendationDecision;
     pdfAnalysisStatus: PdfAnalysisStatus | null;
@@ -46,8 +43,6 @@ export const evaluationsRepo = {
         llmModel: input.llmModel,
         llmPromptVersion: input.llmPromptVersion,
         summary: (input.summary ?? null) as never,
-        keyContribution: (input.keyContribution ?? null) as never,
-        methodologySummary: (input.methodologySummary ?? null) as never,
         strengths: (input.strengths ?? null) as never,
         weaknesses: (input.weaknesses ?? null) as never,
         noveltyScore: input.noveltyScore,
@@ -56,7 +51,6 @@ export const evaluationsRepo = {
         venueSourceCredibilityScore: input.venueSourceCredibilityScore,
         authorInstitutionReputationScore: input.authorInstitutionReputationScore,
         totalScore: input.totalScore,
-        rankingExplanation: (input.rankingExplanation ?? null) as never,
         recommendationReason: (input.recommendationReason ?? null) as never,
         recommendationDecision: input.recommendationDecision,
         pdfAnalysisStatus: input.pdfAnalysisStatus,
@@ -67,8 +61,6 @@ export const evaluationsRepo = {
         llmModel: input.llmModel,
         llmPromptVersion: input.llmPromptVersion,
         summary: (input.summary ?? null) as never,
-        keyContribution: (input.keyContribution ?? null) as never,
-        methodologySummary: (input.methodologySummary ?? null) as never,
         strengths: (input.strengths ?? null) as never,
         weaknesses: (input.weaknesses ?? null) as never,
         noveltyScore: input.noveltyScore,
@@ -77,7 +69,6 @@ export const evaluationsRepo = {
         venueSourceCredibilityScore: input.venueSourceCredibilityScore,
         authorInstitutionReputationScore: input.authorInstitutionReputationScore,
         totalScore: input.totalScore,
-        rankingExplanation: (input.rankingExplanation ?? null) as never,
         recommendationReason: (input.recommendationReason ?? null) as never,
         recommendationDecision: input.recommendationDecision,
         pdfAnalysisStatus: input.pdfAnalysisStatus,

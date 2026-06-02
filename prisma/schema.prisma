@@ -190,8 +190,6 @@ model PaperEvaluation {
   llmModel                         String                 @map("llm_model")
   llmPromptVersion                 String                 @map("llm_prompt_version")
   summary                          Json?
-  keyContribution                  Json?                  @map("key_contribution")
-  methodologySummary               Json?                  @map("methodology_summary")
   strengths                        Json?
   weaknesses                       Json?
   noveltyScore                     Int                    @map("novelty_score")
@@ -200,7 +198,6 @@ model PaperEvaluation {
   venueSourceCredibilityScore      Int                    @map("venue_source_credibility_score")
   authorInstitutionReputationScore Int                    @map("author_institution_reputation_score")
   totalScore                       Int                    @map("total_score")
-  rankingExplanation               Json?                  @map("ranking_explanation")
   recommendationReason             Json?                  @map("recommendation_reason")
   recommendationDecision           RecommendationDecision @map("recommendation_decision")
   pdfAnalysisStatus                PdfAnalysisStatus?     @map("pdf_analysis_status")
