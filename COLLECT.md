@@ -41,7 +41,7 @@ In the same Claude Code session (or a new one — the skill finds the latest run
 
 What it does:
 - **Stage 1** — screens every abstract in `candidates.json`
-- **Stage 2** — downloads + reads PDFs for the top 15
+- **Stage 2** — downloads + reads PDFs for all candidates
 - Writes `data/runs/<YYYY-MM-DD-HHMM>/evaluations.json` next to the candidates file, conforming to `EvaluationRecord`. Reference shape: `data/sample/evaluations.json`.
 
 Optional sanity check:

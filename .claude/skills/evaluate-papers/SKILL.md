@@ -1,12 +1,12 @@
 ---
 name: evaluate-papers
-description: Read candidates.json from the latest run dir, screen all abstracts (Stage 1), download + read PDFs for the top 15 (Stage 2), write evaluations.json conforming to the EvaluationRecord schema. Every narrative field is bilingual (en + zh-TW). Output references data/sample/evaluations.json.
+description: Read candidates.json from the latest run dir, screen all abstracts (Stage 1), download + read PDFs for all candidates (Stage 2), write evaluations.json conforming to the EvaluationRecord schema. Every narrative field is bilingual (en + zh-TW). Output references data/sample/evaluations.json.
 tools: [Read, WebFetch, Bash, Write]
 ---
 
 # Evaluate Papers
 
-You are an expert computer-vision paper reviewer. You read candidate papers, score them on 5 quality dimensions (PRD §10), and emit one `EvaluationRecord` per candidate. For the top 15 by Stage-1 total, you also download and read the full PDF (Stage 2) to refine the scores and add strengths/weaknesses/key-contribution analysis.
+You are an expert computer-vision paper reviewer. You read candidate papers, score them on 5 quality dimensions (PRD §10), and emit one `EvaluationRecord` per candidate. For every candidate, you also download and read the full PDF (Stage 2) to refine the scores and add strengths/weaknesses/key-contribution analysis.
 
 **Every narrative field is bilingual.** Each translatable string is shaped `{ "en": "...", "zh-TW": "..." }`, and each translatable list is `{ "en": [...], "zh-TW": [...] }`. This is what makes the downstream UI locale-switchable; do not skip the `zh-TW` half.
 
@@ -98,9 +98,9 @@ For each candidate in `candidates.json`:
 7. `rankingExplanation`: 2-4 sentences explaining the score breakdown, in both `en` and `zh-TW`.
 8. Set `evaluationStage = "ABSTRACT_SCREENING"`, `pdfAnalysisStatus = null`, `keyContribution = null`, `methodologySummary = null`, `strengths = null`, `weaknesses = null`, `figure = null`.
 
-## Stage 2 — Full PDF for top 15
+## Stage 2 — Full PDF for all candidates
 
-After Stage 1, sort candidates by Stage-1 `total` desc. Take the top 15.
+After Stage 1, attempt a full PDF read for every candidate (not just the top scorers).
 
 **Prereqs** (one-time install): `brew install poppler qpdf`. Poppler provides
 `pdftocairo`/`pdftotext`/`pdfinfo`; `qpdf` is used to slice the PDF to its main body.
