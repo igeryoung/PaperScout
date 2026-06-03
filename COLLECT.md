@@ -17,7 +17,7 @@ In Claude Code, invoke the `collect-papers` skill:
 /collect-papers
 ```
 
-What it does: gathers ~30 recent computer-vision papers across arXiv, OpenReview, and Hugging Face, deduplicates them, and writes:
+What it does: gathers ~30 notable computer-vision papers from the most recently completed cycles of top conferences (CVPR, ICCV, ECCV, NeurIPS, ICLR, ICML), deduplicates them, and writes:
 
 ```
 data/runs/<YYYY-MM-DD-HHMM>/candidates.json
