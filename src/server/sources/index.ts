@@ -13,9 +13,9 @@ const SOURCE_PRIORITY: Record<SourceName, number> = {
 };
 
 const DEFAULT_QUOTAS: Record<SourceName, number> = {
-  ARXIV: 15,
-  HUGGINGFACE: 10,
-  OPENREVIEW: 5,
+  ARXIV: 10,
+  HUGGINGFACE: 5,
+  OPENREVIEW: 15,
 };
 
 export interface CollectOptions {

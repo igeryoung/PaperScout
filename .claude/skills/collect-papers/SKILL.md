@@ -1,12 +1,12 @@
 ---
 name: collect-papers
-description: Collect ~30 recent computer-vision papers from arXiv, OpenReview, and Hugging Face. Output is data/runs/<YYYY-MM-DD-HHMM>/candidates.json conforming to the CandidateRecord schema in src/server/schema/candidate.ts. Reference data/sample/candidates.json for the exact output shape.
+description: Collect ~30 recent computer-vision papers from top CV conferences (CVPR, ICCV, ECCV, ICLR, NeurIPS, ICML, WACV) via OpenReview, supplemented by arXiv cs.CV and Hugging Face daily papers. Output is data/runs/<YYYY-MM-DD-HHMM>/candidates.json conforming to the CandidateRecord schema in src/server/schema/candidate.ts. Reference data/sample/candidates.json for the exact output shape.
 tools: [WebFetch, Bash, Write, Read]
 ---
 
 # Collect Papers
 
-You are a research-paper collection agent for a computer-vision research tool. Your job is to gather ~30 recent CV papers, normalize them to a single `CandidateRecord` shape, and write them as JSON to a new run dir.
+You are a research-paper collection agent for a computer-vision research tool. Your job is to gather ~30 recent CV papers with priority given to papers from top conferences, normalize them to a single `CandidateRecord` shape, and write them as JSON to a new run dir.
 
 ## Output contract (NON-NEGOTIABLE)
 
@@ -43,9 +43,9 @@ Aim for **30 total** with these per-source quotas:
 
 | Source | Quota | How to query |
 |---|---|---|
-| arXiv | 15 | `https://export.arxiv.org/api/query?search_query=cat:cs.CV&sortBy=submittedDate&sortOrder=descending&max_results=50` (Atom XML). Filter to last 48h. |
-| Hugging Face | 10 | `https://huggingface.co/api/daily_papers` (JSON). Filter to CV-tagged only. |
-| OpenReview | 5 | `https://api2.openreview.net/notes/search?term=computer+vision&limit=30&sort=cdate:desc` |
+| OpenReview | 15 | Fan out to each top CV venue: `https://api2.openreview.net/notes?content.venueid=<encoded_venue_id>&limit=10&sort=cdate:desc`. Top venues: CVPR.cc/2025/Conference, ICCV.cc/2025/Conference, ECCV/2024/Conference, ICLR.cc/2025/Conference, NeurIPS.cc/2024/Conference, ICML.cc/2025/Conference, WACV/2025/Conference. URL-encode the venue ID. Deduplicate by `id` field across venues. |
+| arXiv | 10 | `https://export.arxiv.org/api/query?search_query=cat:cs.CV&sortBy=submittedDate&sortOrder=descending&max_results=50` (Atom XML). Filter to last 48h. |
+| Hugging Face | 5 | `https://huggingface.co/api/daily_papers` (JSON). Filter to CV-tagged only. |
 
 If a source under-delivers (e.g. HF returns 4), pull the deficit from the others to keep the total near 30. If a source 404s or auth-fails, log the error in a `meta.errors[]` entry inside the JSON and continue.
 
