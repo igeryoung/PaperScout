@@ -72,6 +72,8 @@ export const messages: Messages = {
     summaryFallback: '此論文已匯入 PaperScout，可點入查看來源、摘要與詳細評估。',
     reasonFallback: '此論文在本次 agent 評估中被標記為推薦閱讀。',
     cardFigureFallback: '主要圖表',
+    cardFigurePreviewAria: '放大圖表',
+    cardFigureNoCaption: '此圖表沒有說明文字。',
     cardViewSummary: '查看摘要',
     cardOpenPaper: '開啟論文 ↗',
     cardFavorite: '收藏',

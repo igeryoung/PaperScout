@@ -27,6 +27,7 @@ import { getMessages, type Messages } from '@/i18n';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { libraryRepo } from '@/server/repos/library';
 import { HomePaperActions } from '@/components/home-paper-actions';
+import { HomeFigurePreview } from '@/components/home-figure-preview';
 
 export const dynamic = 'force-dynamic';
 
@@ -509,13 +510,13 @@ function PaperThumb({
   const captionText = pickLocalized(result.paper.figure.caption, locale);
   const captionPart = captionText ? `: ${captionText}` : '';
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- served by the existing cache-controlled route.
-    <img
+    <HomeFigurePreview
       src={`/api/papers/${result.paper.id}/figure`}
       alt={`${labelPart}${captionPart}`}
-      loading="lazy"
-      decoding="async"
-      className="h-44 min-h-44 rounded-lg border border-[#dce3ef] bg-[#fbfcff] object-cover"
+      label={labelPart}
+      caption={captionText}
+      zoomLabel={messages.home.cardFigurePreviewAria}
+      noCaptionLabel={messages.home.cardFigureNoCaption}
     />
   );
 }
@@ -578,7 +579,7 @@ function HomePaperCard({
   const readingMinutes = estimateReadingMinutes([paper.abstract, summary, reason]);
 
   return (
-    <article className="grid grid-cols-1 items-start gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)_230px]">
+    <article className="grid grid-cols-1 items-stretch gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)_230px]">
       <div className="min-w-0">
         <PaperThumb result={result} index={index} locale={locale} messages={messages} />
       </div>
@@ -606,12 +607,12 @@ function HomePaperCard({
             {messages.home.cardAiScore} ⓘ
           </span>
         </div>
-        <div className="min-h-[68px] rounded-lg bg-[#eaf8f4] px-3.5 py-3 text-sm leading-snug text-[#195b50]">
+        <div className="flex min-h-[68px] flex-1 flex-col rounded-lg bg-[#eaf8f4] px-3.5 py-3 text-sm leading-snug text-[#195b50]">
           <strong className="mb-1.5 flex items-center gap-2 text-[13px] text-[#0f9f86]">
             <Lightbulb aria-hidden className="h-4 w-4" />
             {messages.home.cardReasonHeader}
           </strong>
-          <span className="line-clamp-5">{reason}</span>
+          <span className="flex-1 overflow-hidden">{reason}</span>
         </div>
       </div>
 

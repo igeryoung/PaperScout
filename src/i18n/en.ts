@@ -75,6 +75,8 @@ export const messages = {
       'This paper is ingested into PaperScout — open it to see sources, summary, and full evaluation.',
     reasonFallback: 'This paper was flagged as recommended in the agent evaluation.',
     cardFigureFallback: 'Highlight figure',
+    cardFigurePreviewAria: 'Enlarge figure',
+    cardFigureNoCaption: 'No caption provided.',
     cardViewSummary: 'View summary',
     cardOpenPaper: 'Open paper ↗',
     cardFavorite: 'Favorite',
