@@ -10,8 +10,7 @@
       "methodologicalRigor": 20,
       "experimentalQuality": 18,
       "venueSourceCredibility": 13,
-      "authorInstitutionReputation": 13,
-      "total": 86
+      "total": 73
     },
     "summary": {
       "en": "SAM proposes a promptable segmentation foundation model trained on a 1.1B-mask, 11M-image dataset (SA-1B) collected via a model-in-the-loop data engine, yielding strong zero-shot transfer across 23 segmentation benchmarks.",
@@ -73,8 +72,7 @@
       "methodologicalRigor": 17,
       "experimentalQuality": 15,
       "venueSourceCredibility": 11,
-      "authorInstitutionReputation": 9,
-      "total": 61
+      "total": 52
     },
     "summary": {
       "en": "EfficientFormerV2 revisits ViT design choices for mobile devices and proposes a fine-grained joint NAS over depth, width, and FFN expansion ratios that jointly optimizes a Mobile Efficiency Score (MES), achieving MobileNetV2-level latency at 3.5% higher top-1 on ImageNet-1K.",
@@ -131,8 +129,7 @@
       "methodologicalRigor": 19,
       "experimentalQuality": 17,
       "venueSourceCredibility": 12,
-      "authorInstitutionReputation": 14,
-      "total": 73
+      "total": 59
     },
     "summary": {
       "en": "ViT-22B presents a recipe for stably training a 22B-parameter Vision Transformer (parallel attention/MLP, QK normalization, omitted biases) and evaluates the resulting frozen-feature model across classification, OOD, segmentation, depth, video, fairness, robustness, and distillation tasks.",
@@ -192,8 +189,7 @@
       "methodologicalRigor": 17,
       "experimentalQuality": 15,
       "venueSourceCredibility": 12,
-      "authorInstitutionReputation": 8,
-      "total": 71
+      "total": 63
     },
     "summary": {
       "en": "SeaThru-NeRF integrates the SeaThru wideband image-formation model into NeRF rendering, decomposing each ray into separate object and medium components so the scene and the scattering/absorbing medium are jointly recovered, enabling photorealistic novel-view synthesis and medium-free reconstruction in real underwater scenes.",
@@ -255,8 +251,7 @@
       "methodologicalRigor": 6,
       "experimentalQuality": 4,
       "venueSourceCredibility": 4,
-      "authorInstitutionReputation": 11,
-      "total": 30
+      "total": 19
     },
     "summary": {
       "en": "A qualitative report cataloguing GPT-4V's behavior on hand-curated multimodal samples, organized by task family and prompting style, framed as preliminary exploration of large multimodal models.",

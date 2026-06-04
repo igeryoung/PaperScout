@@ -52,7 +52,7 @@ function main(): void {
 
   // ---- Score table ----
   console.log('\n--- Scores ---');
-  console.log('fixtureId  nov rig exp ven aut total  decision      stage              pdf');
+  console.log('fixtureId  nov rig exp ven total  decision      stage              pdf');
   for (const r of summary.records) {
     const id = (r.fixtureId ?? '?').padEnd(9);
     const s = r.scores;
@@ -61,7 +61,7 @@ function main(): void {
     const stage = (r.evaluationStage ?? '-').padEnd(18);
     const pdf = r.pdfAnalysisStatus ?? '-';
     console.log(
-      `${id}  ${fmt(s.novelty, 3)} ${fmt(s.methodologicalRigor, 3)} ${fmt(s.experimentalQuality, 3)} ${fmt(s.venueSourceCredibility, 3)} ${fmt(s.authorInstitutionReputation, 3)} ${fmt(s.total, 5)}  ${decision} ${stage} ${pdf}`,
+      `${id}  ${fmt(s.novelty, 3)} ${fmt(s.methodologicalRigor, 3)} ${fmt(s.experimentalQuality, 3)} ${fmt(s.venueSourceCredibility, 3)} ${fmt(s.total, 5)}  ${decision} ${stage} ${pdf}`,
     );
   }
 

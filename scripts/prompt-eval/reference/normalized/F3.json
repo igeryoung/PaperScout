@@ -9,8 +9,7 @@
     "methodologicalRigor": 19,
     "experimentalQuality": 17,
     "venueSourceCredibility": 12,
-    "authorInstitutionReputation": 14,
-    "total": 73
+    "total": 59
   },
   "recommendationDecision": "RECOMMEND",
   "recommendationReason": "Substantial scaling and engineering achievement with broad downstream evaluation, but the core architectural changes are inherited from PaLM and prior scaling literature; algorithmic novelty is modest.",

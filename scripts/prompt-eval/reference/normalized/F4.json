@@ -9,8 +9,7 @@
     "methodologicalRigor": 17,
     "experimentalQuality": 15,
     "venueSourceCredibility": 12,
-    "authorInstitutionReputation": 8,
-    "total": 71
+    "total": 63
   },
   "recommendationDecision": "RECOMMEND",
   "recommendationReason": "Genuinely opens NeRF to scattering media via a physics-grounded rendering equation, with quantitative gains over MIP-NeRF360, NeRF-W, and NeRFReN on real Red-Sea/Curaçao/Panama footage from a small lab.",

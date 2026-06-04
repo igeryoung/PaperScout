@@ -209,7 +209,6 @@ export const messages: Messages = {
     methodologicalRigor: '方法論嚴謹度',
     experimentalQuality: '實驗品質',
     venueSourceCredibility: '場域／來源可信度',
-    authorInstitutionReputation: '作者／機構聲望',
   },
   sourceMix: {
     empty: '尚無來源資料。',

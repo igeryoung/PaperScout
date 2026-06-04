@@ -39,14 +39,13 @@ describe('committed sample data', () => {
         'RxWILaXuhb',
         'u6JLh0BO5h',
       ]);
-      // Total = sum of 5 dimensions (already enforced by schema; redundant but explicit)
+      // Total = sum of 4 dimensions (already enforced by schema; redundant but explicit)
       for (const e of parsed.data) {
         const sum =
           e.scores.novelty +
           e.scores.methodologicalRigor +
           e.scores.experimentalQuality +
-          e.scores.venueSourceCredibility +
-          e.scores.authorInstitutionReputation;
+          e.scores.venueSourceCredibility;
         expect(e.scores.total).toBe(sum);
         // Bilingual narrative fields must carry both locales.
         expect(e.summary.en.length).toBeGreaterThan(0);

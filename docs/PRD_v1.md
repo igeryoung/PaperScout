@@ -54,7 +54,7 @@ The product should help users answer:
 
 > “Which new computer vision papers are actually worth reading today?”
 
-The system should not simply collect papers. It should help users avoid low-quality, incremental, or noisy papers and surface papers with stronger novelty, methodology, experiments, venue credibility, and author credibility.
+The system should not simply collect papers. It should help users avoid low-quality, incremental, or noisy papers and surface papers with stronger novelty, methodology, experiments, and venue credibility.
 
 ---
 
@@ -261,10 +261,9 @@ V1 uses a 100-point ranking score.
 | Dimension                       |  Weight |
 | ------------------------------- | ------: |
 | Novelty / originality           |      25 |
-| Methodological rigor            |      25 |
-| Experimental quality            |      20 |
+| Methodological rigor            |      30 |
+| Experimental quality            |      30 |
 | Venue / source credibility      |      15 |
-| Author / institution reputation |      15 |
 | **Total**                       | **100** |
 
 ### Dimension Definitions
@@ -286,7 +285,7 @@ Low score examples:
 - Repackaging known methods.
 - Weakly motivated incremental changes.
 
-#### 2. Methodological Rigor — 25 points
+#### 2. Methodological Rigor — 30 points
 
 Measures whether the method is technically sound, well-explained, and logically justified.
 
@@ -304,7 +303,7 @@ Low score examples:
 - Unsupported design choices.
 - Overclaiming beyond evidence.
 
-#### 3. Experimental Quality — 20 points
+#### 3. Experimental Quality — 30 points
 
 Measures whether the empirical evaluation is convincing.
 
@@ -341,24 +340,7 @@ Low score examples:
 - No review record.
 - Weak or suspicious publication context.
 
-#### 5. Author / Institution Reputation — 15 points
-
-Measures credibility of authors and institutions.
-
-High score examples:
-
-- Authors with prior high-impact work.
-- Recognized research labs.
-- Strong academic or industrial research groups.
-- Track record in the specific subfield.
-
-Low score examples:
-
-- Unknown authors with no supporting evidence.
-- Reputation signal unavailable.
-- Institution/source context unclear.
-
-Important: this signal should not dominate ranking. Strong unknown-author papers should still be able to rank highly if the research quality is strong.
+> **Removed (v3):** "Author / Institution Reputation" was dropped from the rubric. Its 15 points were redistributed to Methodological rigor (+5) and Experimental quality (+10). Strong unknown-author papers are judged purely on the research, not on affiliation.
 
 ---
 
@@ -487,8 +469,7 @@ Example schema:
     "methodological_rigor": 21,
     "experimental_quality": 17,
     "venue_source_credibility": 12,
-    "author_institution_reputation": 10,
-    "total": 82
+    "total": 72
   },
   "ranking_explanation": "Why this paper is ranked highly or poorly.",
   "recommendation_decision": "recommend | store_only | low_quality"
@@ -652,10 +633,9 @@ Stores LLM ranking and analysis results.
 | strengths                           | JSON      | Nullable | List of strengths                      |
 | weaknesses                          | JSON      | Nullable | List of weaknesses                     |
 | novelty_score                       | Integer   |      Yes | 0–25                                   |
-| methodological_rigor_score          | Integer   |      Yes | 0–25                                   |
-| experimental_quality_score          | Integer   |      Yes | 0–20                                   |
+| methodological_rigor_score          | Integer   |      Yes | 0–30                                   |
+| experimental_quality_score          | Integer   |      Yes | 0–30                                   |
 | venue_source_credibility_score      | Integer   |      Yes | 0–15                                   |
-| author_institution_reputation_score | Integer   |      Yes | 0–15                                   |
 | total_score                         | Integer   |      Yes | 0–100                                  |
 | ranking_explanation                 | Text      | Nullable | Explanation                            |
 | recommendation_decision             | Text      |      Yes | recommend, store_only, low_quality     |

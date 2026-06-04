@@ -32,10 +32,9 @@ export type LocalizedStringList = z.infer<typeof LocalizedStringListSchema>;
 export const ScoresSchema = z
   .object({
     novelty: z.number().int().min(0).max(25),
-    methodologicalRigor: z.number().int().min(0).max(25),
-    experimentalQuality: z.number().int().min(0).max(20),
+    methodologicalRigor: z.number().int().min(0).max(30),
+    experimentalQuality: z.number().int().min(0).max(30),
     venueSourceCredibility: z.number().int().min(0).max(15),
-    authorInstitutionReputation: z.number().int().min(0).max(15),
     total: z.number().int().min(0).max(100),
   })
   .refine(
@@ -44,9 +43,8 @@ export const ScoresSchema = z
       s.novelty +
         s.methodologicalRigor +
         s.experimentalQuality +
-        s.venueSourceCredibility +
-        s.authorInstitutionReputation,
-    { message: 'scores.total must equal the sum of the 5 dimension scores' },
+        s.venueSourceCredibility,
+    { message: 'scores.total must equal the sum of the 4 dimension scores' },
   );
 
 export const JoinKeySchema = z.object({

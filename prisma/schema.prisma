@@ -196,7 +196,6 @@ model PaperEvaluation {
   methodologicalRigorScore         Int                    @map("methodological_rigor_score")
   experimentalQualityScore         Int                    @map("experimental_quality_score")
   venueSourceCredibilityScore      Int                    @map("venue_source_credibility_score")
-  authorInstitutionReputationScore Int                    @map("author_institution_reputation_score")
   totalScore                       Int                    @map("total_score")
   recommendationReason             Json?                  @map("recommendation_reason")
   recommendationDecision           RecommendationDecision @map("recommendation_decision")

@@ -1,15 +1,14 @@
 # Scoring Rubric (evaluate-papers)
 
-Five dimensions sum to a 0–100 `total`. Loaded from [SKILL.md](SKILL.md) step d.
+Four dimensions sum to a 0–100 `total`. Loaded from [SKILL.md](SKILL.md) step d.
 
 | Dimension | Max |
 |---|---|
 | novelty | 25 |
-| methodologicalRigor | 25 |
-| experimentalQuality | 20 |
+| methodologicalRigor | 30 |
+| experimentalQuality | 30 |
 | venueSourceCredibility | 15 |
-| authorInstitutionReputation | 15 |
-| **total** | **100** (sum of the 5; the schema enforces this) |
+| **total** | **100** (sum of the 4; the schema enforces this) |
 
 Score on the listed criteria, not on impressions. Each dimension has an explicit **reward** list and **penalize** list — count up what's present, subtract what's missing. The score for a dimension should be defensible by pointing at specific items in these lists.
 
@@ -29,7 +28,7 @@ Score on the listed criteria, not on impressions. Each dimension has an explicit
 - Repackaging a known result with new terminology.
 - Engineering-only scale (bigger model, more data) presented as novelty — score that on `experimentalQuality`, not here.
 
-## 2. methodologicalRigor (0–25)
+## 2. methodologicalRigor (0–30)
 
 **Reward:**
 
@@ -45,7 +44,7 @@ Score on the listed criteria, not on impressions. Each dimension has an explicit
 - Hidden assumptions: claims that only hold under restrictive conditions the paper doesn't state.
 - Inconsistencies between the paper's stated method and what the pseudocode / released code actually does.
 
-## 3. experimentalQuality (0–20)
+## 3. experimentalQuality (0–30)
 
 **Reward:**
 
@@ -77,27 +76,9 @@ Score on the listed criteria, not on impressions. Each dimension has an explicit
 - Repackaged tutorials or surveys presented as research.
 - arXiv-only with no peer review **and** no other strong signals.
 
-## 5. authorInstitutionReputation (0–15)
-
-**Reward:**
-
-- Authors with a track record of high-impact work in this specific subfield.
-- Reputable industry labs (FAIR, Google Research, DeepMind, Anthropic, OpenAI) **when the topic is one they actually work on**.
-- Established academic groups with a recent body of work in the area.
-
-**Penalize:**
-
-- "Stealth lab" rosters with no prior peer-reviewed output.
-- Author-pad rosters (15+ authors with no clear contribution split).
-
-**Special rules (already in [SKILL.md](SKILL.md)):**
-
-- **Mixed academic + industry rosters**: score on the **median** affiliation, not the maximum.
-- **Don't reward famous institutions alone** — unknown-author papers with strong novelty can outrank big names.
-
 ## Decision thresholds
 
-After summing the 5 dimensions:
+After summing the 4 dimensions:
 
 - `total ≥ 65` → `recommendationDecision = "RECOMMEND"`
 - `50 ≤ total < 65` → `recommendationDecision = "STORE_ONLY"`

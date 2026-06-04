@@ -13,15 +13,13 @@ type ScoreField = keyof Pick<
   | 'methodologicalRigorScore'
   | 'experimentalQualityScore'
   | 'venueSourceCredibilityScore'
-  | 'authorInstitutionReputationScore'
 >;
 
 const DIMENSION_DEFS: Array<{ key: keyof Messages['scoreBreakdown']; max: number; field: ScoreField }> = [
   { key: 'novelty', max: 25, field: 'noveltyScore' },
-  { key: 'methodologicalRigor', max: 25, field: 'methodologicalRigorScore' },
-  { key: 'experimentalQuality', max: 20, field: 'experimentalQualityScore' },
+  { key: 'methodologicalRigor', max: 30, field: 'methodologicalRigorScore' },
+  { key: 'experimentalQuality', max: 30, field: 'experimentalQualityScore' },
   { key: 'venueSourceCredibility', max: 15, field: 'venueSourceCredibilityScore' },
-  { key: 'authorInstitutionReputation', max: 15, field: 'authorInstitutionReputationScore' },
 ];
 
 const TIER_BG: Record<ScoreTier, string> = {

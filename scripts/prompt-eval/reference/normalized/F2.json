@@ -9,8 +9,7 @@
     "methodologicalRigor": 17,
     "experimentalQuality": 15,
     "venueSourceCredibility": 11,
-    "authorInstitutionReputation": 9,
-    "total": 61
+    "total": 52
   },
   "recommendationDecision": "STORE_ONLY",
   "recommendationReason": "Solid execution of mobile-ViT engineering with multi-task validation (ImageNet, COCO, ADE20K) and on-device latency measurement. Novelty is incremental over EfficientFormer v1 and prior efficient-ViT NAS works.",

@@ -124,7 +124,7 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
     expect(results.map((r) => r.finalRank)).toEqual([1, 2]);
   }, 90_000);
 
-  it('Phase 2.5 reference run: F1>F3>F4>F2>F5, 3 recommended, F5 keeps UNAVAILABLE', async () => {
+  it('Phase 2.5 reference run: F1>F4>F3>F2>F5, 3 recommended, F5 keeps UNAVAILABLE', async () => {
     const dir = copyRunDir(REFERENCE_DIR);
     const r = runIngest(dir);
     expect(r.status, r.stderr).toBe(0);
@@ -156,11 +156,11 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
       decision: string;
       pdfStatus: string | null;
     }> = [
-      { arxiv: '2304.02643', rank: 1, totalScore: 86, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
-      { arxiv: '2302.05442', rank: 2, totalScore: 73, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
-      { arxiv: '2304.07743', rank: 3, totalScore: 71, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
-      { arxiv: '2212.08059', rank: 4, totalScore: 61, decision: 'STORE_ONLY', pdfStatus: 'SUCCESS' },
-      { arxiv: '2309.17421', rank: 5, totalScore: 30, decision: 'LOW_QUALITY', pdfStatus: 'UNAVAILABLE' },
+      { arxiv: '2304.02643', rank: 1, totalScore: 73, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
+      { arxiv: '2304.07743', rank: 2, totalScore: 63, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
+      { arxiv: '2302.05442', rank: 3, totalScore: 59, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
+      { arxiv: '2212.08059', rank: 4, totalScore: 52, decision: 'STORE_ONLY', pdfStatus: 'SUCCESS' },
+      { arxiv: '2309.17421', rank: 5, totalScore: 19, decision: 'LOW_QUALITY', pdfStatus: 'UNAVAILABLE' },
     ];
 
     for (const exp of expectations) {
@@ -228,8 +228,7 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
           methodologicalRigor: 15,
           experimentalQuality: 12,
           venueSourceCredibility: 10,
-          authorInstitutionReputation: 10,
-          total: 62,
+          total: 52,
         },
         summary: { en: 's', 'zh-TW': 's' },
         recommendationReason: { en: 'r', 'zh-TW': 'r' },
@@ -299,8 +298,7 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
           methodologicalRigor: 10,
           experimentalQuality: 10,
           venueSourceCredibility: 10,
-          authorInstitutionReputation: 10,
-          total: 50,
+          total: 40,
         },
         summary: { en: 's', 'zh-TW': 's' },
         recommendationReason: { en: 'r', 'zh-TW': 'r' },

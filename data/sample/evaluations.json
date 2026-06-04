@@ -10,8 +10,7 @@
       "methodologicalRigor": 19,
       "experimentalQuality": 14,
       "venueSourceCredibility": 13,
-      "authorInstitutionReputation": 11,
-      "total": 76
+      "total": 65
     },
     "summary": {
       "en": "Jet Expansions reframe transformer interpretability as functional decomposition: applying jet operators (generalized truncated Taylor series) to residual streams rewrites an LLM as a sum of explicit input→output paths plus a complementary remainder, subsuming Logit Lens as the zeroth-order case and enabling dataset-free n-gram extraction.",
@@ -108,8 +107,7 @@
       "methodologicalRigor": 17,
       "experimentalQuality": 16,
       "venueSourceCredibility": 13,
-      "authorInstitutionReputation": 10,
-      "total": 69
+      "total": 59
     },
     "summary": {
       "en": "Time-o1 is a transform-enhanced loss for time-series forecasting that applies SVD to the label sequence, keeps the top-K decorrelated components, and aligns the forecast with them — addressing the autocorrelation bias and excessive-task-count problems of standard temporal MSE.",

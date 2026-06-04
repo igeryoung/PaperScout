@@ -213,7 +213,6 @@ export const messages = {
     methodologicalRigor: 'Methodological rigor',
     experimentalQuality: 'Experimental quality',
     venueSourceCredibility: 'Venue / source credibility',
-    authorInstitutionReputation: 'Author / institution reputation',
   },
   sourceMix: {
     empty: 'No sources yet.',

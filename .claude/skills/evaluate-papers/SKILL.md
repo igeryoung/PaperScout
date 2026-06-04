@@ -1,6 +1,6 @@
 ---
 name: evaluate-papers
-description: Read every candidate in the latest run dir, download + read each PDF, extract a bilingual AI digest, and score on 5 dimensions. Emit one EvaluationRecord per candidate into evaluations.json conforming to src/server/schema/evaluation.ts. Output references data/sample/evaluations.json.
+description: Read every candidate in the latest run dir, download + read each PDF, extract a bilingual AI digest, and score on 4 dimensions. Emit one EvaluationRecord per candidate into evaluations.json conforming to src/server/schema/evaluation.ts. Output references data/sample/evaluations.json.
 tools: [Read, WebFetch, Bash, Write]
 ---
 
@@ -69,25 +69,24 @@ Record `figure = { label, pageNumber, caption: { en, "zh-TW" }, renderedPath: "f
 
 Read `/tmp/paper-<safe-id>-main.pdf` and fill every narrative field. All bilingual content must follow **[STYLE.md](STYLE.md)** (define-on-first-use, analogies in `digest.tldr` and `digest.methodOverview`, no marketing).
 
-- `summary` — 1–3 sentences, bilingual.
+- `summary` — about 3 sentences, bilingual.
 - `recommendationReason` — 1–2 sentences, bilingual.
-- `strengths` — 3–5 bullets per locale, index-aligned.
+- `strengths` — 2-4 bullets per locale, index-aligned.
 - `weaknesses` — 2–4 bullets per locale, index-aligned.
 - `tags` — 2–5 lowercase English tags (single-value, see [STYLE.md](STYLE.md)).
 - `digest` — full bilingual digest object, shape and rules in **[DIGEST.md](DIGEST.md)**.
 
 ### d. Score and rank
 
-Apply **[RUBRIC.md](RUBRIC.md)** to score each of the 5 dimensions. For each dimension, score on the listed reward / penalize bullets — not on impressions.
+Apply **[RUBRIC.md](RUBRIC.md)** to score each of the 4 dimensions. For each dimension, score on the listed reward / penalize bullets — not on impressions.
 
 | Dimension | Max |
 |---|---|
 | novelty | 25 |
-| methodologicalRigor | 25 |
-| experimentalQuality | 20 |
+| methodologicalRigor | 30 |
+| experimentalQuality | 30 |
 | venueSourceCredibility | 15 |
-| authorInstitutionReputation | 15 |
-| **total** | **100** (sum of the 5; schema enforces) |
+| **total** | **100** (sum of the 4; schema enforces) |
 
 Set `recommendationDecision`: `RECOMMEND` if `total ≥ 65`, `STORE_ONLY` if `50 ≤ total < 65`, `LOW_QUALITY` if `total < 50`.
 
@@ -109,8 +108,7 @@ The schema's `superRefine` enforces this layout — see [DIGEST.md](DIGEST.md) "
 - **Penalize hype**, unsupported claims, weak experiments.
 - **Distinguish novelty from engineering scale.**
 - **Mention insufficient evidence** rather than inflating scores.
-- **Don't reward famous institutions alone** — strong unknown-author papers can rank highly.
-- **Mixed academic + industry rosters**: score `authorInstitutionReputation` on the **median** affiliation.
+- **Don't reward famous institutions** — author / institution reputation is no longer a scored dimension; judge the work on its merits.
 - Use tables / figures from the PDF (when read) to evaluate experimental quality.
 - **Apply [STYLE.md](STYLE.md) to every bilingual narrative field.** A digest that is technically correct but only legible to specialists is a failure.
 - **Score by [RUBRIC.md](RUBRIC.md), not vibes.** Every dimension's score must be defensible against specific bullet items.

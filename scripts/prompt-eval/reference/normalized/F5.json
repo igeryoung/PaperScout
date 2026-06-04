@@ -9,8 +9,7 @@
     "methodologicalRigor": 6,
     "experimentalQuality": 4,
     "venueSourceCredibility": 4,
-    "authorInstitutionReputation": 11,
-    "total": 30
+    "total": 19
   },
   "recommendationDecision": "LOW_QUALITY",
   "recommendationReason": "No quantitative methodology, no benchmarks, and sweeping language ('unprecedented ability', 'powerful generalist system') unsupported by measured results. Useful as a probe of GPT-4V capabilities but not as a primary CV research contribution.",

@@ -20,7 +20,6 @@ export const evaluationsRepo = {
     methodologicalRigorScore: number;
     experimentalQualityScore: number;
     venueSourceCredibilityScore: number;
-    authorInstitutionReputationScore: number;
     totalScore: number;
     recommendationReason: LocalizedString | null;
     recommendationDecision: RecommendationDecision;
@@ -49,7 +48,6 @@ export const evaluationsRepo = {
         methodologicalRigorScore: input.methodologicalRigorScore,
         experimentalQualityScore: input.experimentalQualityScore,
         venueSourceCredibilityScore: input.venueSourceCredibilityScore,
-        authorInstitutionReputationScore: input.authorInstitutionReputationScore,
         totalScore: input.totalScore,
         recommendationReason: (input.recommendationReason ?? null) as never,
         recommendationDecision: input.recommendationDecision,
@@ -67,7 +65,6 @@ export const evaluationsRepo = {
         methodologicalRigorScore: input.methodologicalRigorScore,
         experimentalQualityScore: input.experimentalQualityScore,
         venueSourceCredibilityScore: input.venueSourceCredibilityScore,
-        authorInstitutionReputationScore: input.authorInstitutionReputationScore,
         totalScore: input.totalScore,
         recommendationReason: (input.recommendationReason ?? null) as never,
         recommendationDecision: input.recommendationDecision,

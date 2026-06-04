@@ -9,8 +9,7 @@
     "methodologicalRigor": 20,
     "experimentalQuality": 18,
     "venueSourceCredibility": 13,
-    "authorInstitutionReputation": 13,
-    "total": 86
+    "total": 73
   },
   "recommendationDecision": "RECOMMEND",
   "recommendationReason": "Genuinely new paradigm for segmentation: promptable task formulation, ambiguity-aware multi-mask prediction, and a scale of supervision (1.1B masks) unprecedented in segmentation.",

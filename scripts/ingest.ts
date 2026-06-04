@@ -287,7 +287,6 @@ async function main() {
       methodologicalRigorScore: e.scores.methodologicalRigor,
       experimentalQualityScore: e.scores.experimentalQuality,
       venueSourceCredibilityScore: e.scores.venueSourceCredibility,
-      authorInstitutionReputationScore: e.scores.authorInstitutionReputation,
       totalScore: recomputedTotal,
       recommendationReason: e.recommendationReason,
       recommendationDecision: e.recommendationDecision,

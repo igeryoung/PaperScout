@@ -39,11 +39,10 @@ When the schema or these samples change, *all three roles update together*.
 | `joinKey` | `{ source, sourcePaperId }` | Identifies which candidate this evaluation is for. Must match exactly one candidate. |
 | `evaluationStage` | enum `ABSTRACT_SCREENING` \| `FULL_PDF` | Stage-1 = abstract-only; Stage-2 = full PDF read |
 | `scores.novelty` | int 0-25 | PRD §10 |
-| `scores.methodologicalRigor` | int 0-25 | PRD §10 |
-| `scores.experimentalQuality` | int 0-20 | PRD §10 |
+| `scores.methodologicalRigor` | int 0-30 | PRD §10 |
+| `scores.experimentalQuality` | int 0-30 | PRD §10 |
 | `scores.venueSourceCredibility` | int 0-15 | PRD §10 |
-| `scores.authorInstitutionReputation` | int 0-15 | PRD §10 |
-| `scores.total` | int 0-100 | Must equal sum of the 5 dimensions |
+| `scores.total` | int 0-100 | Must equal sum of the 4 dimensions |
 | `summary` | `LocalizedString` | 1-3 sentence summary, per locale |
 | `recommendationReason` | `LocalizedString` | Why this paper would (or would not) be recommended; visible on the top-10 card |
 | `keyContribution` | `LocalizedString` \| null | Only populated when `evaluationStage === FULL_PDF` |
