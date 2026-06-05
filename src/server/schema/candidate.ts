@@ -2,7 +2,7 @@
 // Used by scripts/ingest.ts and the validate-* CLI scripts (no DB or env access).
 import { z } from 'zod';
 
-export const SourceEnum = z.enum(['ARXIV', 'OPENREVIEW', 'HUGGINGFACE']);
+export const SourceEnum = z.enum(['ARXIV', 'OPENREVIEW', 'HUGGINGFACE', 'OPENACCESS']);
 export type SourceType = z.infer<typeof SourceEnum>;
 
 export const AdditionalSourceSchema = z.object({

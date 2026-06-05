@@ -31,7 +31,7 @@ const SECTION_LABEL = 'text-[11px] font-bold uppercase tracking-[0.08em] text-[#
 const CARD =
   'rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]';
 
-function sourceIcon(source: 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE') {
+function sourceIcon(source: 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE' | 'OPENACCESS') {
   if (source === 'ARXIV') return <FileText aria-hidden className="h-4 w-4" />;
   return <ExternalLink aria-hidden className="h-4 w-4" />;
 }

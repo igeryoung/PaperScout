@@ -6,6 +6,7 @@ const sourceLabels = {
   ARXIV: 'arXiv',
   OPENREVIEW: 'OpenReview',
   HUGGINGFACE: 'Hugging Face',
+  OPENACCESS: 'Open Access',
 } as const;
 
 describe('formatSourceLabel', () => {

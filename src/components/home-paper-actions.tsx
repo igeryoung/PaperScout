@@ -56,10 +56,27 @@ export function HomePaperActions({
     }
   };
 
-  const saveReadLater = async () => {
+  const toggleReadLater = async () => {
     setPending('readLater');
     setFailed(false);
     try {
+      if (readLater) {
+        // Cancel "read later". The flag is derived from status === 'UNREAD',
+        // so we must move the status off UNREAD. Keep liked papers (archive
+        // them) so the star isn't lost; otherwise drop the paper entirely.
+        const ok = liked
+          ? await libraryRequest(`/api/library/papers/${paperId}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: 'ARCHIVED' }),
+            })
+          : await libraryRequest(`/api/library/papers/${paperId}`, {
+              method: 'DELETE',
+              body: JSON.stringify({}),
+            });
+        if (ok) setReadLater(false);
+        return;
+      }
+
       const added = await libraryRequest(`/api/library/papers/${paperId}`, {
         method: 'POST',
         body: JSON.stringify({}),
@@ -95,7 +112,7 @@ export function HomePaperActions({
         type="button"
         disabled={pending !== null}
         onClick={() => {
-          void saveReadLater();
+          void toggleReadLater();
         }}
         className="inline-flex min-h-[33px] items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] hover:border-[#c9c8ff] hover:text-[#392ee5] disabled:cursor-wait disabled:opacity-70"
         aria-pressed={readLater}

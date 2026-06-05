@@ -120,7 +120,7 @@ describe('collectFromAllSources', () => {
       },
     });
     expect(out.length).toBe(30);
-    const counts = { ARXIV: 0, OPENREVIEW: 0, HUGGINGFACE: 0 };
+    const counts = { ARXIV: 0, OPENREVIEW: 0, HUGGINGFACE: 0, OPENACCESS: 0 };
     for (const c of out) counts[c.source]++;
     expect(counts.ARXIV).toBe(15);
     expect(counts.HUGGINGFACE).toBe(10);
@@ -136,7 +136,7 @@ describe('collectFromAllSources', () => {
       },
     });
     expect(out.length).toBe(30);
-    const counts = { ARXIV: 0, OPENREVIEW: 0, HUGGINGFACE: 0 };
+    const counts = { ARXIV: 0, OPENREVIEW: 0, HUGGINGFACE: 0, OPENACCESS: 0 };
     for (const c of out) counts[c.source]++;
     expect(counts.ARXIV).toBe(5);
     // 25 remaining filled from leftover OPENREVIEW (priority) + HUGGINGFACE
@@ -155,7 +155,7 @@ describe('collectFromAllSources', () => {
     });
     // Quotas allocate 10 HF + 5 OR; overflow refills the remaining 15 from leftover pool.
     expect(out.length).toBe(30);
-    const counts = { ARXIV: 0, OPENREVIEW: 0, HUGGINGFACE: 0 };
+    const counts = { ARXIV: 0, OPENREVIEW: 0, HUGGINGFACE: 0, OPENACCESS: 0 };
     for (const c of out) counts[c.source]++;
     expect(counts.ARXIV).toBe(0);
     expect(counts.OPENREVIEW + counts.HUGGINGFACE).toBe(30);

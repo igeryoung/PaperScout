@@ -236,6 +236,7 @@ export const messages: Messages = {
       ARXIV: 'arXiv',
       OPENREVIEW: 'OpenReview',
       HUGGINGFACE: 'Hugging Face',
+      OPENACCESS: 'Open Access',
     } as const,
     decisions: {
       RECOMMEND: 'RECOMMEND',

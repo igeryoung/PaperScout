@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { SourceType } from '@/server/schema/candidate';
 import { normalizeTitle, normalizeAuthor } from './normalize';
 
 /**
@@ -30,13 +31,13 @@ export function openreviewFingerprint(openreviewId: string): string {
  * over title-hash matches.
  */
 export function chooseFingerprint(opts: {
-  source: 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE';
+  source: SourceType;
   sourcePaperId: string | null;
   title: string;
   firstAuthor: string;
   year: number;
   additionalSources?: Array<{
-    source: 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE';
+    source: SourceType;
     sourcePaperId: string;
   }>;
 }): string {

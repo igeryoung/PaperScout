@@ -16,6 +16,7 @@ enum Source {
   ARXIV
   OPENREVIEW
   HUGGINGFACE
+  OPENACCESS
 }
 
 enum RunStatus {

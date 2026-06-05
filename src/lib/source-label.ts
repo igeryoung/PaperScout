@@ -24,7 +24,10 @@ export function formatSourceLabel(input: {
   venue?: string | null;
   sourceLabels: SourceLabels;
 }): string {
-  if (input.source === 'OPENREVIEW' && input.venue?.trim()) {
+  if (
+    (input.source === 'OPENREVIEW' || input.source === 'OPENACCESS') &&
+    input.venue?.trim()
+  ) {
     return formatConferenceLabel(input.venue);
   }
   return input.sourceLabels[input.source];

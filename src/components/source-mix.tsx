@@ -11,6 +11,7 @@ const SOURCE_COLORS: Record<Source, string> = {
   ARXIV: 'bg-sky-500',
   OPENREVIEW: 'bg-violet-500',
   HUGGINGFACE: 'bg-amber-500',
+  OPENACCESS: 'bg-emerald-500',
 };
 
 export function SourceMix({ sources, messages }: SourceMixProps) {
