@@ -33,9 +33,13 @@ Working data lives in `../data/factory/` (override with `PAPER_FACTORY_DATA`).
 1. **Crawl** — run the `crawl-conference-list` skill (or its
    `.claude/skills/crawl-conference-list/example_crawl.py`) to drop a
    `CandidateRecord[]` JSON into `data/factory/inbox/`.
-2. **Import inbox** — papers appear as `PENDING`.
+2. **Import inbox** — papers appear as `PENDING`, grouped Year ▸ Conference ▸ Paper
+   in the tree (each leaf is prefixed with its `[STAGE]` tag). Toggle **☰ Batches**
+   in the toolbar to show the batch/filter sidebar.
 3. **New batch from selection** — group papers to process together.
-4. **Download PDF** → in the viewer, **Cut here** to truncate, drag to **crop a figure**.
+4. **Download PDF** → in the viewer, **Cut here** to truncate. **Double-click a page**
+   to open the crop popup, drag a box, then **Confirm crop**. The cropped figure
+   shows under **Cropped figure** with **View full** / **Delete crop**.
 5. **Export for eval** — writes `data/factory/exports/batch-<id>/`.
 6. Run the `evaluate-papers-from-bundle` skill on that dir → `evaluations.json`.
 7. **Import eval results** → review each paper → **Pass / Reject**.

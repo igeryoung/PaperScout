@@ -1,4 +1,5 @@
-"""Right-hand panel: paper metadata, the PDF workspace, and the eval review controls."""
+"""Right-hand panel: paper metadata, the PDF workspace, the cropped-figure preview,
+and the eval review controls."""
 
 from __future__ import annotations
 
@@ -6,13 +7,15 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QDialog,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -51,13 +54,28 @@ class PaperPanel(QWidget):
         self.pdf_view.truncate_requested.connect(self._truncate)
         self.pdf_view.crop_requested.connect(self._crop)
 
+        # Cropped-figure preview group
+        self.figure_preview = QLabel("No figure cropped yet.")
+        self.figure_preview.setAlignment(Qt.AlignCenter)
+        self.figure_preview.setMaximumHeight(180)
+        self.figure_preview.setStyleSheet("color: #888;")
+        self.view_fig_btn = QPushButton("View full")
+        self.delete_fig_btn = QPushButton("🗑 Delete crop")
+        self.view_fig_btn.clicked.connect(self._view_figure)
+        self.delete_fig_btn.clicked.connect(self._delete_crop)
+        fig_btns = QHBoxLayout()
+        fig_btns.addWidget(self.view_fig_btn)
+        fig_btns.addWidget(self.delete_fig_btn)
+        fig_btns.addStretch(1)
+        figure_box = QGroupBox("Cropped figure")
+        fb = QVBoxLayout(figure_box)
+        fb.addWidget(self.figure_preview)
+        fb.addLayout(fig_btns)
+
         # Review group
         self.eval_text = QTextEdit()
         self.eval_text.setReadOnly(True)
         self.eval_text.setMaximumHeight(180)
-        self.figure_preview = QLabel()
-        self.figure_preview.setMaximumHeight(160)
-        self.figure_preview.setAlignment(Qt.AlignCenter)
         self.pass_btn = QPushButton("✓ Pass")
         self.reject_btn = QPushButton("✗ Reject")
         self.pass_btn.clicked.connect(lambda: self._review(ReviewDecision.PASS))
@@ -69,7 +87,6 @@ class PaperPanel(QWidget):
 
         review_box = QGroupBox("Evaluation review")
         rb = QVBoxLayout(review_box)
-        rb.addWidget(self.figure_preview)
         rb.addWidget(self.eval_text)
         rb.addLayout(review_btns)
 
@@ -78,6 +95,7 @@ class PaperPanel(QWidget):
         layout.addWidget(self.meta)
         layout.addLayout(actions)
         layout.addWidget(self.pdf_view, 1)
+        layout.addWidget(figure_box)
         layout.addWidget(review_box)
         self._set_enabled(False)
 
@@ -89,7 +107,7 @@ class PaperPanel(QWidget):
             self.meta.setText("")
             self.pdf_view.clear()
             self.eval_text.clear()
-            self.figure_preview.clear()
+            self._render_figure(None)
             self._set_enabled(False)
             return
         self._set_enabled(True)
@@ -106,6 +124,7 @@ class PaperPanel(QWidget):
             self.pdf_view.load(Path(pdf_to_show))
         else:
             self.pdf_view.clear()
+        self._render_figure(paper)
         self._render_eval(paper)
 
     # ---------- actions ----------
@@ -169,6 +188,47 @@ class PaperPanel(QWidget):
         self.store.update_fields(p.id, **fields)
         self._reload()
 
+    def _view_figure(self) -> None:
+        p = self.paper
+        if not p or not p.figure_path or not Path(p.figure_path).exists():
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle(p.figure_label or "Cropped figure")
+        dlg.resize(900, 700)
+        label = QLabel()
+        label.setAlignment(Qt.AlignCenter)
+        label.setPixmap(QPixmap(p.figure_path))
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(label)
+        layout = QVBoxLayout(dlg)
+        layout.addWidget(scroll)
+        dlg.exec()
+
+    def _delete_crop(self) -> None:
+        p = self.paper
+        if not p or not p.figure_path:
+            return
+        if QMessageBox.question(
+            self, "Delete crop", "Delete the cropped figure for this paper?"
+        ) != QMessageBox.Yes:
+            return
+        try:
+            Path(p.figure_path).unlink(missing_ok=True)
+        except OSError:
+            pass  # file already gone — clearing the DB record is what matters
+        fields = {
+            "figure_path": None,
+            "figure_label": None,
+            "figure_page": None,
+            "figure_caption_en": None,
+            "figure_caption_zh": None,
+        }
+        if p.stage is Stage.CROPPED:
+            fields["stage"] = Stage.TRUNCATED if p.truncated_pdf_path else Stage.DOWNLOADED
+        self.store.update_fields(p.id, **fields)
+        self._reload()
+
     def _review(self, decision: ReviewDecision) -> None:
         p = self.paper
         if not p:
@@ -180,11 +240,23 @@ class PaperPanel(QWidget):
         self._reload()
 
     # ---------- helpers ----------
+    def _render_figure(self, paper: Optional[Paper]) -> None:
+        has = bool(paper and paper.figure_path and Path(paper.figure_path).exists())
+        self.view_fig_btn.setEnabled(has)
+        self.delete_fig_btn.setEnabled(has)
+        if has:
+            pix = QPixmap(paper.figure_path).scaledToHeight(170, Qt.SmoothTransformation)
+            self.figure_preview.setPixmap(pix)
+            self.figure_preview.setToolTip(paper.figure_label or "Figure")
+        else:
+            self.figure_preview.clear()
+            self.figure_preview.setText("No figure cropped yet.")
+            self.figure_preview.setToolTip("")
+
     def _render_eval(self, paper: Paper) -> None:
         ev = paper.evaluation_json
         if not ev:
             self.eval_text.setPlainText("No evaluation yet. Export → run eval agent → import results.")
-            self.figure_preview.clear()
             return
         scores = ev.get("scores") or {}
         summary = (ev.get("summary") or {}).get("en", "")
@@ -197,11 +269,6 @@ class PaperPanel(QWidget):
             summary,
         ]
         self.eval_text.setPlainText("\n".join(lines))
-        if paper.figure_path and Path(paper.figure_path).exists():
-            pix = QPixmap(paper.figure_path).scaledToHeight(150, Qt.SmoothTransformation)
-            self.figure_preview.setPixmap(pix)
-        else:
-            self.figure_preview.clear()
 
     def _set_enabled(self, on: bool) -> None:
         for w in (self.download_btn, self.pdf_view, self.pass_btn, self.reject_btn):
