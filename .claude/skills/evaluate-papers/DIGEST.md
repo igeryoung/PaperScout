@@ -8,7 +8,7 @@ When `pdfAnalysisStatus = "SUCCESS"`, fill the `digest` object. Each field is a 
 
 ```
 digest: {
-  tldr:                  { en, "zh-TW" },   // §1 — exactly 1 sentence
+  tldr:                  { en, "zh-TW" },   // §1 — < 100 words; popular-science explainer of the paper
   problemMotivation:     { en, "zh-TW" },   // §2 — 2–4 sentences
   keyContributions:      { en, "zh-TW" },   // §3 — Markdown numbered list "1. ...\n2. ...\n3. ..."
   methodOverview:        { en, "zh-TW" },   // §4 — 3–6 sentences; explicitly reference the figure (e.g. "(see figure above)")
@@ -25,7 +25,7 @@ Only two structured fields now overlap the digest. Keep them consistent:
 
 | Digest section | Existing field |
 |---|---|
-| `digest.tldr` | `summary` (1 sentence vs 1–3) |
+| `digest.tldr` | `summary` (< 100-word popular-science explainer vs the ~3-sentence overview) |
 
 The top-level `strengths[]` / `weaknesses[]` arrays remain the source of truth for strengths and limitations — there is no longer a digest-side mirror. If you find yourself writing different facts in the digest vs. the structured fields, you have a bug — fix the structured fields to match the digest, since the digest is the authored source.
 

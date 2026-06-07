@@ -1,4 +1,6 @@
+import { revalidateTag } from 'next/cache';
 import type { Candidate } from '@/server/schema/candidate';
+import { SOURCE_DISTRIBUTION_TAG } from '@/server/repos/trends';
 import { findMatch } from '@/server/dedup/matcher';
 import { chooseFingerprint } from '@/server/dedup/fingerprint';
 import { normalizeTitle } from '@/server/dedup/normalize';
@@ -144,6 +146,16 @@ export async function persistCandidates(
 
     if (cand.codeUrls.length) {
       await codeLinksRepo.addAll(paperId, cand.codeUrls);
+    }
+  }
+
+  if (newCount > 0) {
+    // New papers/sources landed — refresh the database-wide source distribution.
+    // Best-effort: never let a cache-invalidation hiccup fail a persisted run.
+    try {
+      revalidateTag(SOURCE_DISTRIBUTION_TAG, 'max');
+    } catch {
+      // outside a revalidation-capable scope; the time-based revalidate covers it
     }
   }
 

@@ -41,7 +41,7 @@ Working data lives in `../data/factory/` (override with `PAPER_FACTORY_DATA`).
    to open the crop popup, drag a box, then **Confirm crop**. The cropped figure
    shows under **Cropped figure** with **View full** / **Delete crop**.
 5. **Export for eval** — writes `data/factory/exports/batch-<id>/`.
-6. Run the `evaluate-papers-from-bundle` skill on that dir → `evaluations.json`.
+6. Run the `evaluate-papers` skill on that dir → `evaluations.json`.
 7. **Import eval results** → review each paper → **Pass / Reject**.
 8. **Ingest passed** — bundles PASS papers and runs `npm run ingest` into the app's Postgres.
 

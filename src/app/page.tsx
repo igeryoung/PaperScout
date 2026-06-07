@@ -6,28 +6,30 @@ import {
   ArrowRight,
   BarChart3,
   FileText,
-  Grid2X2,
-  Lightbulb,
-  List,
   LoaderCircle,
   Shield,
   Sparkles,
   Star,
   TrendingUp,
 } from 'lucide-react';
-import type { PaperEvaluation, PaperSource } from '@prisma/client';
 import { runsRepo } from '@/server/repos/runs';
 import { runResultsRepo, type RunResultWithDetail } from '@/server/repos/runResults';
-import { trendsRepo, type RunSummary, type TagCount } from '@/server/repos/trends';
-import { selectBestEvaluation } from '@/server/lib/select-evaluation';
-import { formatAuthors, formatDate } from '@/lib/format';
-import { getLocale, pickLocalized, type Locale } from '@/lib/locale';
+import {
+  trendsRepo,
+  type RunSummary,
+  type SourceCount,
+  type TagCount,
+} from '@/server/repos/trends';
+import { formatDate } from '@/lib/format';
+import { getLocale, type Locale } from '@/lib/locale';
 import { formatSourceLabel } from '@/lib/source-label';
 import { getMessages, type Messages } from '@/i18n';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { libraryRepo } from '@/server/repos/library';
-import { HomePaperActions } from '@/components/home-paper-actions';
-import { HomeFigurePreview } from '@/components/home-figure-preview';
+import { selectBestEvaluation } from '@/server/lib/select-evaluation';
+import { PaperFeedCard } from '@/components/paper-feed-card';
+import { FeedControls, type FeedControlsLabels } from '@/components/feed-controls';
+import { Pagination } from '@/components/pagination';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,14 +44,29 @@ const TOPIC_FALLBACKS = [
 
 const HOME_FEED_PAGE_SIZE = 10;
 
+type SortKey = 'score' | 'date' | 'rank';
+type TimeKey = 'all' | 'week' | 'month' | 'year';
+
+interface FeedFilters {
+  domain: string;
+  time: TimeKey;
+  sort: SortKey;
+}
+
 interface HomePageProps {
-  searchParams: Promise<{ page?: string; locale?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    locale?: string;
+    domain?: string;
+    time?: string;
+    sort?: string;
+  }>;
 }
 
 interface HomeDataPromises {
   summary: Promise<RunSummary>;
+  sourceDistribution: Promise<SourceCount[]>;
   recommended: Promise<RunResultWithDetail[]>;
-  totalResults: Promise<number>;
   session: ReturnType<typeof getCurrentSession>;
 }
 
@@ -57,6 +74,81 @@ function parsePageParam(value: string | undefined): number {
   if (!value) return 1;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function parseTimeParam(value: string | undefined): TimeKey {
+  return value === 'week' || value === 'month' || value === 'year' ? value : 'all';
+}
+
+function parseSortParam(value: string | undefined): SortKey {
+  return value === 'date' || value === 'rank' ? value : 'score';
+}
+
+function timeCutoff(time: TimeKey): Date | null {
+  if (time === 'all') return null;
+  const days = time === 'week' ? 7 : time === 'month' ? 30 : 365;
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+function resultDate(result: RunResultWithDetail): Date | null {
+  const raw = result.paper.publishedDate ?? result.paper.createdAt;
+  return raw ? new Date(raw) : null;
+}
+
+function resultScore(result: RunResultWithDetail): number {
+  const evaluation = selectBestEvaluation(result.paper.evaluations);
+  return evaluation ? evaluation.totalScore : -1;
+}
+
+function resultRank(result: RunResultWithDetail): number {
+  return result.finalRank ?? Number.MAX_SAFE_INTEGER;
+}
+
+function applyFeedFilters(
+  results: RunResultWithDetail[],
+  filters: FeedFilters,
+): RunResultWithDetail[] {
+  let out = results;
+  if (filters.domain) {
+    out = out.filter((r) => r.paper.tags.some((t) => t.tag === filters.domain));
+  }
+  const cutoff = timeCutoff(filters.time);
+  if (cutoff) {
+    out = out.filter((r) => {
+      const date = resultDate(r);
+      return date != null && date >= cutoff;
+    });
+  }
+  return out;
+}
+
+function sortFeedResults(
+  results: RunResultWithDetail[],
+  sort: SortKey,
+): RunResultWithDetail[] {
+  const sorted = [...results];
+  if (sort === 'score') {
+    sorted.sort((a, b) => resultScore(b) - resultScore(a) || resultRank(a) - resultRank(b));
+  } else if (sort === 'date') {
+    sorted.sort(
+      (a, b) =>
+        (resultDate(b)?.getTime() ?? 0) - (resultDate(a)?.getTime() ?? 0) ||
+        resultRank(a) - resultRank(b),
+    );
+  } else {
+    sorted.sort((a, b) => resultRank(a) - resultRank(b));
+  }
+  return sorted;
+}
+
+function buildFeedHref(page: number, filters: FeedFilters): string {
+  const params = new URLSearchParams();
+  if (filters.domain) params.set('domain', filters.domain);
+  if (filters.time !== 'all') params.set('time', filters.time);
+  if (filters.sort !== 'score') params.set('sort', filters.sort);
+  if (page > 1) params.set('page', String(page));
+  const qs = params.toString();
+  return qs ? `/?${qs}` : '/';
 }
 
 function EmptyState({ messages }: { messages: Messages }) {
@@ -193,18 +285,6 @@ function HeroLoading({ messages }: { messages: Messages }) {
   );
 }
 
-function FeedMetaLoading({ messages }: { messages: Messages }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-4">
-      <LoadingIcon label={messages.home.loadingFeedMeta} />
-      <div className="grid flex-1 gap-2">
-        <span className="h-4 w-3/4 animate-pulse rounded bg-[#edf1f7]" />
-        <span className="h-4 w-1/3 animate-pulse rounded bg-[#edf1f7]" />
-      </div>
-    </div>
-  );
-}
-
 function FeedResultsLoading({ messages }: { messages: Messages }) {
   return (
     <>
@@ -334,332 +414,109 @@ function Hero({ summary, messages }: { summary: RunSummary; messages: Messages }
   );
 }
 
-function FeedToolbar({ messages }: { messages: Messages }) {
+function FeedTabs({ messages }: { messages: Messages }) {
   const t = messages.home;
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#e5e9f3] px-5 pt-2.5 max-lg:flex-col max-lg:items-stretch">
-      <div
-        className="flex min-w-0 gap-6 overflow-x-auto"
-        role="tablist"
-        aria-label={t.feedTablistAria}
-      >
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 border-b-[3px] border-[#5b4df1] pb-3 text-sm font-extrabold whitespace-nowrap text-[#392ee5]"
-          role="tab"
-          aria-selected="true"
-        >
-          <Star aria-hidden className="h-4 w-4" />
-          {t.feedTabRecommended}
-        </button>
-        {[
-          { label: t.feedTabTrending, icon: TrendingUp },
-          { label: t.feedTabLatest, icon: Shield },
-          { label: t.feedTabTop, icon: BarChart3 },
-        ].map(({ label, icon: Icon }) => (
-          <button
-            key={label}
-            type="button"
-            disabled
-            className="inline-flex cursor-not-allowed items-center gap-2 border-b-[3px] border-transparent pb-3 text-sm whitespace-nowrap text-[#344054] opacity-80"
-            role="tab"
-          >
-            <Icon aria-hidden className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div
-        className="flex items-center gap-3 pb-2.5 max-sm:flex-wrap"
-        aria-label={t.feedControlsAria}
-      >
-        {[t.feedFilterDomain, t.feedFilterTime, t.feedFilterSort].map((label) => (
-          <select
-            key={label}
-            aria-label={label}
-            disabled
-            className="min-h-9 rounded-lg border border-[#d7deea] bg-white px-3 text-sm text-[#344054] disabled:opacity-80 max-sm:flex-1"
-          >
-            <option>{label}</option>
-          </select>
-        ))}
-        <div className="flex" aria-label={t.feedViewAria}>
-          <button
-            type="button"
-            aria-label={t.feedViewCard}
-            className="grid h-9 w-[38px] place-items-center rounded-l-lg border border-[#d7deea] bg-[#ebe9ff] text-[#5b4df1]"
-          >
-            <Grid2X2 aria-hidden className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            disabled
-            aria-label={t.feedViewList}
-            className="-ml-px grid h-9 w-[38px] cursor-not-allowed place-items-center rounded-r-lg border border-[#d7deea] bg-white text-[#344054] opacity-80"
-          >
-            <List aria-hidden className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function findSourceLink(paper: RunResultWithDetail['paper'], source: PaperSource['source']) {
-  return paper.sources.find((s) => s.source === source)?.sourceUrl ?? null;
-}
-
-function estimateReadingMinutes(parts: Array<string | null | undefined>): number {
-  const text = parts.filter(Boolean).join(' ');
-  if (!text.trim()) return 1;
-
-  const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length ?? 0;
-  const latinWords = text.match(/[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)*/g)?.length ?? 0;
-  const estimatedWords = latinWords + cjkChars / 2;
-
-  return Math.max(1, Math.ceil(estimatedWords / 220));
-}
-
-function ScoreRing({
-  evaluation,
-  messages,
-}: {
-  evaluation: PaperEvaluation | null;
-  messages: Messages;
-}) {
-  if (!evaluation) {
-    return (
-      <div className="grid h-16 w-16 place-items-center rounded-full bg-[#eef2f8] text-center text-xs text-[#667085]">
-        {messages.home.cardScoreNa}
-      </div>
-    );
-  }
-  const score = Math.max(0, Math.min(100, evaluation.totalScore));
-  return (
     <div
-      className="grid h-16 w-16 shrink-0 place-items-center rounded-full"
-      style={{
-        background: `radial-gradient(circle at center, #fff 0 59%, transparent 60%), conic-gradient(#5b4df1 0 ${score}%, #e8ecf5 ${score}% 100%)`,
-      }}
+      className="flex min-w-0 gap-6 overflow-x-auto"
+      role="tablist"
+      aria-label={t.feedTablistAria}
     >
-      <div className="text-center">
-        <strong className="block text-lg leading-none text-[#392ee5]">
-          {(score / 10).toFixed(1)}
-        </strong>
-        <span className="block text-xs text-[#667085]">/10</span>
-      </div>
-    </div>
-  );
-}
-
-function PlaceholderThumb({ index }: { index: number }) {
-  if (index % 2 === 0) {
-    return (
-      <div className="relative h-44 min-h-44 overflow-hidden rounded-lg border border-[#dce3ef] bg-[#fbfcff]">
-        <span className="absolute top-[65px] left-6 grid min-h-[38px] min-w-[58px] place-items-center rounded border border-[#8ba0b8] bg-white text-[10px] text-[#344054]">
-          Query
-        </span>
-        <span className="absolute top-[108px] left-[88px] grid min-h-[38px] min-w-[58px] place-items-center rounded border border-[#8ba0b8] bg-white text-[10px] text-[#344054]">
-          Docs
-        </span>
-        <span className="absolute top-[83px] left-[135px] grid min-h-[38px] min-w-[58px] place-items-center rounded border border-[#8ba0b8] bg-[#dff5df] text-[10px] text-[#344054]">
-          Model
-        </span>
-        <span className="absolute top-[83px] left-[208px] grid min-h-[38px] min-w-[58px] place-items-center rounded border border-[#8ba0b8] bg-[#d9edff] text-[10px] text-[#344054]">
-          LLM
-        </span>
-        <span className="absolute top-[84px] left-[79px] h-0.5 w-[55px] bg-[#98a2b3] after:absolute after:top-[-4px] after:right-[-1px] after:border-y-[5px] after:border-l-[7px] after:border-y-transparent after:border-l-[#98a2b3]" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid h-44 min-h-44 grid-cols-3 gap-3 overflow-hidden rounded-lg border border-[#dce3ef] bg-[#fbfcff] p-4">
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="relative min-h-[68px] border-b border-l border-[#ccd5e2] bg-[linear-gradient(#eef2f8_1px,transparent_1px),linear-gradient(90deg,#eef2f8_1px,transparent_1px)] bg-[length:100%_18px,22px_100%] before:absolute before:inset-[10px_9px_11px] before:border-t-[3px] before:border-[#5b7cff]"
-        />
+      <button
+        type="button"
+        className="inline-flex items-center gap-2 border-b-[3px] border-[#5b4df1] pb-3 text-sm font-extrabold whitespace-nowrap text-[#392ee5]"
+        role="tab"
+        aria-selected="true"
+      >
+        <Star aria-hidden className="h-4 w-4" />
+        {t.feedTabRecommended}
+      </button>
+      {[
+        { label: t.feedTabTrending, icon: TrendingUp },
+        { label: t.feedTabLatest, icon: Shield },
+        { label: t.feedTabTop, icon: BarChart3 },
+      ].map(({ label, icon: Icon }) => (
+        <button
+          key={label}
+          type="button"
+          disabled
+          className="inline-flex cursor-not-allowed items-center gap-2 border-b-[3px] border-transparent pb-3 text-sm whitespace-nowrap text-[#344054] opacity-80"
+          role="tab"
+        >
+          <Icon aria-hidden className="h-4 w-4" />
+          {label}
+        </button>
       ))}
-      <div className="col-span-3 grid grid-cols-4 gap-2">
-        {[0, 1, 2, 3].map((i) => (
-          <i
-            key={i}
-            className="min-h-[42px] rounded-[5px] bg-[radial-gradient(circle_at_30%_30%,#f7d38d_0_15%,transparent_16%),radial-gradient(circle_at_70%_50%,#82c7a5_0_18%,transparent_19%),linear-gradient(135deg,#bdc8e7,#f1f4fb)]"
-          />
-        ))}
-      </div>
     </div>
   );
 }
 
-function PaperThumb({
-  result,
-  index,
-  locale,
-  messages,
-}: {
-  result: RunResultWithDetail;
-  index: number;
-  locale: Locale;
-  messages: Messages;
-}) {
-  if (!result.paper.figure) return <PlaceholderThumb index={index} />;
-  const labelPart = result.paper.figure.figureLabel ?? messages.home.cardFigureFallback;
-  const captionText = pickLocalized(result.paper.figure.caption, locale);
-  const captionPart = captionText ? `: ${captionText}` : '';
-  return (
-    <HomeFigurePreview
-      src={`/api/papers/${result.paper.id}/figure`}
-      alt={`${labelPart}${captionPart}`}
-      label={labelPart}
-      caption={captionText}
-      zoomLabel={messages.home.cardFigurePreviewAria}
-      noCaptionLabel={messages.home.cardFigureNoCaption}
-    />
-  );
+function feedControlLabels(messages: Messages): FeedControlsLabels {
+  const t = messages.home;
+  return {
+    controlsAria: t.feedControlsAria,
+    domainAria: t.feedFilterDomain,
+    domainAll: t.feedFilterDomain,
+    timeAria: t.feedFilterTime,
+    timeAll: t.feedFilterTime,
+    timeWeek: t.feedTimeWeek,
+    timeMonth: t.feedTimeMonth,
+    timeYear: t.feedTimeYear,
+    sortAria: t.feedSortAria,
+    sortScore: t.feedFilterSort,
+    sortDate: t.feedSortDate,
+    sortRank: t.feedSortRank,
+  };
 }
 
-function ExternalLinks({
-  result,
-  evaluation,
+const FEED_TOOLBAR_CLASS =
+  'flex items-center justify-between gap-4 border-b border-[#e5e9f3] px-5 pt-2.5 max-lg:flex-col max-lg:items-stretch';
+
+function FeedToolbarFallback({
+  filters,
   messages,
 }: {
-  result: RunResultWithDetail;
-  evaluation: PaperEvaluation | null;
+  filters: FeedFilters;
   messages: Messages;
 }) {
-  const paper = result.paper;
-  const arxivUrl = findSourceLink(paper, 'ARXIV');
-  const openReviewUrl = findSourceLink(paper, 'OPENREVIEW');
-  const huggingFaceUrl = findSourceLink(paper, 'HUGGINGFACE');
-  const firstExternal =
-    paper.pdfUrl ?? arxivUrl ?? openReviewUrl ?? huggingFaceUrl ?? paper.codeLinks[0]?.codeUrl;
-
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-bold text-[#392ee5] xl:justify-end">
-      <Link href={`/papers/${paper.id}`}>{messages.home.cardViewSummary}</Link>
-      {firstExternal ? (
-        <a href={firstExternal} target="_blank" rel="noreferrer">
-          {messages.home.cardOpenPaper}
-        </a>
-      ) : evaluation ? (
-        <span>{evaluation.evaluationStage}</span>
-      ) : null}
+    <div className={FEED_TOOLBAR_CLASS}>
+      <FeedTabs messages={messages} />
+      <FeedControls
+        domain={filters.domain}
+        time={filters.time}
+        sort={filters.sort}
+        domainOptions={[]}
+        labels={feedControlLabels(messages)}
+      />
     </div>
   );
 }
 
-function HomePaperCard({
-  result,
-  index,
-  locale,
+async function FeedToolbar({
+  summary,
+  filters,
   messages,
-  userState,
 }: {
-  result: RunResultWithDetail;
-  index: number;
-  locale: Locale;
+  summary: Promise<RunSummary>;
+  filters: FeedFilters;
   messages: Messages;
-  userState: { liked: boolean; readLater: boolean };
 }) {
-  const paper = result.paper;
-  const evaluation = selectBestEvaluation(paper.evaluations);
-  const sourceLabels = messages.common.sources;
-  const summary = pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
-  const reason =
-    pickLocalized(evaluation?.recommendationReason, locale) ??
-    messages.home.reasonFallback;
-  const primarySourceLabel = formatSourceLabel({
-    source: paper.primarySource,
-    venue: paper.venue,
-    sourceLabels,
-  });
-  const readingMinutes = estimateReadingMinutes([paper.abstract, summary, reason]);
-
+  const domainOptions = (await summary).topTags.map((tag) => tag.tag);
   return (
-    <article className="grid grid-cols-1 items-stretch gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)_230px]">
-      <div className="min-w-0">
-        <PaperThumb result={result} index={index} locale={locale} messages={messages} />
-      </div>
-
-      <div className="min-w-0">
-        <h2 className="mb-2 text-lg leading-snug font-semibold tracking-normal text-[#111827]">
-          <Link href={`/papers/${paper.id}`} className="hover:text-[#392ee5]">
-            {paper.title}
-          </Link>
-        </h2>
-        <div className="mb-2 flex flex-wrap gap-2 text-[13px] text-[#667085]">
-          <span>{formatAuthors(paper.authors, 3)}</span>
-          <span>|</span>
-          <span>{primarySourceLabel}</span>
-          <span>|</span>
-          <span>{formatDate(paper.publishedDate)}</span>
-        </div>
-        <p className="mb-4 text-sm leading-relaxed text-[#273142]">{summary}</p>
-      </div>
-
-      <div className="flex min-w-0 flex-col gap-3.5">
-        <div className="flex items-center gap-4">
-          <ScoreRing evaluation={evaluation} messages={messages} />
-          <span className="text-[13px] whitespace-nowrap text-[#344054]">
-            {messages.home.cardAiScore} ⓘ
-          </span>
-        </div>
-        <div className="flex min-h-[68px] flex-1 flex-col rounded-lg bg-[#eaf8f4] px-3.5 py-3 text-sm leading-snug text-[#195b50]">
-          <strong className="mb-1.5 flex items-center gap-2 text-[13px] text-[#0f9f86]">
-            <Lightbulb aria-hidden className="h-4 w-4" />
-            {messages.home.cardReasonHeader}
-          </strong>
-          <span className="flex-1 overflow-hidden">{reason}</span>
-        </div>
-      </div>
-
-      <div className="grid gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-3 xl:grid-cols-[280px_minmax(0,1fr)_230px] xl:items-start">
-        {paper.tags.length > 0 ? (
-          <div className="paper-tag-marquee overflow-hidden py-0.5">
-            <div className="paper-tag-marquee__track flex w-max gap-2">
-              {[false, true].map((isDuplicate) => (
-                <div
-                  key={isDuplicate ? 'duplicate' : 'primary'}
-                  aria-hidden={isDuplicate}
-                  className="flex shrink-0 gap-2"
-                >
-                  {paper.tags.map((tag) => (
-                    <Link
-                      key={`${isDuplicate ? 'duplicate' : 'primary'}-${tag.id}`}
-                      href={`/library?tags=${encodeURIComponent(tag.tag)}`}
-                      tabIndex={isDuplicate ? -1 : undefined}
-                      className="inline-flex min-h-[26px] shrink-0 items-center rounded-full bg-[#eef0ff] px-3 text-[13px] font-bold whitespace-nowrap text-[#3442c8]"
-                    >
-                      {tag.tag}
-                    </Link>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div aria-hidden />
-        )}
-        <div className="flex flex-wrap items-center gap-3">
-          <HomePaperActions
-            paperId={paper.id}
-            initialLiked={userState.liked}
-            initialReadLater={userState.readLater}
-            favoriteLabel={messages.home.cardFavorite}
-            readLaterLabel={messages.home.cardReadLater}
-          />
-          <span className="text-[13px] text-[#667085]">
-            {messages.home.cardReadTime(readingMinutes)}
-          </span>
-        </div>
-        <ExternalLinks result={result} evaluation={evaluation} messages={messages} />
-      </div>
-    </article>
+    <div className={FEED_TOOLBAR_CLASS}>
+      <FeedTabs messages={messages} />
+      <FeedControls
+        domain={filters.domain}
+        time={filters.time}
+        sort={filters.sort}
+        domainOptions={domainOptions}
+        labels={feedControlLabels(messages)}
+      />
+    </div>
   );
 }
+
 
 function HotTagsCard({ tags, messages }: { tags: TagCount[]; messages: Messages }) {
   const visible = tags.slice(0, 8);
@@ -740,8 +597,14 @@ function RecentRecommendationsCard({
   );
 }
 
-function SourceMixCard({ summary, messages }: { summary: RunSummary; messages: Messages }) {
-  const total = summary.sources.reduce((acc, source) => acc + source.count, 0);
+function SourceMixCard({
+  sources,
+  messages,
+}: {
+  sources: SourceCount[];
+  messages: Messages;
+}) {
+  const total = sources.reduce((acc, source) => acc + source.count, 0);
   const t = messages.home;
   const sourceLabels = messages.common.sources;
   return (
@@ -755,7 +618,7 @@ function SourceMixCard({ summary, messages }: { summary: RunSummary; messages: M
         <p className="text-sm text-[#667085]">{t.sourceMixEmpty}</p>
       ) : (
         <ul className="grid gap-3">
-          {summary.sources.map((source) => (
+          {sources.map((source) => (
             <li key={source.key} className="flex items-center justify-between text-sm">
               <span className="text-[#344054]">{source.label ?? sourceLabels[source.source]}</span>
               <span className="font-semibold text-[#392ee5] tabular-nums">
@@ -794,76 +657,6 @@ function PersonalCard({ messages }: { messages: Messages }) {
   );
 }
 
-function Pagination({
-  currentPage,
-  totalPages,
-  totalItems,
-  messages,
-}: {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  messages: Messages;
-}) {
-  const t = messages.home;
-  if (totalPages <= 1) {
-    return <p className="text-center text-sm text-[#667085]">{t.paginationAllShown(totalItems)}</p>;
-  }
-
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
-  const pageHref = (page: number) => (page === 1 ? '/' : `/?page=${page}`);
-
-  return (
-    <nav
-      className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5e9f3] pt-4 text-sm"
-      aria-label={t.paginationAria}
-    >
-      <p className="text-[#667085]">{t.paginationStatus(currentPage, totalPages, totalItems)}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        {currentPage > 1 ? (
-          <Link
-            href={pageHref(currentPage - 1)}
-            className="inline-flex min-h-9 items-center rounded-lg border border-[#d7deea] bg-white px-3 font-semibold text-[#344054] hover:text-[#392ee5]"
-          >
-            {t.paginationPrev}
-          </Link>
-        ) : (
-          <span className="inline-flex min-h-9 cursor-not-allowed items-center rounded-lg border border-[#d7deea] bg-[#f2f4f8] px-3 font-semibold text-[#98a2b3]">
-            {t.paginationPrev}
-          </span>
-        )}
-
-        {pageNumbers.map((page) => (
-          <Link
-            key={page}
-            href={pageHref(page)}
-            aria-current={page === currentPage ? 'page' : undefined}
-            className={
-              page === currentPage
-                ? 'grid h-9 min-w-9 place-items-center rounded-lg bg-[#5b4df1] px-3 font-bold text-white'
-                : 'grid h-9 min-w-9 place-items-center rounded-lg border border-[#d7deea] bg-white px-3 font-semibold text-[#344054] hover:text-[#392ee5]'
-            }
-          >
-            {page}
-          </Link>
-        ))}
-
-        {currentPage < totalPages ? (
-          <Link
-            href={pageHref(currentPage + 1)}
-            className="inline-flex min-h-9 items-center rounded-lg border border-[#d7deea] bg-white px-3 font-semibold text-[#344054] hover:text-[#392ee5]"
-          >
-            {t.paginationNext}
-          </Link>
-        ) : (
-          <span className="inline-flex min-h-9 cursor-not-allowed items-center rounded-lg border border-[#d7deea] bg-[#f2f4f8] px-3 font-semibold text-[#98a2b3]">
-            {t.paginationNext}
-          </span>
-        )}
-      </div>
-    </nav>
-  );
-}
 
 async function HeroSection({
   summary,
@@ -875,64 +668,34 @@ async function HeroSection({
   return <Hero summary={await summary} messages={messages} />;
 }
 
-async function FeedMeta({
-  run,
-  summary,
-  totalResults,
-  currentPage,
-  messages,
-}: {
-  run: Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>;
-  summary: Promise<RunSummary>;
-  totalResults: Promise<number>;
-  currentPage: number;
-  messages: Messages;
-}) {
-  if (!run) return null;
-  const [resolvedSummary, resolvedTotalResults] = await Promise.all([summary, totalResults]);
-  const totalPages = Math.max(1, Math.ceil(resolvedTotalResults / HOME_FEED_PAGE_SIZE));
-  const displayPage = Math.min(currentPage, totalPages);
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#667085]">
-      <span>
-        {messages.home.runMeta(
-          formatDate(run.completedAt ?? run.createdAt),
-          resolvedSummary.totalPapers,
-          resolvedSummary.recommendedCount,
-          displayPage,
-        )}
-      </span>
-      <Link href={`/runs/${run.id}`} className="font-semibold text-[#392ee5]">
-        {messages.home.viewFullRun}
-      </Link>
-    </div>
-  );
-}
-
 async function FeedResults({
   runId,
   requestedPage,
-  totalResults,
+  filters,
   session,
   locale,
   messages,
 }: {
   runId: string;
   requestedPage: number;
-  totalResults: Promise<number>;
+  filters: FeedFilters;
   session: HomeDataPromises['session'];
   locale: Locale;
   messages: Messages;
 }) {
-  const resolvedTotalResults = await totalResults;
+  // Runs hold a small number of papers, so filter/sort/paginate in memory —
+  // this keeps sort-by-score (which lives on the selected evaluation) simple.
+  const allResults = await runResultsRepo.findByRunWithDetail(runId, {
+    recommendedOnly: false,
+  });
+  const matched = sortFeedResults(applyFeedFilters(allResults, filters), filters.sort);
+  const resolvedTotalResults = matched.length;
   const totalPages = Math.max(1, Math.ceil(resolvedTotalResults / HOME_FEED_PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
-  const results = await runResultsRepo.findByRunWithDetail(runId, {
-    recommendedOnly: false,
-    limit: HOME_FEED_PAGE_SIZE,
-    offset: (currentPage - 1) * HOME_FEED_PAGE_SIZE,
-  });
+  const results = matched.slice(
+    (currentPage - 1) * HOME_FEED_PAGE_SIZE,
+    currentPage * HOME_FEED_PAGE_SIZE,
+  );
   const resolvedSession = await session;
   const paperStates = resolvedSession
     ? await libraryRepo.findPaperStates({
@@ -949,9 +712,9 @@ async function FeedResults({
         </div>
       ) : (
         results.map((result, index) => (
-          <HomePaperCard
+          <PaperFeedCard
             key={result.id}
-            result={result}
+            paper={result.paper}
             index={index}
             locale={locale}
             messages={messages}
@@ -966,7 +729,14 @@ async function FeedResults({
         currentPage={currentPage}
         totalPages={totalPages}
         totalItems={resolvedTotalResults}
-        messages={messages}
+        labels={{
+          allShown: messages.home.paginationAllShown,
+          status: messages.home.paginationStatus,
+          prev: messages.home.paginationPrev,
+          next: messages.home.paginationNext,
+          aria: messages.home.paginationAria,
+        }}
+        buildHref={(page) => buildFeedHref(page, filters)}
       />
     </>
   );
@@ -976,12 +746,14 @@ function FeedSection({
   run,
   data,
   requestedPage,
+  filters,
   locale,
   messages,
 }: {
   run: NonNullable<Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>>;
   data: HomeDataPromises;
   requestedPage: number;
+  filters: FeedFilters;
   locale: Locale;
   messages: Messages;
 }) {
@@ -990,25 +762,18 @@ function FeedSection({
       className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
       aria-labelledby="feed-title"
     >
-      <FeedToolbar messages={messages} />
+      <Suspense fallback={<FeedToolbarFallback filters={filters} messages={messages} />}>
+        <FeedToolbar summary={data.summary} filters={filters} messages={messages} />
+      </Suspense>
       <div className="sr-only" id="feed-title">
         {messages.home.feedTitleSr}
       </div>
       <div className="grid gap-3.5 px-5 py-4">
-        <Suspense fallback={<FeedMetaLoading messages={messages} />}>
-          <FeedMeta
-            run={run}
-            summary={data.summary}
-            totalResults={data.totalResults}
-            currentPage={requestedPage}
-            messages={messages}
-          />
-        </Suspense>
         <Suspense fallback={<FeedResultsLoading messages={messages} />}>
           <FeedResults
             runId={run.id}
             requestedPage={requestedPage}
-            totalResults={data.totalResults}
+            filters={filters}
             session={data.session}
             locale={locale}
             messages={messages}
@@ -1043,20 +808,20 @@ async function RecentRecommendationsSection({
 }
 
 async function SourceMixSection({
-  summary,
+  sourceDistribution,
   messages,
 }: {
-  summary: Promise<RunSummary>;
+  sourceDistribution: Promise<SourceCount[]>;
   messages: Messages;
 }) {
-  return <SourceMixCard summary={await summary} messages={messages} />;
+  return <SourceMixCard sources={await sourceDistribution} messages={messages} />;
 }
 
 async function HomePageContent({
   searchParams,
   locale,
 }: {
-  searchParams: { page?: string; locale?: string };
+  searchParams: Awaited<HomePageProps['searchParams']>;
   locale: Locale;
 }) {
   const run = await runsRepo.latestCompletedForDisplay();
@@ -1064,13 +829,18 @@ async function HomePageContent({
   if (!run) return <EmptyState messages={messages} />;
 
   const requestedPage = parsePageParam(searchParams.page);
+  const filters: FeedFilters = {
+    domain: searchParams.domain ?? '',
+    time: parseTimeParam(searchParams.time),
+    sort: parseSortParam(searchParams.sort),
+  };
   const data: HomeDataPromises = {
     summary: trendsRepo.getRunSummary(run.id),
+    sourceDistribution: trendsRepo.getSourceDistribution(),
     recommended: runResultsRepo.findByRunWithDetail(run.id, {
       recommendedOnly: true,
       limit: 3,
     }),
-    totalResults: runResultsRepo.countByRun(run.id),
     session: getCurrentSession(),
   };
 
@@ -1085,6 +855,7 @@ async function HomePageContent({
           run={run}
           data={data}
           requestedPage={requestedPage}
+          filters={filters}
           locale={locale}
           messages={messages}
         />
@@ -1105,7 +876,10 @@ async function HomePageContent({
           <Suspense
             fallback={<LoadingPanel label={messages.home.loadingSourceMix} minHeight={132} />}
           >
-            <SourceMixSection summary={data.summary} messages={messages} />
+            <SourceMixSection
+              sourceDistribution={data.sourceDistribution}
+              messages={messages}
+            />
           </Suspense>
           <PersonalCard messages={messages} />
         </aside>

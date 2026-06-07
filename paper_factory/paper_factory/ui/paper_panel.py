@@ -9,6 +9,7 @@ from typing import Optional
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QDialog,
     QGroupBox,
     QHBoxLayout,
@@ -16,7 +17,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
-    QTextEdit,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -24,7 +25,8 @@ from PySide6.QtWidgets import (
 from .. import config, pdf as pdfops
 from ..db import Store
 from ..models import Paper, ReviewDecision, Stage
-from .pdf_view import PdfView
+from .eval_render import LOCALES, eval_html
+from .pdf_view import CropDialog
 
 
 class PaperPanel(QWidget):
@@ -36,6 +38,7 @@ class PaperPanel(QWidget):
         super().__init__()
         self.store = store
         self.paper: Optional[Paper] = None
+        self.locale = LOCALES[0]  # "en"; toggled by the language switcher
 
         self.title = QLabel("Select a paper")
         self.title.setWordWrap(True)
@@ -44,15 +47,12 @@ class PaperPanel(QWidget):
         self.meta.setWordWrap(True)
         self.meta.setStyleSheet("color: #555;")
 
-        self.download_btn = QPushButton("Download PDF")
-        self.download_btn.clicked.connect(self._download)
+        # One button that downloads the PDF, then turns into the preview launcher.
+        self.pdf_btn = QPushButton("Download PDF")
+        self.pdf_btn.clicked.connect(self._on_pdf_btn)
         actions = QHBoxLayout()
-        actions.addWidget(self.download_btn)
+        actions.addWidget(self.pdf_btn)
         actions.addStretch(1)
-
-        self.pdf_view = PdfView()
-        self.pdf_view.truncate_requested.connect(self._truncate)
-        self.pdf_view.crop_requested.connect(self._crop)
 
         # Cropped-figure preview group
         self.figure_preview = QLabel("No figure cropped yet.")
@@ -72,10 +72,23 @@ class PaperPanel(QWidget):
         fb.addWidget(self.figure_preview)
         fb.addLayout(fig_btns)
 
-        # Review group
-        self.eval_text = QTextEdit()
-        self.eval_text.setReadOnly(True)
-        self.eval_text.setMaximumHeight(180)
+        # Review group — full LLM evaluation, scrollable, with a language switcher.
+        self.eval_text = QTextBrowser()
+        self.eval_text.setOpenExternalLinks(True)
+        self.lang_group = QButtonGroup(self)
+        self.lang_group.setExclusive(True)
+        lang_row = QHBoxLayout()
+        lang_row.addWidget(QLabel("Language"))
+        for loc, label in zip(LOCALES, ("EN", "中文")):
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            btn.setMaximumWidth(56)
+            btn.setChecked(loc == self.locale)
+            btn.clicked.connect(lambda _checked, l=loc: self._set_locale(l))
+            self.lang_group.addButton(btn)
+            lang_row.addWidget(btn)
+        lang_row.addStretch(1)
+
         self.pass_btn = QPushButton("✓ Pass")
         self.reject_btn = QPushButton("✗ Reject")
         self.pass_btn.clicked.connect(lambda: self._review(ReviewDecision.PASS))
@@ -85,18 +98,18 @@ class PaperPanel(QWidget):
         review_btns.addWidget(self.reject_btn)
         review_btns.addStretch(1)
 
-        review_box = QGroupBox("Evaluation review")
+        review_box = QGroupBox("LLM evaluation")
         rb = QVBoxLayout(review_box)
-        rb.addWidget(self.eval_text)
+        rb.addLayout(lang_row)
+        rb.addWidget(self.eval_text, 1)
         rb.addLayout(review_btns)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.title)
         layout.addWidget(self.meta)
         layout.addLayout(actions)
-        layout.addWidget(self.pdf_view, 1)
         layout.addWidget(figure_box)
-        layout.addWidget(review_box)
+        layout.addWidget(review_box, 1)
         self._set_enabled(False)
 
     # ---------- public ----------
@@ -105,9 +118,9 @@ class PaperPanel(QWidget):
         if paper is None:
             self.title.setText("Select a paper")
             self.meta.setText("")
-            self.pdf_view.clear()
             self.eval_text.clear()
             self._render_figure(None)
+            self._update_pdf_btn(None)
             self._set_enabled(False)
             return
         self._set_enabled(True)
@@ -119,11 +132,7 @@ class PaperPanel(QWidget):
             f"  ·  review: {paper.review_decision.value if paper.review_decision else '—'}"
             + (f"  ·  ⚠ failed at {paper.failed_step}" if paper.failed_step else "")
         )
-        pdf_to_show = paper.truncated_pdf_path or paper.pdf_path
-        if pdf_to_show and Path(pdf_to_show).exists():
-            self.pdf_view.load(Path(pdf_to_show))
-        else:
-            self.pdf_view.clear()
+        self._update_pdf_btn(paper)
         self._render_figure(paper)
         self._render_eval(paper)
 
@@ -253,25 +262,42 @@ class PaperPanel(QWidget):
             self.figure_preview.setText("No figure cropped yet.")
             self.figure_preview.setToolTip("")
 
-    def _render_eval(self, paper: Paper) -> None:
-        ev = paper.evaluation_json
-        if not ev:
-            self.eval_text.setPlainText("No evaluation yet. Export → run eval agent → import results.")
+    def _set_locale(self, locale: str) -> None:
+        if locale == self.locale:
             return
-        scores = ev.get("scores") or {}
-        summary = (ev.get("summary") or {}).get("en", "")
-        decision = ev.get("recommendationDecision", "—")
-        lines = [
-            f"Decision: {decision}   Total: {scores.get('total', '—')}/100",
-            f"  novelty {scores.get('novelty','—')} · rigor {scores.get('methodologicalRigor','—')}"
-            f" · experiments {scores.get('experimentalQuality','—')} · venue {scores.get('venueSourceCredibility','—')}",
-            "",
-            summary,
-        ]
-        self.eval_text.setPlainText("\n".join(lines))
+        self.locale = locale
+        if self.paper:
+            self._render_eval(self.paper)
+
+    def _render_eval(self, paper: Paper) -> None:
+        self.eval_text.setHtml(eval_html(paper.evaluation_json, self.locale))
+        self.eval_text.verticalScrollBar().setValue(0)
+
+    def _pdf_to_show(self, paper: Optional[Paper]) -> Optional[Path]:
+        candidate = paper and (paper.truncated_pdf_path or paper.pdf_path)
+        return Path(candidate) if candidate and Path(candidate).exists() else None
+
+    def _update_pdf_btn(self, paper: Optional[Paper]) -> None:
+        """Download PDF when none is present yet; otherwise launch the preview."""
+        self.pdf_btn.setText("Preview / Crop" if self._pdf_to_show(paper) else "Download PDF")
+
+    def _on_pdf_btn(self) -> None:
+        if self._pdf_to_show(self.paper):
+            self._open_preview()
+        else:
+            self._download()
+
+    def _open_preview(self) -> None:
+        pdf = self._pdf_to_show(self.paper)
+        if pdf is None:
+            return
+        dlg = CropDialog(pdf, 0, self)
+        dlg.truncate_requested.connect(self._truncate)
+        dlg.crop_requested.connect(self._crop)
+        dlg.exec()
 
     def _set_enabled(self, on: bool) -> None:
-        for w in (self.download_btn, self.pdf_view, self.pass_btn, self.reject_btn):
+        for w in (self.pdf_btn, self.pass_btn, self.reject_btn):
             w.setEnabled(on)
 
     def _reload(self) -> None:

@@ -1,8 +1,7 @@
 import 'server-only';
 
 import Link from 'next/link';
-import { Bell, Search } from 'lucide-react';
-import { runsRepo } from '@/server/repos/runs';
+import { Bell } from 'lucide-react';
 import type { Locale } from '@/lib/locale';
 import { getMessages } from '@/i18n';
 import { LocaleSwitcher } from '@/components/locale-switcher';
@@ -37,7 +36,7 @@ export function AppHeaderPlaceholder({ locale }: { locale: Locale }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#e5e9f3] bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto grid max-w-[1760px] grid-cols-1 items-center gap-4 px-4 py-3 sm:px-6 lg:grid-cols-[220px_minmax(280px,1fr)_auto] lg:px-12">
+      <div className="mx-auto grid max-w-[1760px] grid-cols-1 items-center gap-4 px-4 py-3 sm:px-6 lg:grid-cols-[220px_1fr] lg:px-12">
         <Link
           href="/"
           className="inline-flex items-center justify-center gap-3 text-[22px] font-extrabold tracking-normal text-[#392ee5] lg:justify-start"
@@ -49,20 +48,12 @@ export function AppHeaderPlaceholder({ locale }: { locale: Locale }) {
           <span>{t.brand}</span>
         </Link>
 
-        <div className="mx-auto flex min-h-11 w-full max-w-[620px] items-center gap-3 rounded-[10px] border border-[#d8dfeb] bg-white px-4 text-[#98a2b3]">
-          <Search aria-hidden className="h-5 w-5 shrink-0" />
-          <span className="h-3 flex-1 animate-pulse rounded-full bg-[#edf1f7]" />
-        </div>
-
         <nav
           className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-bold whitespace-nowrap text-[#111827] lg:justify-end xl:gap-x-7"
           aria-label={t.mainNavAria}
         >
-          <Link href="/" className="hover:text-[#392ee5]">
-            {t.navHot}
-          </Link>
-          <Link href="/library" className="hover:text-[#392ee5]">
-            {t.navLatest}
+          <Link href="/papers" className="hover:text-[#392ee5]">
+            {t.navAllPapers}
           </Link>
           <Link href="/library" className="hover:text-[#392ee5]">
             {t.navLibrary}
@@ -82,16 +73,12 @@ export function AppHeaderPlaceholder({ locale }: { locale: Locale }) {
 }
 
 export async function AppHeader({ locale }: { locale: Locale }) {
-  const [latest, session] = await Promise.all([
-    runsRepo.latestCompletedForDisplay(),
-    getCurrentSession(),
-  ]);
+  const session = await getCurrentSession();
   const t = getMessages(locale).header;
-  const latestHref = latest ? `/runs/${latest.id}` : '/library';
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#e5e9f3] bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto grid max-w-[1760px] grid-cols-1 items-center gap-4 px-4 py-3 sm:px-6 lg:grid-cols-[220px_minmax(280px,1fr)_auto] lg:px-12">
+      <div className="mx-auto grid max-w-[1760px] grid-cols-1 items-center gap-4 px-4 py-3 sm:px-6 lg:grid-cols-[220px_1fr] lg:px-12">
         <Link
           href="/"
           className="inline-flex items-center justify-center gap-3 text-[22px] font-extrabold tracking-normal text-[#392ee5] lg:justify-start"
@@ -103,28 +90,12 @@ export async function AppHeader({ locale }: { locale: Locale }) {
           <span>{t.brand}</span>
         </Link>
 
-        <label className="mx-auto flex min-h-11 w-full max-w-[620px] items-center gap-3 rounded-[10px] border border-[#d8dfeb] bg-white px-4 text-[#475467] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-          <Search aria-hidden className="h-5 w-5 shrink-0" />
-          <input
-            type="search"
-            aria-label={t.searchAria}
-            placeholder={t.searchPlaceholder}
-            className="min-w-0 flex-1 border-0 bg-transparent text-sm text-[#344054] outline-none placeholder:text-[#98a2b3]"
-          />
-          <span className="hidden min-w-11 justify-center rounded-lg bg-[#f2f4f8] px-2 py-1 text-xs text-[#667085] sm:inline-flex">
-            {t.keyboardHint}
-          </span>
-        </label>
-
         <nav
           className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-bold whitespace-nowrap text-[#111827] lg:justify-end xl:gap-x-7"
           aria-label={t.mainNavAria}
         >
-          <Link href="/" className="hover:text-[#392ee5]">
-            {t.navHot}
-          </Link>
-          <Link href={latestHref} className="hover:text-[#392ee5]">
-            {t.navLatest}
+          <Link href="/papers" className="hover:text-[#392ee5]">
+            {t.navAllPapers}
           </Link>
           <Link href="/library" className="hover:text-[#392ee5]">
             {t.navLibrary}

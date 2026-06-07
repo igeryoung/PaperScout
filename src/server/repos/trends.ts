@@ -1,6 +1,7 @@
 // View-model aggregates for the Phase 4 trend dashboard.
 // All Prisma calls live here so pages stay free of joins.
 
+import { unstable_cache } from 'next/cache';
 import { db } from '@/lib/db';
 import type {
   EvaluationStage,
@@ -8,7 +9,7 @@ import type {
   Source,
 } from '@prisma/client';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
-import { formatConferenceLabel } from '@/lib/source-label';
+import { formatConferenceLabel, matchConferenceAcronym } from '@/lib/source-label';
 
 type SummaryEvalRow = {
   paperId: string;
@@ -60,6 +61,67 @@ function median(values: number[]): number {
     : sorted[mid];
 }
 
+type SourceRow = { source: Source; paper: { venue: string | null } };
+
+/** Tally PaperSource rows into a sorted SourceCount[] (OPENREVIEW split by venue). */
+function tallySources(rows: SourceRow[]): SourceCount[] {
+  const sourceCounts = new Map<string, SourceCount>();
+  for (const row of rows) {
+    const label =
+      row.source === 'OPENREVIEW' && row.paper.venue?.trim()
+        ? formatConferenceLabel(row.paper.venue)
+        : null;
+    const key = label ? `${row.source}:${label}` : row.source;
+    const existing = sourceCounts.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      sourceCounts.set(key, { key, source: row.source, label, count: 1 });
+    }
+  }
+  return [...sourceCounts.values()].sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.key.localeCompare(b.key);
+  });
+}
+
+/** Cache tag for the database-wide source distribution; revalidate on ingest. */
+export const SOURCE_DISTRIBUTION_TAG = 'source-distribution';
+
+// Statistic over EVERY paper in the database, not a single run. Restricted to
+// top-conference papers (venue resolves to a tracked acronym) and counted ONE
+// per paper. Cached so it is computed once and reused across reloads instead of
+// recalculated each request.
+const getCachedSourceDistribution = unstable_cache(
+  async (): Promise<SourceCount[]> => {
+    const papers = await db.paper.findMany({
+      select: { primarySource: true, venue: true },
+    });
+    const counts = new Map<string, SourceCount>();
+    for (const p of papers) {
+      const acronym = matchConferenceAcronym(p.venue);
+      if (!acronym) continue; // top conferences only
+      const existing = counts.get(acronym);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(acronym, {
+          key: acronym,
+          source: p.primarySource,
+          label: acronym,
+          count: 1,
+        });
+      }
+    }
+    return [...counts.values()].sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.key.localeCompare(b.key);
+    });
+  },
+  ['source-distribution'],
+  { tags: [SOURCE_DISTRIBUTION_TAG], revalidate: 3600 },
+);
+
 function bestEvalPerPaper(evals: SummaryEvalRow[]): Map<string, SummaryEvalRow> {
   const byPaper = new Map<string, SummaryEvalRow[]>();
   for (const e of evals) {
@@ -76,6 +138,8 @@ function bestEvalPerPaper(evals: SummaryEvalRow[]): Map<string, SummaryEvalRow> 
 }
 
 export const trendsRepo = {
+  /** Database-wide source distribution (all papers), cached across reloads. */
+  getSourceDistribution: (): Promise<SourceCount[]> => getCachedSourceDistribution(),
   getRunSummary: async (runId: string): Promise<RunSummary> => {
     const results = await db.paperRunResult.findMany({
       where: { runId },
@@ -122,24 +186,7 @@ export const trendsRepo = {
       }),
     ]);
 
-    const sourceCounts = new Map<string, SourceCount>();
-    for (const row of sourceRows) {
-      const label =
-        row.source === 'OPENREVIEW' && row.paper.venue?.trim()
-          ? formatConferenceLabel(row.paper.venue)
-          : null;
-      const key = label ? `${row.source}:${label}` : row.source;
-      const existing = sourceCounts.get(key);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        sourceCounts.set(key, { key, source: row.source, label, count: 1 });
-      }
-    }
-    const sources: SourceCount[] = [...sourceCounts.values()].sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return a.key.localeCompare(b.key);
-    });
+    const sources = tallySources(sourceRows);
 
     const topTags: TagCount[] = tagGroups.map((g) => ({
       tag: g.tag,

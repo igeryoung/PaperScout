@@ -68,9 +68,12 @@ def crop_figure(
     page_index: int,
     rect_points: tuple[float, float, float, float],
     dest: Path,
-    zoom: float = 2.0,
+    zoom: float = 4.0,
 ) -> Path:
-    """Render the clip ``rect_points`` (PDF points: x0,y0,x1,y1) of one page to PNG."""
+    """Render the clip ``rect_points`` (PDF points: x0,y0,x1,y1) of one page to PNG.
+
+    ``zoom`` is the render scale (1.0 == 72 dpi); 4.0 gives a crisp ~288 dpi crop.
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
     clip = fitz.Rect(*rect_points)
     with fitz.open(pdf_path) as doc:
