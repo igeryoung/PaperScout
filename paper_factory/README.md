@@ -45,6 +45,27 @@ Working data lives in `../data/factory/` (override with `PAPER_FACTORY_DATA`).
 7. **Import eval results** → review each paper → **Pass / Reject**.
 8. **Ingest passed** — bundles PASS papers and runs `npm run ingest` into the app's Postgres.
 
+## Live DB tab
+
+A second tab, **Live DB**, views and maintains the papers that are actually live in
+the app's Postgres — the records `Ingest passed` writes. It never touches Postgres
+directly; it shells out to `scripts/factory-db.ts` (`npm run factory:db`), which goes
+through Prisma, the same way ingest does.
+
+- **Browse** — a paged, searchable table (search title/abstract/author, filter by
+  venue/year, sort newest/oldest/score).
+- **Edit in place** — core fields (title, venue, date, pdf, authors, abstract), tags,
+  code links, the rendered figure (label/page/caption), and the selected evaluation
+  (per-dimension scores + total, decision, and the localized summary/strengths/
+  weaknesses/digest as JSON). **Save changes** writes directly to live Postgres;
+  editing the title recomputes `normalizedTitle` (the `duplicateFingerprint` is kept
+  stable). Saving marks all of a paper's tags `USER_GENERATED`.
+- **Delete** — removes the paper (Prisma cascade). If the paper still has a local
+  factory counterpart, its stage is reset from `INGESTED` back to `REVIEWED`.
+
+> Edits/deletes hit the **production** DB with only a confirm dialog — there is no
+> separate staging DB.
+
 ## Module map
 
 | Module | Responsibility |
@@ -57,7 +78,10 @@ Working data lives in `../data/factory/` (override with `PAPER_FACTORY_DATA`).
 | `export.py` | batch → eval bundle (`candidates.json` + truncated PDFs + figures) |
 | `eval_import.py` | `evaluations.json` → attach to papers by `joinKey`, `EVALUATED` |
 | `ingest.py` | PASS papers → run-dir bundle → `scripts/ingest.ts` |
-| `ui/` | `main_window`, `pdf_view` (crop/truncate), `paper_panel` (review) |
+| `db_live.py` | live Postgres read/maintain via `npm run factory:db` (subprocess) |
+| `ui/` | `main_window` (Pipeline + Live DB tabs), `pdf_view` (crop/truncate), `paper_panel` (review), `db_page` (Live DB) |
+
+The Live DB tab is backed by `scripts/factory-db.ts` (`list`/`get`/`update`/`delete`).
 
 The export/ingest bundles reuse the existing zod schemas
 (`src/server/schema/candidate.ts`, `evaluation.ts`) and pass

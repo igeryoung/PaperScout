@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "db:seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env prisma/seed.ts",
     "ingest": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/ingest.ts",
+    "factory:db": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/factory-db.ts",
     "validate:candidates": "tsx scripts/validate-candidates.ts",
     "validate:evaluations": "tsx scripts/validate-evaluations.ts",
     "prompt:fixtures": "tsx scripts/prompt-eval/build-fixture-run.ts",

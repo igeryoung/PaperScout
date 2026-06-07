@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSplitter,
+    QTabWidget,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -28,6 +29,7 @@ from PySide6.QtWidgets import (
 from .. import config, eval_import, export, importer, ingest
 from ..db import Store
 from ..models import Bucket, Paper, Stage
+from .db_page import DbPage
 from .paper_panel import PaperPanel
 
 _ALL_BATCHES = -1
@@ -96,7 +98,22 @@ class MainWindow(QMainWindow):
         outer.setStretchFactor(0, 0)
         outer.setStretchFactor(1, 1)
         outer.setSizes([240, 1040])
-        self.setCentralWidget(outer)
+
+        pipeline = QWidget()
+        pl = QVBoxLayout(pipeline)
+        pl.setContentsMargins(0, 0, 0, 0)
+        pl.addWidget(outer)
+
+        # Live DB tab: loaded lazily on first visit so startup never blocks on a
+        # subprocess call into Postgres.
+        self.db_page = DbPage(self.store)
+        self._db_loaded = False
+
+        self.tabs = QTabWidget()
+        self.tabs.addTab(pipeline, "Pipeline")
+        self.tabs.addTab(self.db_page, "Live DB")
+        self.tabs.currentChanged.connect(self._on_tab_changed)
+        self.setCentralWidget(self.tabs)
 
         self._build_toolbar()
         self.refresh_batches()
@@ -105,6 +122,7 @@ class MainWindow(QMainWindow):
     # ---------- toolbar ----------
     def _build_toolbar(self) -> None:
         tb = self.addToolBar("main")
+        self.toolbar = tb
         tb.setMovable(False)
         toggle = QPushButton("☰ Batches")
         toggle.setCheckable(True)
@@ -121,6 +139,14 @@ class MainWindow(QMainWindow):
             btn = QPushButton(label)
             btn.clicked.connect(slot)
             tb.addWidget(btn)
+
+    def _on_tab_changed(self, index: int) -> None:
+        on_db = self.tabs.widget(index) is self.db_page
+        # The pipeline toolbar actions don't apply to the Live DB tab.
+        self.toolbar.setVisible(not on_db)
+        if on_db and not self._db_loaded:
+            self._db_loaded = True
+            self.db_page.refresh()
 
     # ---------- data helpers ----------
     @property
