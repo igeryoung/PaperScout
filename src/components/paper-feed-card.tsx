@@ -9,6 +9,7 @@ import { formatSourceLabel } from '@/lib/source-label';
 import type { Messages } from '@/i18n';
 import { HomePaperActions } from '@/components/home-paper-actions';
 import { HomeFigurePreview } from '@/components/home-figure-preview';
+import { HomeSummaryDialog } from '@/components/home-summary-dialog';
 
 export type PaperFeedCardProps = {
   paper: PaperWithDetail;
@@ -129,10 +130,14 @@ function PaperThumb({
 function ExternalLinks({
   paper,
   evaluation,
+  summary,
+  metaLine,
   messages,
 }: {
   paper: PaperWithDetail;
   evaluation: PaperEvaluation | null;
+  summary: string;
+  metaLine: string;
   messages: Messages;
 }) {
   const arxivUrl = findSourceLink(paper, 'ARXIV');
@@ -143,7 +148,18 @@ function ExternalLinks({
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-bold text-[#392ee5] xl:justify-end">
-      <Link href={`/papers/${paper.id}`}>{messages.home.cardViewSummary}</Link>
+      <HomeSummaryDialog
+        href={`/papers/${paper.id}`}
+        title={paper.title}
+        meta={metaLine}
+        summary={summary}
+        abstract={paper.abstract}
+        triggerLabel={messages.home.cardViewSummary}
+        aiLabel={messages.home.cardSummaryDialogAiLabel}
+        abstractLabel={messages.home.cardSummaryDialogAbstractLabel}
+        emptyLabel={messages.home.cardSummaryDialogEmpty}
+        viewFullLabel={messages.home.cardSummaryDialogViewFull}
+      />
       {firstExternal ? (
         <a href={firstExternal} target="_blank" rel="noreferrer">
           {messages.home.cardOpenPaper}
@@ -174,6 +190,11 @@ export function PaperFeedCard({
     venue: paper.venue,
     sourceLabels,
   });
+  const metaLine = [
+    formatAuthors(paper.authors, 3),
+    primarySourceLabel,
+    formatDate(paper.publishedDate),
+  ].join(' · ');
   return (
     <article className="grid grid-cols-1 items-stretch gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)_230px]">
       <div className="min-w-0">
@@ -255,7 +276,13 @@ export function PaperFeedCard({
             {messages.home.cardPublishDate(formatDateISO(paper.createdAt))}
           </span>
         </div>
-        <ExternalLinks paper={paper} evaluation={evaluation} messages={messages} />
+        <ExternalLinks
+          paper={paper}
+          evaluation={evaluation}
+          summary={summary}
+          metaLine={metaLine}
+          messages={messages}
+        />
       </div>
     </article>
   );
