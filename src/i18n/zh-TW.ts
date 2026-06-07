@@ -55,7 +55,7 @@ export const messages: Messages = {
     feedTabLatest: '最新發佈',
     feedTabTop: '高分推薦',
     feedTablistAria: '論文列表篩選',
-    feedFilterDomain: '領域',
+    feedFilterDomain: '會議',
     feedFilterTime: '時間',
     feedFilterSort: '排序依據：AI 評分',
     feedTimeWeek: '近一週',

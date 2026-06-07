@@ -22,14 +22,12 @@ import {
 } from '@/server/repos/trends';
 import { formatDate } from '@/lib/format';
 import { getLocale, type Locale } from '@/lib/locale';
-import { formatSourceLabel } from '@/lib/source-label';
+import { formatConferenceLabel, formatSourceLabel } from '@/lib/source-label';
 import { getMessages, type Messages } from '@/i18n';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { libraryRepo } from '@/server/repos/library';
-import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { PaperFeedCard } from '@/components/paper-feed-card';
 import { FeedControls, type FeedControlsLabels } from '@/components/feed-controls';
-import { Pagination } from '@/components/pagination';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,46 +40,34 @@ const TOPIC_FALLBACKS = [
   'AI Safety',
 ];
 
-const HOME_FEED_PAGE_SIZE = 10;
+// "For you" feed shows a random handful of papers, reshuffled each request.
+const HOME_FEED_RANDOM_COUNT = 5;
 
-type SortKey = 'score' | 'date' | 'rank';
 type TimeKey = 'all' | 'week' | 'month' | 'year';
 
 interface FeedFilters {
   domain: string;
   time: TimeKey;
-  sort: SortKey;
 }
 
 interface HomePageProps {
   searchParams: Promise<{
-    page?: string;
     locale?: string;
     domain?: string;
     time?: string;
-    sort?: string;
   }>;
 }
 
 interface HomeDataPromises {
   summary: Promise<RunSummary>;
   sourceDistribution: Promise<SourceCount[]>;
+  tagDistribution: Promise<TagCount[]>;
   recommended: Promise<RunResultWithDetail[]>;
   session: ReturnType<typeof getCurrentSession>;
 }
 
-function parsePageParam(value: string | undefined): number {
-  if (!value) return 1;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-}
-
 function parseTimeParam(value: string | undefined): TimeKey {
   return value === 'week' || value === 'month' || value === 'year' ? value : 'all';
-}
-
-function parseSortParam(value: string | undefined): SortKey {
-  return value === 'date' || value === 'rank' ? value : 'score';
 }
 
 function timeCutoff(time: TimeKey): Date | null {
@@ -95,13 +81,9 @@ function resultDate(result: RunResultWithDetail): Date | null {
   return raw ? new Date(raw) : null;
 }
 
-function resultScore(result: RunResultWithDetail): number {
-  const evaluation = selectBestEvaluation(result.paper.evaluations);
-  return evaluation ? evaluation.totalScore : -1;
-}
-
-function resultRank(result: RunResultWithDetail): number {
-  return result.finalRank ?? Number.MAX_SAFE_INTEGER;
+function resultConference(result: RunResultWithDetail): string | null {
+  const venue = result.paper.venue?.trim();
+  return venue ? formatConferenceLabel(venue) : null;
 }
 
 function applyFeedFilters(
@@ -110,7 +92,7 @@ function applyFeedFilters(
 ): RunResultWithDetail[] {
   let out = results;
   if (filters.domain) {
-    out = out.filter((r) => r.paper.tags.some((t) => t.tag === filters.domain));
+    out = out.filter((r) => resultConference(r) === filters.domain);
   }
   const cutoff = timeCutoff(filters.time);
   if (cutoff) {
@@ -122,33 +104,14 @@ function applyFeedFilters(
   return out;
 }
 
-function sortFeedResults(
-  results: RunResultWithDetail[],
-  sort: SortKey,
-): RunResultWithDetail[] {
-  const sorted = [...results];
-  if (sort === 'score') {
-    sorted.sort((a, b) => resultScore(b) - resultScore(a) || resultRank(a) - resultRank(b));
-  } else if (sort === 'date') {
-    sorted.sort(
-      (a, b) =>
-        (resultDate(b)?.getTime() ?? 0) - (resultDate(a)?.getTime() ?? 0) ||
-        resultRank(a) - resultRank(b),
-    );
-  } else {
-    sorted.sort((a, b) => resultRank(a) - resultRank(b));
+/** Fisher-Yates shuffle, then take the first `count` items. */
+function sampleRandom<T>(items: T[], count: number): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return sorted;
-}
-
-function buildFeedHref(page: number, filters: FeedFilters): string {
-  const params = new URLSearchParams();
-  if (filters.domain) params.set('domain', filters.domain);
-  if (filters.time !== 'all') params.set('time', filters.time);
-  if (filters.sort !== 'score') params.set('sort', filters.sort);
-  if (page > 1) params.set('page', String(page));
-  const qs = params.toString();
-  return qs ? `/?${qs}` : '/';
+  return arr.slice(0, count);
 }
 
 function EmptyState({ messages }: { messages: Messages }) {
@@ -462,10 +425,6 @@ function feedControlLabels(messages: Messages): FeedControlsLabels {
     timeWeek: t.feedTimeWeek,
     timeMonth: t.feedTimeMonth,
     timeYear: t.feedTimeYear,
-    sortAria: t.feedSortAria,
-    sortScore: t.feedFilterSort,
-    sortDate: t.feedSortDate,
-    sortRank: t.feedSortRank,
   };
 }
 
@@ -485,7 +444,6 @@ function FeedToolbarFallback({
       <FeedControls
         domain={filters.domain}
         time={filters.time}
-        sort={filters.sort}
         domainOptions={[]}
         labels={feedControlLabels(messages)}
       />
@@ -502,14 +460,13 @@ async function FeedToolbar({
   filters: FeedFilters;
   messages: Messages;
 }) {
-  const domainOptions = (await summary).topTags.map((tag) => tag.tag);
+  const domainOptions = (await summary).topConferences.map((c) => c.tag);
   return (
     <div className={FEED_TOOLBAR_CLASS}>
       <FeedTabs messages={messages} />
       <FeedControls
         domain={filters.domain}
         time={filters.time}
-        sort={filters.sort}
         domainOptions={domainOptions}
         labels={feedControlLabels(messages)}
       />
@@ -670,32 +627,24 @@ async function HeroSection({
 
 async function FeedResults({
   runId,
-  requestedPage,
   filters,
   session,
   locale,
   messages,
 }: {
   runId: string;
-  requestedPage: number;
   filters: FeedFilters;
   session: HomeDataPromises['session'];
   locale: Locale;
   messages: Messages;
 }) {
-  // Runs hold a small number of papers, so filter/sort/paginate in memory —
-  // this keeps sort-by-score (which lives on the selected evaluation) simple.
+  // Runs hold a small number of papers, so filter in memory — then surface a
+  // random handful as the "for you" feed (reshuffled on each request).
   const allResults = await runResultsRepo.findByRunWithDetail(runId, {
     recommendedOnly: false,
   });
-  const matched = sortFeedResults(applyFeedFilters(allResults, filters), filters.sort);
-  const resolvedTotalResults = matched.length;
-  const totalPages = Math.max(1, Math.ceil(resolvedTotalResults / HOME_FEED_PAGE_SIZE));
-  const currentPage = Math.min(requestedPage, totalPages);
-  const results = matched.slice(
-    (currentPage - 1) * HOME_FEED_PAGE_SIZE,
-    currentPage * HOME_FEED_PAGE_SIZE,
-  );
+  const matched = applyFeedFilters(allResults, filters);
+  const results = sampleRandom(matched, HOME_FEED_RANDOM_COUNT);
   const resolvedSession = await session;
   const paperStates = resolvedSession
     ? await libraryRepo.findPaperStates({
@@ -725,19 +674,6 @@ async function FeedResults({
           />
         ))
       )}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={resolvedTotalResults}
-        labels={{
-          allShown: messages.home.paginationAllShown,
-          status: messages.home.paginationStatus,
-          prev: messages.home.paginationPrev,
-          next: messages.home.paginationNext,
-          aria: messages.home.paginationAria,
-        }}
-        buildHref={(page) => buildFeedHref(page, filters)}
-      />
     </>
   );
 }
@@ -745,14 +681,12 @@ async function FeedResults({
 function FeedSection({
   run,
   data,
-  requestedPage,
   filters,
   locale,
   messages,
 }: {
   run: NonNullable<Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>>;
   data: HomeDataPromises;
-  requestedPage: number;
   filters: FeedFilters;
   locale: Locale;
   messages: Messages;
@@ -772,7 +706,6 @@ function FeedSection({
         <Suspense fallback={<FeedResultsLoading messages={messages} />}>
           <FeedResults
             runId={run.id}
-            requestedPage={requestedPage}
             filters={filters}
             session={data.session}
             locale={locale}
@@ -785,13 +718,13 @@ function FeedSection({
 }
 
 async function HotTagsSection({
-  summary,
+  tagDistribution,
   messages,
 }: {
-  summary: Promise<RunSummary>;
+  tagDistribution: Promise<TagCount[]>;
   messages: Messages;
 }) {
-  return <HotTagsCard tags={(await summary).topTags} messages={messages} />;
+  return <HotTagsCard tags={await tagDistribution} messages={messages} />;
 }
 
 async function RecentRecommendationsSection({
@@ -828,15 +761,14 @@ async function HomePageContent({
   const messages = getMessages(locale);
   if (!run) return <EmptyState messages={messages} />;
 
-  const requestedPage = parsePageParam(searchParams.page);
   const filters: FeedFilters = {
     domain: searchParams.domain ?? '',
     time: parseTimeParam(searchParams.time),
-    sort: parseSortParam(searchParams.sort),
   };
   const data: HomeDataPromises = {
     summary: trendsRepo.getRunSummary(run.id),
     sourceDistribution: trendsRepo.getSourceDistribution(),
+    tagDistribution: trendsRepo.getTagDistribution(),
     recommended: runResultsRepo.findByRunWithDetail(run.id, {
       recommendedOnly: true,
       limit: 3,
@@ -854,7 +786,6 @@ async function HomePageContent({
         <FeedSection
           run={run}
           data={data}
-          requestedPage={requestedPage}
           filters={filters}
           locale={locale}
           messages={messages}
@@ -864,7 +795,7 @@ async function HomePageContent({
           <Suspense
             fallback={<LoadingPanel label={messages.home.loadingHotTags} minHeight={132} />}
           >
-            <HotTagsSection summary={data.summary} messages={messages} />
+            <HotTagsSection tagDistribution={data.tagDistribution} messages={messages} />
           </Suspense>
           <Suspense
             fallback={

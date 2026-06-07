@@ -11,10 +11,6 @@ export type FeedControlsLabels = {
   timeWeek: string;
   timeMonth: string;
   timeYear: string;
-  sortAria: string;
-  sortScore: string;
-  sortDate: string;
-  sortRank: string;
 };
 
 const SELECT_CLASS =
@@ -23,13 +19,11 @@ const SELECT_CLASS =
 export function FeedControls({
   domain,
   time,
-  sort,
   domainOptions,
   labels,
 }: {
   domain: string;
   time: string;
-  sort: string;
   domainOptions: string[];
   labels: FeedControlsLabels;
 }) {
@@ -76,17 +70,6 @@ export function FeedControls({
         <option value="week">{labels.timeWeek}</option>
         <option value="month">{labels.timeMonth}</option>
         <option value="year">{labels.timeYear}</option>
-      </select>
-
-      <select
-        aria-label={labels.sortAria}
-        className={SELECT_CLASS}
-        value={sort}
-        onChange={(e) => update('sort', e.target.value, e.target.value === 'score')}
-      >
-        <option value="score">{labels.sortScore}</option>
-        <option value="date">{labels.sortDate}</option>
-        <option value="rank">{labels.sortRank}</option>
       </select>
     </div>
   );

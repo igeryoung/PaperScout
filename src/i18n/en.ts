@@ -57,7 +57,7 @@ export const messages = {
     feedTabLatest: 'Latest',
     feedTabTop: 'Top scored',
     feedTablistAria: 'Paper feed filters',
-    feedFilterDomain: 'Domain',
+    feedFilterDomain: 'Conference',
     feedFilterTime: 'Time',
     feedFilterSort: 'Sort: AI score',
     feedTimeWeek: 'Past week',

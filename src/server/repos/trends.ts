@@ -48,6 +48,7 @@ export interface RunSummary {
   recommendedCount: number;
   sources: SourceCount[];
   topTags: TagCount[];
+  topConferences: TagCount[];
   scoreStats: ScoreStats | null;
   pdfStatus: PdfStatusCounts;
 }
@@ -122,6 +123,26 @@ const getCachedSourceDistribution = unstable_cache(
   { tags: [SOURCE_DISTRIBUTION_TAG], revalidate: 3600 },
 );
 
+/** Cache tag for the database-wide tag distribution; revalidate on ingest. */
+export const TAG_DISTRIBUTION_TAG = 'tag-distribution';
+
+// Statistic over EVERY paper in the database, not a single run. Counted once per
+// PaperTag row across all papers, top 10 by frequency. Cached so it is computed
+// once and reused across reloads instead of recalculated each request.
+const getCachedTagDistribution = unstable_cache(
+  async (): Promise<TagCount[]> => {
+    const rows = await db.paperTag.groupBy({
+      by: ['tag'],
+      _count: { tag: true },
+      orderBy: [{ _count: { tag: 'desc' } }, { tag: 'asc' }],
+      take: 10,
+    });
+    return rows.map((r) => ({ tag: r.tag, count: r._count.tag }));
+  },
+  ['tag-distribution'],
+  { tags: [TAG_DISTRIBUTION_TAG], revalidate: 3600 },
+);
+
 function bestEvalPerPaper(evals: SummaryEvalRow[]): Map<string, SummaryEvalRow> {
   const byPaper = new Map<string, SummaryEvalRow[]>();
   for (const e of evals) {
@@ -140,6 +161,8 @@ function bestEvalPerPaper(evals: SummaryEvalRow[]): Map<string, SummaryEvalRow> 
 export const trendsRepo = {
   /** Database-wide source distribution (all papers), cached across reloads. */
   getSourceDistribution: (): Promise<SourceCount[]> => getCachedSourceDistribution(),
+  /** Database-wide top tags (all papers), cached across reloads. */
+  getTagDistribution: (): Promise<TagCount[]> => getCachedTagDistribution(),
   getRunSummary: async (runId: string): Promise<RunSummary> => {
     const results = await db.paperRunResult.findMany({
       where: { runId },
@@ -155,6 +178,7 @@ export const trendsRepo = {
         recommendedCount: 0,
         sources: [],
         topTags: [],
+        topConferences: [],
         scoreStats: null,
         pdfStatus: { success: 0, failed: 0, unavailable: 0, none: 0 },
       };
@@ -164,6 +188,7 @@ export const trendsRepo = {
       db.paperSource.findMany({
         where: { paperId: { in: paperIds } },
         select: {
+          paperId: true,
           source: true,
           paper: { select: { venue: true } },
         },
@@ -187,6 +212,24 @@ export const trendsRepo = {
     ]);
 
     const sources = tallySources(sourceRows);
+
+    // One conference label per paper (venue lives on the paper, so dedupe by
+    // paperId before counting) for the home feed's conference filter.
+    const conferenceByPaper = new Map<string, string>();
+    for (const row of sourceRows) {
+      if (conferenceByPaper.has(row.paperId)) continue;
+      const venue = row.paper.venue?.trim();
+      if (!venue) continue;
+      const label = formatConferenceLabel(venue);
+      if (label) conferenceByPaper.set(row.paperId, label);
+    }
+    const conferenceCounts = new Map<string, number>();
+    for (const label of conferenceByPaper.values()) {
+      conferenceCounts.set(label, (conferenceCounts.get(label) ?? 0) + 1);
+    }
+    const topConferences: TagCount[] = [...conferenceCounts.entries()]
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 
     const topTags: TagCount[] = tagGroups.map((g) => ({
       tag: g.tag,
@@ -227,6 +270,7 @@ export const trendsRepo = {
       recommendedCount,
       sources,
       topTags,
+      topConferences,
       scoreStats,
       pdfStatus,
     };

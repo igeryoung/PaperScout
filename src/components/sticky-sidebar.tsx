@@ -44,19 +44,29 @@ export function StickySidebar({ children, className }: StickySidebarProps) {
 
       el.style.position = 'sticky';
       el.style.top = `${HEADER_OFFSET}px`;
-      el.style.willChange = 'transform';
-
-      if (overflow <= 0) {
-        translateY = 0;
-        el.style.transform = '';
-        lastScrollY = window.scrollY;
-        return;
-      }
 
       const scrollY = window.scrollY;
       const dy = scrollY - lastScrollY;
       lastScrollY = scrollY;
 
+      // The untransformed top of the sidebar: rect.top already includes our
+      // own transform, so subtract it back out. The sidebar is only "stuck"
+      // (pinned at HEADER_OFFSET) once that natural top reaches the offset.
+      // Before then it sits in normal flow below the hero, so applying any
+      // upward transform would drag it up over the hero — hence the overlap.
+      const naturalTop = el.getBoundingClientRect().top - translateY;
+      const stuck = naturalTop <= HEADER_OFFSET + 0.5;
+
+      if (overflow <= 0 || !stuck) {
+        if (translateY !== 0) {
+          translateY = 0;
+          el.style.transform = '';
+        }
+        el.style.willChange = '';
+        return;
+      }
+
+      el.style.willChange = 'transform';
       translateY = Math.max(-overflow, Math.min(0, translateY - dy));
       el.style.transform = `translateY(${translateY}px)`;
     };
