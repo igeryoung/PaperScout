@@ -78,6 +78,12 @@ export const EvaluationSchema = z
   .object({
     joinKey: JoinKeySchema,
     evaluationStage: EvaluationStageEnum,
+    // The paper's own abstract, extracted from the PDF (raw single-value string,
+    // not translated — mirrors CandidateRecord.abstract / Paper.abstract). Lets the
+    // evaluate step backfill abstracts that collection couldn't get (e.g. OPENACCESS
+    // venues, where crawl-conference-list leaves abstract = null). ingest only writes
+    // it to Paper.abstract when the candidate's abstract was empty; it never overwrites.
+    abstract: z.string().min(1).nullable().default(null),
     scores: ScoresSchema,
     summary: localizedString(),
     recommendationReason: localizedString(),

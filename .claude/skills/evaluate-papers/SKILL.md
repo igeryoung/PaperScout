@@ -18,7 +18,7 @@ the `zh-TW` half.
 
 - **[FIELDS.md](FIELDS.md)** — every column in an `EvaluationRecord`: what it is for, its shape/constraints, and how to fill it. **Read before writing the record.**
 - **[STYLE.md](STYLE.md)** — audience, jargon, analogies, translation guidelines (zh-TW), translatable vs. single-value fields. **Required reading before writing any narrative field.**
-- **[RUBRIC.md](RUBRIC.md)** — per-dimension scoring criteria (reward / penalize). **Required reading before step d.**
+- **[RUBRIC.md](RUBRIC.md)** — per-dimension scoring bands (match the paper to a band). **Required reading before step d.**
 - **[DIGEST.md](DIGEST.md)** — AI Digest field shape, mapping table, `digest = null` rules.
 
 ## Input: the export bundle
@@ -44,6 +44,11 @@ Read `<safeId>-main.pdf` and fill every narrative field. All bilingual content m
 **[STYLE.md](STYLE.md)** (define-on-first-use, analogies in `digest.tldr` and
 `digest.methodOverview`, no marketing).
 
+- `abstract` — the paper's **own abstract**, copied verbatim from the PDF (raw single-value
+  string, **not translated**, not summarized). If `candidates.json` already carries a non-empty
+  `abstract` for this paper, reuse that exact string. This backfills abstracts that collection
+  couldn't get (e.g. OPENACCESS venues, where it arrives `null`). Set `null` only if no abstract
+  is recoverable from either the PDF or the candidate.
 - `summary` — about 3 sentences, bilingual.
 - `recommendationReason` — 1–2 sentences, bilingual.
 - `strengths` — 2–4 bullets per locale, index-aligned.
@@ -71,7 +76,7 @@ PNG, then emit:
 ### d. Score and rank
 
 Apply **[RUBRIC.md](RUBRIC.md)** to score each of the 4 dimensions. For each dimension,
-score on the listed reward / penalize bullets — not on impressions.
+match the paper to the highest band it fully clears — not on impressions.
 
 | Dimension | Max |
 |---|---|
@@ -95,6 +100,8 @@ If `<safeId>-main.pdf` is missing or unreadable:
 - Score the paper from `candidates.json` metadata only (title + abstract + venue + authors)
   using [RUBRIC.md](RUBRIC.md). Fill `scores`, `recommendationDecision`, `summary`,
   `recommendationReason`, `tags`.
+- Set `abstract` to the candidate's `abstract` (or `null` if the candidate has none) — you
+  can't read the PDF, so don't fabricate one.
 - Leave `strengths`, `weaknesses`, `figure`, `digest` all `= null`.
 
 The schema's `superRefine` enforces this layout — see [DIGEST.md](DIGEST.md) "`digest = null` rules".

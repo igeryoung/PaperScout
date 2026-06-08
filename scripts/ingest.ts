@@ -296,6 +296,12 @@ async function main() {
     });
     await tagsRepo.addAll(paperId, e.tags, 'LLM_GENERATED');
 
+    // Backfill the abstract the evaluate step pulled from the PDF, but only for papers
+    // whose collection source had none (guarded to abstract = null inside the repo).
+    if (e.abstract) {
+      await papersRepo.backfillAbstract(paperId, e.abstract);
+    }
+
     if (e.figure) {
       const paper = await papersRepo.findById(paperId);
       const outcome = await ingestFigure({

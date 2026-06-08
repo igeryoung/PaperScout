@@ -35,6 +35,16 @@ How to write:
 On `UNAVAILABLE`/`FAILED`, take the PDF-unreadable path in [SKILL.md](SKILL.md): score from
 `candidates.json` metadata, and `strengths`/`weaknesses`/`figure`/`digest` must be `null`.
 
+### `abstract` — *nullable, single-value — NOT translated*
+What it's for: the paper's own abstract. ingest backfills it into `Paper.abstract` (search +
+display) **only when the candidate had none** — it never overwrites an existing abstract. The
+main beneficiaries are OPENACCESS papers (CVPR/ICCV/ECCV/ACM MM), where collection leaves
+`abstract = null`.
+How to write: copy the abstract **verbatim** from the PDF — a raw English string, not translated,
+not summarized (that's what `summary` is for). If `candidates.json` already carries a non-empty
+`abstract`, reuse that exact string. On the PDF-unreadable path, fall back to the candidate's
+`abstract`. Use `null` only when no abstract exists in either the PDF or the candidate.
+
 ---
 
 ## Scores
@@ -125,4 +135,6 @@ Legacy slot. Always emit `null` (its default). Do not populate it.
 | `UNAVAILABLE` / `FAILED` | `null` | `null` | `null` |
 
 `summary`, `recommendationReason`, `tags`, `scores`, `recommendationDecision`, `joinKey`,
-`evaluationStage` are filled on **every** record, including the PDF-unreadable path.
+`evaluationStage` are filled on **every** record, including the PDF-unreadable path. `abstract`
+is filled on every record too whenever one is recoverable (from the PDF, else the candidate),
+and is `null` only when neither source has one.

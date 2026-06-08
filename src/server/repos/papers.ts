@@ -256,6 +256,17 @@ export const papersRepo = {
     return groups.map((group) => ({ tag: group.tag, count: group._count.tag }));
   },
 
+  /**
+   * Backfill the abstract only when it is currently empty (null). Used by ingest
+   * to fill in an abstract the evaluate step extracted from the PDF for papers whose
+   * collection source had none (e.g. OPENACCESS). Never overwrites an existing
+   * abstract. Returns the number of rows updated (0 or 1).
+   */
+  backfillAbstract: (id: string, abstract: string): Promise<number> =>
+    db.paper
+      .updateMany({ where: { id, abstract: null }, data: { abstract } })
+      .then((r) => r.count),
+
   create: (input: {
     title: string;
     normalizedTitle: string;

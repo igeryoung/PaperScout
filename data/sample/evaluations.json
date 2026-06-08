@@ -5,6 +5,7 @@
       "sourcePaperId": "u6JLh0BO5h"
     },
     "evaluationStage": "FULL_PDF",
+    "abstract": "Inspired by the success of the Logit Lens in interpreting language models, we introduce jet expansions, a framework for decomposing the residual stream of transformers into a sum of explicit input-to-output paths using jets, a generalization of truncated Taylor series. The framework subsumes the Logit Lens as a zeroth-order case and enables dataset-free, model-agnostic extraction of n-gram statistics from the network, recovering interpretable circuits without backpropagation or probing data. We apply jet expansions to study how reinforcement learning from human feedback reshapes a model's internal n-gram associations, finding that alignment masks rather than erases toxic associations.",
     "scores": {
       "novelty": 19,
       "methodologicalRigor": 19,
@@ -102,6 +103,7 @@
       "sourcePaperId": "RxWILaXuhb"
     },
     "evaluationStage": "FULL_PDF",
+    "abstract": "Deep models for time-series forecasting are typically trained with a temporal mean-squared-error (MSE) loss applied independently at each step, which we show induces an autocorrelation bias: because adjacent labels are correlated, the per-step loss over-weights redundant information and effectively inflates the number of fitting tasks. We propose Time-o1, a transform-enhanced loss that applies a singular value decomposition to the label sequence, retains the top-K decorrelated components, and aligns the forecast with them. We prove (Theorem 3.1) that the autocorrelation bias vanishes once the components are decorrelated, and show that Time-o1 is a model-agnostic, plug-and-play objective. Across ETT, ECL, Traffic, Weather, and PEMS benchmarks and multiple backbones, Time-o1 consistently improves forecasting accuracy over standard temporal MSE and the closest frequency-domain baseline FreDF.",
     "scores": {
       "novelty": 13,
       "methodologicalRigor": 17,
