@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -33,6 +34,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -78,19 +80,24 @@ class DbPage(QWidget):
 
         split = QSplitter(Qt.Horizontal)
         split.addWidget(self.table_panel)
-        split.addWidget(self._detail_scroll)
+        split.addWidget(self.detail)
         split.setStretchFactor(0, 3)
         split.setStretchFactor(1, 4)
-        split.setSizes([520, 720])
+        split.setSizes([560, 760])
+        self.split = split
 
         root = QVBoxLayout(self)
+        root.setContentsMargins(8, 8, 8, 8)
+        root.setSpacing(8)
         root.addLayout(self.filter_bar)
         root.addWidget(split, 1)
         self._set_detail_enabled(False)
 
     # ---------- construction ----------
     def _build_filter_bar(self) -> None:
+        """Filters only — pagination lives in the table footer, where it belongs."""
         self.search = QLineEdit()
+        self.search.setClearButtonEnabled(True)
         self.search.setPlaceholderText("Search title / abstract / author…")
         self.search.returnPressed.connect(self.reload_first_page)
         self.venue = QLineEdit()
@@ -108,23 +115,15 @@ class DbPage(QWidget):
 
         search_btn = QPushButton("Search")
         search_btn.clicked.connect(self.reload_first_page)
-        self.prev_btn = QPushButton("‹ Prev")
-        self.prev_btn.clicked.connect(self._prev_page)
-        self.next_btn = QPushButton("Next ›")
-        self.next_btn.clicked.connect(self._next_page)
-        self.page_label = QLabel("")
 
         self.filter_bar = QHBoxLayout()
+        self.filter_bar.setSpacing(6)
         self.filter_bar.addWidget(self.search, 1)
         self.filter_bar.addWidget(self.venue)
         self.filter_bar.addWidget(self.year)
         self.filter_bar.addWidget(QLabel("Sort"))
         self.filter_bar.addWidget(self.sort)
         self.filter_bar.addWidget(search_btn)
-        self.filter_bar.addSpacing(12)
-        self.filter_bar.addWidget(self.prev_btn)
-        self.filter_bar.addWidget(self.page_label)
-        self.filter_bar.addWidget(self.next_btn)
 
     def _build_table(self) -> None:
         self.table = QTableWidget(0, 6)
@@ -136,6 +135,7 @@ class DbPage(QWidget):
         # Extended selection so Ctrl/Shift-click can build a set to batch-delete.
         self.table.setSelectionMode(QTableWidget.ExtendedSelection)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
         hdr = self.table.horizontalHeader()
         hdr.setSectionResizeMode(0, QHeaderView.Stretch)
         for c in range(1, 6):
@@ -143,28 +143,84 @@ class DbPage(QWidget):
         self.table.itemSelectionChanged.connect(self._on_row_selected)
         self.table.itemSelectionChanged.connect(self._update_selection_actions)
 
-        # Action row above the table for operations on the selected set.
+        # Header strip: live result count on the left, batch-delete on the right.
+        self.results_label = QLabel("No results")
+        self.results_label.setStyleSheet("color:#555; font-weight:600;")
         self.del_selected_btn = QPushButton("🗑 Delete selected")
         self.del_selected_btn.setEnabled(False)
         self.del_selected_btn.clicked.connect(self._delete_selected)
-        action_row = QHBoxLayout()
-        action_row.addWidget(QLabel("Results"))
-        action_row.addStretch(1)
-        action_row.addWidget(self.del_selected_btn)
+        header_row = QHBoxLayout()
+        header_row.addWidget(self.results_label)
+        header_row.addStretch(1)
+        header_row.addWidget(self.del_selected_btn)
+
+        # Footer strip: pagination sits with the list it pages.
+        self.prev_btn = QPushButton("‹ Prev")
+        self.prev_btn.clicked.connect(self._prev_page)
+        self.next_btn = QPushButton("Next ›")
+        self.next_btn.clicked.connect(self._next_page)
+        self.page_label = QLabel("")
+        self.page_label.setStyleSheet("color:#777;")
+        footer_row = QHBoxLayout()
+        footer_row.addWidget(self.prev_btn)
+        footer_row.addStretch(1)
+        footer_row.addWidget(self.page_label)
+        footer_row.addStretch(1)
+        footer_row.addWidget(self.next_btn)
 
         self.table_panel = QWidget()
         tl = QVBoxLayout(self.table_panel)
         tl.setContentsMargins(0, 0, 0, 0)
-        tl.addLayout(action_row)
+        tl.setSpacing(6)
+        tl.addLayout(header_row)
         tl.addWidget(self.table, 1)
+        tl.addLayout(footer_row)
 
     def _build_detail(self) -> None:
+        """Sticky header (title + meta + Save/Delete) over a two-tab body."""
         self.detail = QWidget()
-        form_host = QVBoxLayout(self.detail)
+        outer = QVBoxLayout(self.detail)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(6)
 
-        # --- core fields ---
+        # --- sticky header: always visible, so Save/Delete are never a scroll away ---
+        self.detail_title = QLabel("Select a paper")
+        self.detail_title.setWordWrap(True)
+        self.detail_title.setStyleSheet("font-weight:600; font-size:14px;")
+        self.f_meta = QLabel("")
+        self.f_meta.setStyleSheet("color:#777;")
+        self.f_meta.setWordWrap(True)
+
+        self.save_btn = QPushButton("💾 Save changes")
+        self.save_btn.clicked.connect(self._save)
+        self.delete_btn = QPushButton("🗑 Delete")
+        self.delete_btn.clicked.connect(self._delete)
+        action_row = QHBoxLayout()
+        action_row.addWidget(self.save_btn)
+        action_row.addStretch(1)
+        action_row.addWidget(self.delete_btn)
+
+        header = QWidget()
+        hv = QVBoxLayout(header)
+        hv.setContentsMargins(0, 0, 0, 0)
+        hv.setSpacing(4)
+        hv.addWidget(self.detail_title)
+        hv.addWidget(self.f_meta)
+        hv.addLayout(action_row)
+
+        # --- body: edit metadata on one tab, review/score on the other ---
+        self.detail_tabs = QTabWidget()
+        self.detail_tabs.addTab(self._build_details_tab(), "Details")
+        self.detail_tabs.addTab(self._build_eval_tab(), "Evaluation")
+
+        outer.addWidget(header)
+        outer.addWidget(self._hline())
+        outer.addWidget(self.detail_tabs, 1)
+
+    def _build_details_tab(self) -> QWidget:
+        """Editable paper metadata + figure, in a scroll area."""
         core = QGroupBox("Paper")
-        core_form = QFormLayout(core)
+        core_form = self._form(core)
         self.f_title = QLineEdit()
         self.f_venue = QLineEdit()
         self.f_date = QLineEdit()
@@ -173,15 +229,12 @@ class DbPage(QWidget):
         self.f_authors = QLineEdit()
         self.f_authors.setPlaceholderText("comma-separated")
         self.f_abstract = QPlainTextEdit()
-        self.f_abstract.setMaximumHeight(90)
+        self.f_abstract.setMaximumHeight(110)
         self.f_tags = QLineEdit()
         self.f_tags.setPlaceholderText("comma-separated")
         self.f_code = QPlainTextEdit()
         self.f_code.setPlaceholderText("one URL per line")
         self.f_code.setMaximumHeight(60)
-        self.f_meta = QLabel("")
-        self.f_meta.setStyleSheet("color:#777;")
-        self.f_meta.setWordWrap(True)
         core_form.addRow("Title", self.f_title)
         core_form.addRow("Venue", self.f_venue)
         core_form.addRow("Published", self.f_date)
@@ -190,16 +243,14 @@ class DbPage(QWidget):
         core_form.addRow("Abstract", self.f_abstract)
         core_form.addRow("Tags", self.f_tags)
         core_form.addRow("Code links", self.f_code)
-        core_form.addRow(self.f_meta)
 
-        # --- figure ---
         self.figure_box = QGroupBox("Figure")
         fig_layout = QVBoxLayout(self.figure_box)
         self.fig_image = QLabel("No figure.")
         self.fig_image.setAlignment(Qt.AlignCenter)
         self.fig_image.setMaximumHeight(200)
         self.fig_image.setStyleSheet("color:#888;")
-        fig_form = QFormLayout()
+        fig_form = self._form()
         self.fig_label = QLineEdit()
         self.fig_page = QSpinBox()
         self.fig_page.setRange(0, 999)
@@ -215,10 +266,28 @@ class DbPage(QWidget):
         fig_layout.addLayout(fig_form)
         fig_layout.addWidget(view_full, 0, Qt.AlignLeft)
 
-        # --- evaluation ---
-        self.eval_box = QGroupBox("Evaluation")
-        eval_layout = QVBoxLayout(self.eval_box)
-        score_form = QFormLayout()
+        return self._scroll(core, self.figure_box)
+
+    def _build_eval_tab(self) -> QWidget:
+        """Rendered review up top (what you actually read), score/decision editors
+        below, and the raw-JSON fields tucked into a collapsible 'Advanced'."""
+        lang_row = QHBoxLayout()
+        lang_row.addWidget(QLabel("Preview"))
+        for loc, label in zip(LOCALES, ("EN", "中文")):
+            b = QPushButton(label)
+            b.setCheckable(True)
+            b.setMaximumWidth(52)
+            b.setChecked(loc == self.locale)
+            b.clicked.connect(lambda _c, l=loc: self._set_locale(l))
+            lang_row.addWidget(b)
+        lang_row.addStretch(1)
+        self.eval_preview = QTextBrowser()
+        self.eval_preview.setOpenExternalLinks(True)
+        self.eval_preview.setMinimumHeight(260)
+
+        # Editable scores + decision — the common-case edit.
+        self.eval_box = QGroupBox("Scores && decision")
+        score_form = self._form(self.eval_box)
         self.score_spins: dict[str, QSpinBox] = {}
         for key, label, mx in _SCORE_DIMS:
             spin = QSpinBox()
@@ -232,52 +301,104 @@ class DbPage(QWidget):
         self.decision = QComboBox()
         self.decision.addItems(_DECISIONS)
         score_form.addRow("Decision", self.decision)
-        eval_layout.addLayout(score_form)
 
+        # Raw localized fields — power-user editing, collapsed by default.
+        adv_inner = QWidget()
+        adv_v = QVBoxLayout(adv_inner)
+        adv_v.setContentsMargins(0, 6, 0, 0)
+        adv_v.setSpacing(3)
         self.eval_json_edits: dict[str, QPlainTextEdit] = {}
         for key, label in _EVAL_JSON_FIELDS:
-            eval_layout.addWidget(QLabel(label))
+            adv_v.addWidget(QLabel(label))
             edit = QPlainTextEdit()
             edit.setMaximumHeight(80)
             edit.setStyleSheet("font-family: monospace; font-size: 11px;")
             self.eval_json_edits[key] = edit
-            eval_layout.addWidget(edit)
+            adv_v.addWidget(edit)
+        self.eval_advanced = self._collapsible("Advanced — raw fields (JSON)", adv_inner)
 
-        lang_row = QHBoxLayout()
-        lang_row.addWidget(QLabel("Preview"))
-        for loc, label in zip(LOCALES, ("EN", "中文")):
-            b = QPushButton(label)
-            b.setCheckable(True)
-            b.setMaximumWidth(52)
-            b.setChecked(loc == self.locale)
-            b.clicked.connect(lambda _c, l=loc: self._set_locale(l))
-            lang_row.addWidget(b)
-        lang_row.addStretch(1)
-        self.eval_preview = QTextBrowser()
-        self.eval_preview.setOpenExternalLinks(True)
-        self.eval_preview.setMaximumHeight(220)
-        eval_layout.addLayout(lang_row)
-        eval_layout.addWidget(self.eval_preview)
+        host = QWidget()
+        v = QVBoxLayout(host)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.addLayout(lang_row)
+        v.addWidget(self.eval_preview, 1)
+        v.addWidget(self.eval_box)
+        v.addWidget(self.eval_advanced)
+        v.addStretch(0)
 
-        # --- action buttons ---
-        self.save_btn = QPushButton("💾 Save changes")
-        self.save_btn.clicked.connect(self._save)
-        self.delete_btn = QPushButton("🗑 Delete from live DB")
-        self.delete_btn.clicked.connect(self._delete)
-        btn_row = QHBoxLayout()
-        btn_row.addWidget(self.save_btn)
-        btn_row.addStretch(1)
-        btn_row.addWidget(self.delete_btn)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setWidget(host)
+        return scroll
 
-        form_host.addWidget(core)
-        form_host.addWidget(self.figure_box)
-        form_host.addWidget(self.eval_box)
-        form_host.addLayout(btn_row)
-        form_host.addStretch(1)
+    # ---------- small layout helpers ----------
+    def _form(self, parent: Optional[QWidget] = None) -> QFormLayout:
+        """A form whose fields stretch to fill the panel.
 
-        self._detail_scroll = QScrollArea()
-        self._detail_scroll.setWidgetResizable(True)
-        self._detail_scroll.setWidget(self.detail)
+        macOS' native style defaults QFormLayout to ``FieldsStayAtSizeHint``,
+        which pins every field to a narrow fixed width and wastes the rest of
+        the row. Force fields to grow and let long rows wrap on narrow panes.
+        """
+        form = QFormLayout(parent) if parent is not None else QFormLayout()
+        form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        form.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        form.setHorizontalSpacing(10)
+        form.setVerticalSpacing(8)
+        return form
+
+    def _scroll(self, *widgets: QWidget) -> QScrollArea:
+        host = QWidget()
+        v = QVBoxLayout(host)
+        v.setContentsMargins(0, 0, 0, 0)
+        for w in widgets:
+            v.addWidget(w)
+        v.addStretch(1)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setWidget(host)
+        return scroll
+
+    def _collapsible(self, title: str, inner: QWidget) -> QWidget:
+        toggle = QPushButton("▸ " + title)
+        toggle.setCheckable(True)
+        toggle.setStyleSheet(
+            "text-align:left; border:none; color:#1d6fd6; font-weight:600;"
+        )
+        inner.setVisible(False)
+
+        def _on(checked: bool) -> None:
+            inner.setVisible(checked)
+            toggle.setText(("▾ " if checked else "▸ ") + title)
+
+        toggle.toggled.connect(_on)
+        box = QWidget()
+        v = QVBoxLayout(box)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(2)
+        v.addWidget(toggle)
+        v.addWidget(inner)
+        return box
+
+    @staticmethod
+    def _set_line(edit: QLineEdit, text: str) -> None:
+        """Set a line edit and scroll it back to the start.
+
+        ``setText`` leaves the cursor at the end, so long values render scrolled
+        to their tail (…paper.pdf) instead of their head — reset to column 0.
+        """
+        edit.setText(text)
+        edit.setCursorPosition(0)
+
+    def _hline(self) -> QFrame:
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setStyleSheet("color:#ddd;")
+        return line
 
     # ---------- list / paging ----------
     def reload_first_page(self) -> None:
@@ -301,9 +422,9 @@ class DbPage(QWidget):
 
         self.total_pages = data.get("totalPages", 1)
         self.page = data.get("page", 1)
-        self.page_label.setText(
-            f"{data.get('total', 0)} papers · page {self.page}/{self.total_pages}"
-        )
+        total = data.get("total", 0)
+        self.results_label.setText(f"{total} paper{'' if total == 1 else 's'}")
+        self.page_label.setText(f"page {self.page} / {self.total_pages}")
         self.prev_btn.setEnabled(self.page > 1)
         self.next_btn.setEnabled(self.page < self.total_pages)
 
@@ -383,13 +504,14 @@ class DbPage(QWidget):
 
     def _populate(self, d: dict[str, Any]) -> None:
         self._set_detail_enabled(True)
-        self.f_title.setText(d.get("title") or "")
-        self.f_venue.setText(d.get("venue") or "")
-        self.f_date.setText(d.get("publishedDate") or "")
-        self.f_pdf.setText(d.get("pdfUrl") or "")
-        self.f_authors.setText(", ".join(d.get("authors") or []))
+        self.detail_title.setText(d.get("title") or "Untitled")
+        self._set_line(self.f_title, d.get("title") or "")
+        self._set_line(self.f_venue, d.get("venue") or "")
+        self._set_line(self.f_date, d.get("publishedDate") or "")
+        self._set_line(self.f_pdf, d.get("pdfUrl") or "")
+        self._set_line(self.f_authors, ", ".join(d.get("authors") or []))
         self.f_abstract.setPlainText(d.get("abstract") or "")
-        self.f_tags.setText(", ".join(t["tag"] for t in d.get("tags") or []))
+        self._set_line(self.f_tags, ", ".join(t["tag"] for t in d.get("tags") or []))
         self.f_code.setPlainText("\n".join(d.get("codeLinks") or []))
         counterpart = self._factory_counterpart(d.get("joinKeys", []))
         self.f_meta.setText(
@@ -407,11 +529,11 @@ class DbPage(QWidget):
         self.figure_box.setVisible(has)
         if not has:
             return
-        self.fig_label.setText(figure.get("figureLabel") or "")
+        self._set_line(self.fig_label, figure.get("figureLabel") or "")
         self.fig_page.setValue(int(figure.get("pageNumber") or 0))
         caption = figure.get("caption") or {}
-        self.fig_cap_en.setText(caption.get("en", "") if isinstance(caption, dict) else "")
-        self.fig_cap_zh.setText(caption.get("zh-TW", "") if isinstance(caption, dict) else "")
+        self._set_line(self.fig_cap_en, caption.get("en", "") if isinstance(caption, dict) else "")
+        self._set_line(self.fig_cap_zh, caption.get("zh-TW", "") if isinstance(caption, dict) else "")
         self._fig_path = path
         if path and Path(path).exists():
             pix = QPixmap(path).scaledToHeight(190, Qt.SmoothTransformation)
@@ -422,7 +544,10 @@ class DbPage(QWidget):
 
     def _populate_eval(self, ev: Optional[dict[str, Any]]) -> None:
         has = ev is not None
+        # The preview itself renders a "no evaluation yet" message, so it stays;
+        # only the editors are hidden when there is nothing to edit.
         self.eval_box.setVisible(has)
+        self.eval_advanced.setVisible(has)
         if not has:
             return
         scores = ev.get("scores") or {}
@@ -623,6 +748,7 @@ class DbPage(QWidget):
     def _clear_detail(self) -> None:
         self.current = None
         self._set_detail_enabled(False)
+        self.detail_title.setText("Select a paper")
         self.f_title.clear()
         self.f_meta.clear()
 

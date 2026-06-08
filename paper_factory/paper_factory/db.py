@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS batches (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT NOT NULL,
     created_at  TEXT NOT NULL,
-    note        TEXT
+    note        TEXT,
+    archived    INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS papers (
@@ -75,6 +76,16 @@ class Store:
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA)
         self.conn.commit()
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Add columns missing from databases created by older schema versions."""
+        cols = {r["name"] for r in self.conn.execute("PRAGMA table_info(batches)")}
+        if "archived" not in cols:
+            self.conn.execute(
+                "ALTER TABLE batches ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"
+            )
+            self.conn.commit()
 
     def close(self) -> None:
         self.conn.close()
@@ -89,11 +100,34 @@ class Store:
         self.conn.commit()
         return Batch(id=cur.lastrowid, name=name, created_at=ts, note=note)
 
-    def list_batches(self) -> list[Batch]:
+    def list_batches(self, include_archived: bool = True) -> list[Batch]:
+        where = "" if include_archived else "WHERE archived=0"
         rows = self.conn.execute(
-            "SELECT * FROM batches ORDER BY created_at DESC"
+            f"SELECT * FROM batches {where} ORDER BY created_at DESC"
         ).fetchall()
-        return [Batch(id=r["id"], name=r["name"], created_at=r["created_at"], note=r["note"]) for r in rows]
+        return [
+            Batch(
+                id=r["id"],
+                name=r["name"],
+                created_at=r["created_at"],
+                note=r["note"],
+                archived=bool(r["archived"]),
+            )
+            for r in rows
+        ]
+
+    def set_batch_archived(self, batch_id: int, archived: bool) -> None:
+        self.conn.execute(
+            "UPDATE batches SET archived=? WHERE id=?",
+            (1 if archived else 0, batch_id),
+        )
+        self.conn.commit()
+
+    def delete_batch(self, batch_id: int) -> None:
+        """Delete a batch. Its papers fall back to the unassigned pool via the
+        ``ON DELETE SET NULL`` foreign key — papers and their files are untouched."""
+        self.conn.execute("DELETE FROM batches WHERE id=?", (batch_id,))
+        self.conn.commit()
 
     def assign_batch(self, paper_ids: Iterable[str], batch_id: int) -> None:
         ts = now()

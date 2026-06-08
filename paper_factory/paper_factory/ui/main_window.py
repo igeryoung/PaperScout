@@ -3,21 +3,33 @@ the per-paper workspace."""
 
 from __future__ import annotations
 
+import random
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from pathlib import Path
 from typing import Iterator, Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
-    QInputDialog,
+    QFormLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QMenu,
     QMessageBox,
+    QProgressDialog,
     QPushButton,
+    QSpinBox,
     QSplitter,
     QTabWidget,
     QTreeWidget,
@@ -26,9 +38,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import config, eval_import, export, importer, ingest
+from .. import config, eval_import, export, importer, ingest, pdf as pdfops
 from ..db import Store
-from ..models import Bucket, Paper, Stage
+from ..models import Batch, Bucket, Paper, Stage
 from .db_page import DbPage
 from .paper_panel import PaperPanel
 
@@ -43,6 +55,131 @@ _BUCKET_COLOR = {
 }
 
 
+class RandomBatchDialog(QDialog):
+    """Pick a random subset of papers, filtered by conference and/or year(s).
+
+    Both filters are optional: "Any conference" plus an empty year selection draws
+    from the whole pool. The live label shows how many papers currently match so
+    the requested count can be set against a known ceiling.
+    """
+
+    def __init__(self, pool: list[Paper], parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("New random batch")
+        self._pool = pool
+
+        confs = sorted({_paper_conference(p) for p in pool})
+        years = sorted({_paper_year(p) for p in pool}, key=_year_sort_key)
+
+        self.name_edit = QLineEdit(datetime.now().strftime("%Y-%m-%d"))
+        self.name_edit.setPlaceholderText("auto-named from the filter if cleared")
+
+        self.conf_combo = QComboBox()
+        self.conf_combo.addItem("Any conference", None)
+        for c in confs:
+            self.conf_combo.addItem(c, c)
+
+        self.year_list = QListWidget()
+        self.year_list.setSelectionMode(QListWidget.MultiSelection)
+        self.year_list.setMaximumHeight(110)
+        for y in years:
+            QListWidgetItem(y, self.year_list)
+
+        self.count_spin = QSpinBox()
+        self.count_spin.setMinimum(1)
+        self.count_spin.setMaximum(max(1, len(pool)))
+        self.count_spin.setValue(min(10, len(pool)))
+
+        self.match_label = QLabel()
+        self.conf_combo.currentIndexChanged.connect(self._update_match)
+        self.year_list.itemSelectionChanged.connect(self._update_match)
+
+        self.autodl_check = QCheckBox("Auto-download all PDFs (parallel)")
+        self.autodl_check.setChecked(True)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        form = QFormLayout(self)
+        form.addRow("Name", self.name_edit)
+        form.addRow("Conference", self.conf_combo)
+        form.addRow("Years (none = any)", self.year_list)
+        form.addRow("Number of papers", self.count_spin)
+        form.addRow(self.match_label)
+        form.addRow(self.autodl_check)
+        form.addRow(buttons)
+        self._update_match()
+
+    def auto_download(self) -> bool:
+        return self.autodl_check.isChecked()
+
+    def _selected_years(self) -> set[str]:
+        return {it.text() for it in self.year_list.selectedItems()}
+
+    def _matching_pool(self) -> list[Paper]:
+        conf = self.conf_combo.currentData()
+        years = self._selected_years()
+        out = []
+        for p in self._pool:
+            if conf is not None and _paper_conference(p) != conf:
+                continue
+            if years and _paper_year(p) not in years:
+                continue
+            out.append(p)
+        return out
+
+    def _update_match(self) -> None:
+        self.match_label.setText(f"{len(self._matching_pool())} paper(s) match the filter")
+
+    def selected_papers(self) -> list[Paper]:
+        matching = self._matching_pool()
+        k = min(self.count_spin.value(), len(matching))
+        return random.sample(matching, k) if matching else []
+
+    def batch_name(self) -> str:
+        name = self.name_edit.text().strip()
+        if name:
+            return name
+        parts = []
+        conf = self.conf_combo.currentData()
+        if conf:
+            parts.append(conf)
+        years = sorted(self._selected_years())
+        if years:
+            parts.append(",".join(years))
+        suffix = " ".join(parts) if parts else datetime.now().strftime("%Y-%m-%d")
+        return f"Random {self.count_spin.value()} · {suffix}"
+
+
+class NewBatchDialog(QDialog):
+    """Name a batch (defaults to today's date) and choose whether to auto-download
+    its PDFs in parallel right after creation."""
+
+    def __init__(self, default_name: str, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("New batch")
+
+        self.name_edit = QLineEdit(default_name)
+        self.autodl_check = QCheckBox("Auto-download all PDFs (parallel)")
+        self.autodl_check.setChecked(True)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        form = QFormLayout(self)
+        form.addRow("Name", self.name_edit)
+        form.addRow(self.autodl_check)
+        form.addRow(buttons)
+
+    def batch_name(self) -> str:
+        return self.name_edit.text().strip()
+
+    def auto_download(self) -> bool:
+        return self.autodl_check.isChecked()
+
+
 class MainWindow(QMainWindow):
     def __init__(self, store: Store) -> None:
         super().__init__()
@@ -53,6 +190,11 @@ class MainWindow(QMainWindow):
         # --- sidebar (collapsible) ---
         self.batch_list = QListWidget()
         self.batch_list.itemSelectionChanged.connect(self.refresh_tree)
+        self.batch_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.batch_list.customContextMenuRequested.connect(self._batch_context_menu)
+        self._batches_by_id: dict[int, Batch] = {}
+        self.show_archived = QCheckBox("Show archived")
+        self.show_archived.toggled.connect(self.refresh_batches)
         self.bucket_filter = QComboBox()
         self.bucket_filter.addItem("All buckets", None)
         for b in Bucket:
@@ -62,14 +204,18 @@ class MainWindow(QMainWindow):
 
         new_batch_btn = QPushButton("New batch from selection")
         new_batch_btn.clicked.connect(self.new_batch)
+        random_batch_btn = QPushButton("New random batch…")
+        random_batch_btn.clicked.connect(self.new_random_batch)
 
         self.sidebar = QWidget()
         sl = QVBoxLayout(self.sidebar)
         sl.addWidget(QLabel("Batches"))
         sl.addWidget(self.batch_list, 1)
+        sl.addWidget(self.show_archived)
         sl.addWidget(QLabel("Filter"))
         sl.addWidget(self.bucket_filter)
         sl.addWidget(new_batch_btn)
+        sl.addWidget(random_batch_btn)
         sl.addWidget(self.counts_label)
         self.sidebar.setVisible(False)  # hidden by default; toggled from the toolbar
 
@@ -163,12 +309,51 @@ class MainWindow(QMainWindow):
         all_item = QListWidgetItem("All papers")
         all_item.setData(Qt.UserRole, _ALL_BATCHES)
         self.batch_list.addItem(all_item)
-        for b in self.store.list_batches():
-            it = QListWidgetItem(f"{b.name}  (#{b.id})")
+        self._batches_by_id = {}
+        for b in self.store.list_batches(include_archived=self.show_archived.isChecked()):
+            self._batches_by_id[b.id] = b
+            label = f"🗄 {b.name}  (#{b.id})" if b.archived else f"{b.name}  (#{b.id})"
+            it = QListWidgetItem(label)
             it.setData(Qt.UserRole, b.id)
+            if b.archived:
+                it.setForeground(QColor("#888888"))
             self.batch_list.addItem(it)
         self.batch_list.setCurrentRow(0)
         self.batch_list.blockSignals(False)
+
+    def _batch_context_menu(self, pos) -> None:
+        item = self.batch_list.itemAt(pos)
+        if item is None:
+            return
+        bid = item.data(Qt.UserRole)
+        batch = self._batches_by_id.get(bid) if bid != _ALL_BATCHES else None
+        if batch is None:
+            return
+        menu = QMenu(self)
+        archive_act = menu.addAction("Unarchive batch" if batch.archived else "Archive batch")
+        delete_act = menu.addAction("Delete batch…")
+        chosen = menu.exec(self.batch_list.mapToGlobal(pos))
+        if chosen is archive_act:
+            self.store.set_batch_archived(batch.id, not batch.archived)
+            self.refresh_batches()
+            self.refresh_tree()
+        elif chosen is delete_act:
+            self._delete_batch(batch)
+
+    def _delete_batch(self, batch: Batch) -> None:
+        n = len(self.store.list_papers(batch_id=batch.id))
+        reply = QMessageBox.question(
+            self,
+            "Delete batch",
+            f"Delete batch “{batch.name}” (#{batch.id})?\n\n"
+            f"{n} paper(s) will be returned to the unassigned pool. "
+            "The papers and their downloaded files are kept.",
+        )
+        if reply != QMessageBox.Yes:
+            return
+        self.store.delete_batch(batch.id)
+        self.refresh_batches()
+        self.refresh_tree()
 
     def refresh_tree(self) -> None:
         expanded = self._expanded_keys()
@@ -273,13 +458,97 @@ class MainWindow(QMainWindow):
         if not ids:
             QMessageBox.information(self, "New batch", "Select papers in the tree first.")
             return
-        name, ok = QInputDialog.getText(self, "New batch", "Batch name:")
-        if not ok or not name.strip():
+        dlg = NewBatchDialog(datetime.now().strftime("%Y-%m-%d"), self)
+        if dlg.exec() != QDialog.Accepted or not dlg.batch_name():
             return
-        batch = self.store.create_batch(name.strip())
+        batch = self.store.create_batch(dlg.batch_name())
         self.store.assign_batch(ids, batch.id)
+        if dlg.auto_download():
+            id_set = set(ids)
+            picked = [p for p in self.store.list_papers() if p.id in id_set]
+            self._download_batch_pdfs(picked)
         self.refresh_batches()
         self.refresh_tree()
+
+    def new_random_batch(self) -> None:
+        # Draw from the unassigned pool so random batches build working sets out of
+        # freshly imported papers without disturbing batches already in flight.
+        pool = [p for p in self.store.list_papers() if p.batch_id is None]
+        if not pool:
+            QMessageBox.information(
+                self, "Random batch", "No unassigned papers to draw from."
+            )
+            return
+        dlg = RandomBatchDialog(pool, self)
+        if dlg.exec() != QDialog.Accepted:
+            return
+        picked = dlg.selected_papers()
+        if not picked:
+            QMessageBox.information(self, "Random batch", "No papers match the filter.")
+            return
+        batch = self.store.create_batch(dlg.batch_name())
+        self.store.assign_batch([p.id for p in picked], batch.id)
+        if dlg.auto_download():
+            self._download_batch_pdfs(picked)
+        self.refresh_batches()
+        self.refresh_tree()
+
+    def _download_batch_pdfs(self, papers: list[Paper]) -> None:
+        """Download every paper's PDF in parallel, then persist results.
+
+        Network fetches run on a thread pool (IO-bound); the sqlite Store is
+        single-threaded, so all DB writes are applied here on the GUI thread as
+        each future completes. Papers without a URL, or already downloaded, are
+        skipped.
+        """
+        targets = [p for p in papers if p.pdf_url and not p.pdf_path]
+        if not targets:
+            return
+
+        progress = QProgressDialog(
+            "Downloading PDFs…", "Cancel", 0, len(targets), self
+        )
+        progress.setWindowTitle("Auto-download")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+
+        def _job(p: Paper) -> tuple[Paper, Optional[Path], Optional[str]]:
+            dest = config.PDF_DIR / f"{pdfops.safe_id(p.id)}.pdf"
+            try:
+                pdfops.download_pdf(p.pdf_url, dest)
+                return p, dest, None
+            except Exception as e:  # noqa: BLE001 — report per-paper, keep going
+                return p, None, str(e)
+
+        done = 0
+        failures: list[tuple[Paper, str]] = []
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futures = [ex.submit(_job, p) for p in targets]
+            for fut in as_completed(futures):
+                p, dest, err = fut.result()
+                if err is None:
+                    fields: dict = {"pdf_path": str(dest), "failed_step": None}
+                    if p.stage.order < Stage.DOWNLOADED.order:
+                        fields["stage"] = Stage.DOWNLOADED
+                    self.store.update_fields(p.id, **fields)
+                else:
+                    self.store.update_fields(p.id, failed_step="download")
+                    failures.append((p, err))
+                done += 1
+                progress.setValue(done)
+                QApplication.processEvents()
+                if progress.wasCanceled():
+                    break
+
+        progress.close()
+        ok = len(targets) - len(failures)
+        if failures:
+            QMessageBox.warning(
+                self,
+                "Auto-download",
+                f"{ok} of {len(targets)} PDF(s) downloaded; "
+                f"{len(failures)} failed (flagged 'download').",
+            )
 
     def export_batch(self) -> None:
         bid = self.current_batch_id

@@ -57,6 +57,7 @@ class Batch:
     name: str
     created_at: str
     note: Optional[str] = None
+    archived: bool = False
 
 
 @dataclass
