@@ -4,17 +4,18 @@
 once a PDF has been downloaded:
 
 * change page and truncate from inside the preview,
-* open at *fit-the-page* size with zoom in / out (also Ctrl + mouse-wheel),
+* open at *fit-the-page* size with zoom in / out (also trackpad pinch),
 * draw a crop box, then **grab its four corner handles** to refine the region
   before committing — nothing is cropped until you click *Confirm crop*.
 """
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPen, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
@@ -207,23 +208,84 @@ class _CropScene(QGraphicsScene):
 
 
 class _PreviewView(QGraphicsView):
-    """Graphics view with Ctrl+wheel zoom that emits a double-click to start cropping."""
+    """Graphics view with scroll-wheel zoom that emits a double-click to start cropping."""
 
     double_clicked = Signal()
+    swipe_page = Signal(int)  # +1 next page, -1 previous page
+
+    SWIPE_THRESHOLD = 120.0  # accumulated horizontal delta needed to flip a page
+    SWIPE_COOLDOWN = 0.5     # seconds to ignore further swipes (drops inertia)
 
     def __init__(self, scene: QGraphicsScene) -> None:
         super().__init__(scene)
         self.setRenderHints(self.renderHints())
         self.setDragMode(QGraphicsView.NoDrag)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self._hswipe = 0.0
+        self._last_swipe = 0.0
+        # Trackpad pinch (two-finger expand/collapse) → zoom. Grabbing the gesture
+        # makes Qt deliver a QPinchGesture; on macOS it also surfaces as a native
+        # zoom gesture, so we handle both and zoom whichever fires.
+        self.grabGesture(Qt.PinchGesture)
+        self.viewport().grabGesture(Qt.PinchGesture)
         self._scale = 1.0
 
+    def viewportEvent(self, event):  # noqa: N802
+        if self._handle_gesture(event):
+            return True
+        return super().viewportEvent(event)
+
+    def event(self, event):  # noqa: N802
+        if self._handle_gesture(event):
+            return True
+        return super().event(event)
+
+    def _handle_gesture(self, event) -> bool:
+        et = event.type()
+        if et == QEvent.Type.Gesture:
+            pinch = event.gesture(Qt.PinchGesture)
+            if pinch is not None:
+                factor = pinch.scaleFactor()  # incremental factor since last update
+                if factor and factor > 0:
+                    self.zoom_by(factor)
+                event.accept()
+                return True
+        elif et == QEvent.Type.NativeGesture and event.gestureType() == Qt.ZoomNativeGesture:
+            factor = 1.0 + event.value()
+            if factor > 0:
+                self.zoom_by(factor)
+            return True
+        return False
+
     def wheelEvent(self, event):  # noqa: N802
+        # Ctrl + scroll zooms (keyboard fallback for pinch).
         if event.modifiers() & Qt.ControlModifier:
-            self.zoom_by(1.15 if event.angleDelta().y() > 0 else 1 / 1.15)
+            delta = event.angleDelta().y()
+            if delta != 0:
+                self.zoom_by(1.15 if delta > 0 else 1 / 1.15)
             event.accept()
-        else:
-            super().wheelEvent(event)
+            return
+        # Two-finger horizontal swipe flips pages; vertical scroll pans the page.
+        dx = event.angleDelta().x()
+        dy = event.angleDelta().y()
+        if dx != 0 and abs(dx) >= abs(dy):
+            self._accumulate_swipe(dx)
+            event.accept()
+            return
+        self._hswipe = 0.0  # vertical scroll cancels any partial horizontal swipe
+        super().wheelEvent(event)
+
+    def _accumulate_swipe(self, dx: float) -> None:
+        now = time.monotonic()
+        if now - self._last_swipe < self.SWIPE_COOLDOWN:
+            return  # still inside the cooldown — ignore inertial tail
+        self._hswipe += dx
+        if abs(self._hswipe) >= self.SWIPE_THRESHOLD:
+            # Natural scrolling: fingers moving left (dx < 0) advances to next page.
+            direction = 1 if self._hswipe < 0 else -1
+            self._hswipe = 0.0
+            self._last_swipe = now
+            self.swipe_page.emit(direction)
 
     def mouseDoubleClickEvent(self, event):  # noqa: N802
         self.double_clicked.emit()
@@ -275,6 +337,7 @@ class CropDialog(QDialog):
         self.scene = _CropScene()
         self.view = _PreviewView(self.scene)
         self.view.double_clicked.connect(self.scene.clear_selection)
+        self.view.swipe_page.connect(lambda d: self._go(self._page + d))
 
         # --- top toolbar: page nav + zoom ---
         self.prev_btn = QPushButton("◀ Prev")
@@ -318,7 +381,7 @@ class CropDialog(QDialog):
 
         hint = QLabel(
             "Drag to draw a crop box, then grab the corner handles to refine it. "
-            "Ctrl + scroll to zoom."
+            "Pinch to zoom (or Ctrl + scroll); swipe left/right to change page."
         )
         hint.setStyleSheet("color: #666;")
 
