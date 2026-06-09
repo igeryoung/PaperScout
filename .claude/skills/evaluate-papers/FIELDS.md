@@ -27,13 +27,10 @@ How to write: always `"FULL_PDF"` in this skill (the GUI bundle always carries a
 value `"ABSTRACT_SCREENING"` exists in the schema for back-compat but this skill never emits it.
 
 ### `pdfAnalysisStatus` — *required when `evaluationStage = "FULL_PDF"`, enum*
-What it's for: did the main-body PDF actually get read? Gates which narrative fields are required.
-How to write:
-- `"SUCCESS"` — you read `<safeId>-main.pdf`. Requires `strengths`, `weaknesses`, `digest` (and allows `figure`).
-- `"UNAVAILABLE"` — the PDF file is missing from the bundle.
-- `"FAILED"` — the file is present but unreadable.
-On `UNAVAILABLE`/`FAILED`, take the PDF-unreadable path in [SKILL.md](SKILL.md): score from
-`candidates.json` metadata, and `strengths`/`weaknesses`/`figure`/`digest` must be `null`.
+What it's for: marks that the main-body PDF was read. Gates which narrative fields are required.
+How to write: always `"SUCCESS"` in this skill — every bundle paper ships a readable PDF. A
+`SUCCESS` record requires `strengths`, `weaknesses`, and `digest`, and allows `figure`. (The
+schema also defines `"UNAVAILABLE"` / `"FAILED"` for back-compat, but this skill never emits them.)
 
 ### `abstract` — *nullable, single-value — NOT translated*
 What it's for: the paper's own abstract. ingest backfills it into `Paper.abstract` (search +
@@ -42,8 +39,8 @@ main beneficiaries are OPENACCESS papers (CVPR/ICCV/ECCV/ACM MM), where collecti
 `abstract = null`.
 How to write: copy the abstract **verbatim** from the PDF — a raw English string, not translated,
 not summarized (that's what `summary` is for). If `candidates.json` already carries a non-empty
-`abstract`, reuse that exact string. On the PDF-unreadable path, fall back to the candidate's
-`abstract`. Use `null` only when no abstract exists in either the PDF or the candidate.
+`abstract`, reuse that exact string. Use `null` only when no abstract exists in either the PDF
+or the candidate.
 
 ---
 
@@ -52,16 +49,8 @@ not summarized (that's what `summary` is for). If `candidates.json` already carr
 ### `scores` — *required, single-value object*
 What it's for: the 4-dimension rubric score and its total; drives `recommendationDecision` and ranking.
 How to write: integers only, each within its cap; `total` **must equal** the sum of the four (the
-schema rejects a mismatch). Score against the bullets in [RUBRIC.md](RUBRIC.md), not on impressions.
-
-| Field | Range | Meaning |
-|---|---|---|
-| `novelty` | 0–25 | genuinely new idea vs. incremental/engineering scale |
-| `methodologicalRigor` | 0–30 | soundness of method, proofs, design |
-| `experimentalQuality` | 0–30 | strength/fairness/coverage of experiments |
-| `venueSourceCredibility` | 0–15 | venue + source standing |
-| `total` | 0–100 | sum of the above four |
-
+schema rejects a mismatch). The four dimensions, their caps, and the scoring bands are the single
+source of truth in **[RUBRIC.md](RUBRIC.md)** — score against its bullets, not on impressions.
 Author/institution reputation is **not** a dimension — judge the work, not the affiliation.
 
 ---
@@ -78,12 +67,12 @@ What it's for: the 1–2 sentence "why this decision" line.
 How to write: 1–2 sentences justifying `recommendationDecision`. Concrete reasons (named result,
 actual margin), not adjectives.
 
-### `strengths` — *bilingual list; required (≥1/locale) on SUCCESS, else `null`*
+### `strengths` — *bilingual list; required (≥1/locale)*
 What it's for: the paper's real merits, as a bulleted list.
-How to write: 3–5 entries per locale, index-aligned (`en[i]` and `zh-TW[i]` are the same point).
+How to write: 2–4 entries per locale, index-aligned (`en[i]` and `zh-TW[i]` are the same point).
 Each entry is one concrete claim — prefer quoted numbers over "substantially improves".
 
-### `weaknesses` — *bilingual list; required (≥1/locale) on SUCCESS, else `null`*
+### `weaknesses` — *bilingual list; required (≥1/locale)*
 What it's for: limitations, missing evidence, overclaims.
 How to write: 2–4 entries per locale, index-aligned. Name the specific gap ("no ablation on X",
 "only tested on one dataset"); flag insufficient evidence rather than softening it.
@@ -95,14 +84,13 @@ lowercase, hyphenated. Do not translate; do not invent marketing phrases.
 
 ### `recommendationDecision` — *required, enum*
 What it's for: the keep/store/drop verdict, derived from `scores.total`.
-How to write: `"RECOMMEND"` if `total ≥ 65`; `"STORE_ONLY"` if `50 ≤ total < 65`;
-`"LOW_QUALITY"` if `total < 50`.
+How to write: apply the decision thresholds in **[RUBRIC.md](RUBRIC.md)** (single source of truth).
 
 ---
 
 ## Figure & digest (SUCCESS only)
 
-### `figure` — *nullable; only allowed when `pdfAnalysisStatus = "SUCCESS"`*
+### `figure` — *nullable; optional*
 What it's for: the one cropped figure shown with the paper. The GUI already cropped it — you only
 write the caption.
 How to write: when `figures/<safeId>.png` exists, emit
@@ -111,12 +99,11 @@ How to write: when `figures/<safeId>.png` exists, emit
 the paper, drop the `"Figure N:"` prefix) and `caption["zh-TW"]` as a faithful translation (≤ 240).
 Set `figure = null` when no PNG exists. **Never re-crop and never emit a full-page render.**
 
-### `digest` — *required on SUCCESS, else `null`*
+### `digest` — *required*
 What it's for: the long-form bilingual reader digest (TL;DR → AI commentary).
 How to write: fill all six sub-fields per [DIGEST.md](DIGEST.md); each is bilingual Markdown.
 `tldr` is a < 100-word popular-science explainer of the paper; `tldr` and `methodOverview` must
-contain an analogy or worked example (STYLE.md). Must be `null` whenever
-`pdfAnalysisStatus != "SUCCESS"`.
+contain an analogy or worked example (STYLE.md).
 
 ---
 
@@ -127,14 +114,14 @@ Legacy slot. Always emit `null` (its default). Do not populate it.
 
 ---
 
-## Quick null-rules recap
+## Quick required-fields recap
 
-| `pdfAnalysisStatus` | `strengths` / `weaknesses` | `digest` | `figure` |
-|---|---|---|---|
-| `SUCCESS` | required (≥1/locale) | required | optional (null if no PNG) |
-| `UNAVAILABLE` / `FAILED` | `null` | `null` | `null` |
+Every record is a `SUCCESS` record (every bundle paper has a readable PDF), so on every record:
 
-`summary`, `recommendationReason`, `tags`, `scores`, `recommendationDecision`, `joinKey`,
-`evaluationStage` are filled on **every** record, including the PDF-unreadable path. `abstract`
-is filled on every record too whenever one is recoverable (from the PDF, else the candidate),
-and is `null` only when neither source has one.
+- **Required:** `joinKey`, `evaluationStage` (`"FULL_PDF"`), `pdfAnalysisStatus` (`"SUCCESS"`),
+  `scores`, `summary`, `recommendationReason`, `tags`, `recommendationDecision`,
+  `strengths` (≥1/locale), `weaknesses` (≥1/locale), `digest`.
+- **Optional:** `figure` — fill when `figures/<safeId>.png` exists, else `null`.
+- **`abstract`:** fill whenever one is recoverable (from the PDF, else the candidate); `null` only
+  when neither source has one.
+- **`tableFigureAnalysis`:** always `null`.

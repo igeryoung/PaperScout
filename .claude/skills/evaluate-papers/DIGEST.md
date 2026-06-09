@@ -1,6 +1,6 @@
 # AI Digest (evaluate-papers)
 
-The long-form bilingual digest written for every candidate whose PDF read succeeded (`pdfAnalysisStatus = "SUCCESS"`). Loaded from [SKILL.md](SKILL.md) step c. All field content must follow the [Audience & Style rules](STYLE.md).
+The long-form bilingual digest written for every candidate. Loaded from [SKILL.md](SKILL.md) step c. All field content must follow the [Audience & Style rules](STYLE.md).
 
 ## Field shape
 
@@ -35,11 +35,9 @@ Both halves of each row must follow the **Audience & Style** rules. The structur
 
 The on-screen "## 0. Metadata" block (Title / Authors / Venue / Year / Field / Links) is rendered from existing candidate fields — title, authors, venue, publishedDate, plus `tags[]` for Field, plus `pdfUrl` + `sourceUrl` + `codeUrls[]` for Links. Do NOT duplicate this content into `digest.*`. The digest fields start at §1 TL;DR.
 
-## `digest = null` rules
+## `digest` is always required
 
-The new pipeline always emits `evaluationStage = "FULL_PDF"`. The rules then collapse to:
-
-- `pdfAnalysisStatus = "SUCCESS"` → `digest !== null` (required).
-- `pdfAnalysisStatus = "UNAVAILABLE"` or `"FAILED"` → `digest = null`.
-
-The zod schema (`src/server/schema/evaluation.ts`) also accepts the legacy `evaluationStage = "ABSTRACT_SCREENING"` with `digest = null` for backward compatibility, but **this skill never emits that value**. See [SKILL.md](SKILL.md) "PDF failure path" for what an unreadable-PDF record looks like.
+This skill always emits `evaluationStage = "FULL_PDF"` with `pdfAnalysisStatus = "SUCCESS"`
+(every bundle paper has a readable PDF), so `digest` is **required and never null**. The zod
+schema (`src/server/schema/evaluation.ts`) also permits `digest = null` for the legacy
+`UNAVAILABLE` / `FAILED` / `ABSTRACT_SCREENING` cases, but **this skill never emits them**.

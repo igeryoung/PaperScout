@@ -75,36 +75,12 @@ PNG, then emit:
 
 ### d. Score and rank
 
-Apply **[RUBRIC.md](RUBRIC.md)** to score each of the 4 dimensions. For each dimension,
-match the paper to the highest band it fully clears — not on impressions.
-
-| Dimension | Max |
-|---|---|
-| novelty | 25 |
-| methodologicalRigor | 30 |
-| experimentalQuality | 30 |
-| venueSourceCredibility | 15 |
-| **total** | **100** (sum of the 4; schema enforces) |
-
-Set `recommendationDecision`: `RECOMMEND` if `total ≥ 65`, `STORE_ONLY` if `50 ≤ total < 65`,
-`LOW_QUALITY` if `total < 50`.
+Apply **[RUBRIC.md](RUBRIC.md)** to score each of the 4 dimensions and to set
+`recommendationDecision` from `total` — the dimension caps, scoring bands, and decision
+thresholds are the single source of truth there. For each dimension, match the paper to the
+highest band it fully clears, not on impressions.
 
 Set `evaluationStage = "FULL_PDF"`, `pdfAnalysisStatus = "SUCCESS"`.
-
-## PDF unreadable path
-
-If `<safeId>-main.pdf` is missing or unreadable:
-
-- `evaluationStage = "FULL_PDF"`.
-- `pdfAnalysisStatus = "UNAVAILABLE"` (file missing) or `"FAILED"` (present but unreadable).
-- Score the paper from `candidates.json` metadata only (title + abstract + venue + authors)
-  using [RUBRIC.md](RUBRIC.md). Fill `scores`, `recommendationDecision`, `summary`,
-  `recommendationReason`, `tags`.
-- Set `abstract` to the candidate's `abstract` (or `null` if the candidate has none) — you
-  can't read the PDF, so don't fabricate one.
-- Leave `strengths`, `weaknesses`, `figure`, `digest` all `= null`.
-
-The schema's `superRefine` enforces this layout — see [DIGEST.md](DIGEST.md) "`digest = null` rules".
 
 ## Hard constraints
 
@@ -128,9 +104,8 @@ The schema's `superRefine` enforces this layout — see [DIGEST.md](DIGEST.md) "
 
 ## Output
 
-Write the final array to `<bundle-dir>/evaluations.json`. Print: total entries, counts by
-`pdfAnalysisStatus` (SUCCESS / UNAVAILABLE / FAILED), count with `digest !== null`, count
-with figures, total wall-clock, bundle dir path.
+Write the final array to `<bundle-dir>/evaluations.json`. Print: total entries, count with
+figures, total wall-clock, bundle dir path.
 
 ## Done when
 

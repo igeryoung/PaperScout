@@ -8,8 +8,8 @@ Bilingual `{ en, "zh-TW" }` (or `{ en: [...], "zh-TW": [...] }` for arrays):
 
 - `summary`
 - `recommendationReason`
-- `strengths` (nullable when `pdfAnalysisStatus != "SUCCESS"`; min 1 entry per locale on `SUCCESS`)
-- `weaknesses` (nullable when `pdfAnalysisStatus != "SUCCESS"`; min 1 entry per locale on `SUCCESS`)
+- `strengths` (min 1 entry per locale)
+- `weaknesses` (min 1 entry per locale)
 - `figure.caption` — **`en` is verbatim from the PDF (≤ 240 chars)**; **`zh-TW` is a faithful translation of that verbatim text (also ≤ 240 chars)**.
 - All `digest.*` fields (see [DIGEST.md](DIGEST.md)).
 
@@ -26,7 +26,7 @@ Single-value (NOT translated, leave English / numeric / enum):
 - Method names introduced by the paper stay in the paper's casing (e.g. `DiffSeg`, `ViT-Lite`).
 - The `zh-TW` text must convey the **same meaning** as the `en` text. If you would shorten or change emphasis, change both halves to stay aligned.
 - Keep sentence counts roughly matched.
-- For lists (`strengths`, `weaknesses`): the index order must align — `strengths.en[0]` and `strengths["zh-TW"][0]` describe the same point. List lengths must match (3–5 strengths, 2–4 weaknesses).
+- For lists (`strengths`, `weaknesses`): the index order must align — `strengths.en[0]` and `strengths["zh-TW"][0]` describe the same point. List lengths must match (2–4 strengths, 2–4 weaknesses).
 - For `figure.caption.zh-TW`: translate the verbatim English caption faithfully. Drop only the bibliographic prefix (e.g. `"Figure 1:"`) — that prefix is already in `figure.label`.
 
 ## Audience & Style (applies to every bilingual narrative field)
@@ -83,7 +83,6 @@ These rules apply to **every** bilingual narrative field on every record:
 - Lists: every entry of `strengths[]` and `weaknesses[]` (both locales, index-aligned).
 - Digest: every `digest.*` field (`tldr`, `problemMotivation`, `keyContributions`, `methodOverview`, `resultsInterpretation`, `aiCommentary`).
 - **Excluded:** `figure.caption.en` is verbatim from the PDF (existing rule); `figure.caption["zh-TW"]` is a faithful translation of that verbatim text. Tags and other single-value fields are excluded.
-- **PDF-failure records** ([SKILL.md](SKILL.md) "PDF failure path") still fill `summary` and `recommendationReason` from the abstract — the rules apply equally there. The other narrative fields stay null on that path.
 
 ### Before / after examples
 
