@@ -24,6 +24,29 @@ import {
   type PaperEval,
 } from './ingest/lib';
 
+// Remote-DB latency dominates ingest, so independent writes run with bounded
+// concurrency to overlap round-trips without exhausting Prisma's connection pool.
+const DB_CONCURRENCY = 6;
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < items.length) {
+      const i = cursor++;
+      results[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker()),
+  );
+  return results;
+}
+
 async function main() {
   // ---------- CLI ----------
   const args = process.argv.slice(2);
@@ -130,16 +153,26 @@ async function main() {
   });
 
   // ---------- Persist candidates with dedup ----------
+  // Fuzzy-match pool: fetch the recent-titles list ONCE, then grow it in memory as
+  // this run creates papers. Previously the matcher re-queried 500 rows for every
+  // candidate — against the remote DB that was a dominant cost. Appending new papers
+  // live preserves within-batch fuzzy dedup (a later candidate can still match one
+  // created moments earlier in this same run).
+  const recentForFuzzy = await papersRepo.listRecentForFuzzy(500);
+
   const matcherDeps = {
     findBySourcePaperId: (s: 'ARXIV' | 'OPENREVIEW', id: string) =>
       sourcesRepo.findBySourcePaperId(s, id),
     findBySourceUrl: (url: string) => sourcesRepo.findBySourceUrl(url),
     findByPdfUrl: (url: string) => papersRepo.findByPdfUrl(url),
     findByNormalizedTitle: (n: string) => papersRepo.findByNormalizedTitle(n),
-    listRecentTitles: (limit: number) => papersRepo.listRecentForFuzzy(limit),
+    listRecentTitles: async () => recentForFuzzy,
   };
 
   const paperIdByJoinKey = new Map<string, string>();
+  // pdfUrl per resolved paper, captured during persistence so the evaluation phase
+  // can attach figure provenance without an extra per-figure findById round-trip.
+  const pdfUrlByPaperId = new Map<string, string | null>();
   const seenPaperId = new Set<string>();
   // Track per-paper {candidateOrder, joinKey} for ranking + fail-fast diagnostics.
   const paperMeta = new Map<string, { candidateOrder: number; joinKey: string }>();
@@ -162,9 +195,10 @@ async function main() {
         year: new Date(cand.publishedDate).getFullYear(),
         additionalSources: cand.additionalSources,
       });
+      const normalized = normalizeTitle(cand.title);
       const paper = await papersRepo.create({
         title: cand.title,
-        normalizedTitle: normalizeTitle(cand.title),
+        normalizedTitle: normalized,
         authors: cand.authors,
         abstract: cand.abstract,
         venue: cand.venue,
@@ -174,6 +208,13 @@ async function main() {
         duplicateFingerprint: fingerprint,
       });
       paperId = paper.id;
+      // Make this freshly created paper visible to later candidates' fuzzy matching.
+      recentForFuzzy.push({
+        id: paperId,
+        normalizedTitle: normalized,
+        title: cand.title,
+        authors: cand.authors,
+      });
       await sourcesRepo.create({
         paperId,
         source: cand.source,
@@ -251,6 +292,8 @@ async function main() {
       paperMeta.set(paperId, { candidateOrder: i, joinKey: primaryKey });
     }
 
+    pdfUrlByPaperId.set(paperId, cand.pdfUrl);
+
     if (cand.codeUrls.length) {
       await codeLinksRepo.addAll(paperId, cand.codeUrls);
     }
@@ -264,58 +307,66 @@ async function main() {
   }
 
   // ---------- Persist evaluations + group by paperId for ranking ----------
+  // Grouping is pure/in-memory; the per-evaluation DB writes are independent across
+  // papers, so they run with bounded concurrency rather than one round-trip at a time.
   const evalsByPaperId = new Map<string, Evaluation[]>();
-  const figureStats = { ok: 0, missing: 0, oversize: 0, error: 0 };
-
+  const evalTasks: Array<{ paperId: string; e: Evaluation }> = [];
   for (const e of evaluations) {
     const key = `${e.joinKey.source}:${e.joinKey.sourcePaperId}`;
     const paperId = paperIdByJoinKey.get(key);
     if (!paperId) continue;
-
-    const recomputedTotal = recomputeTotal(e.scores);
-
-    await evaluationsRepo.upsert({
-      paperId,
-      runId: run.id,
-      evaluationStage: e.evaluationStage,
-      llmModel: 'claude-code',
-      llmPromptVersion: promptVersion,
-      summary: e.summary,
-      strengths: e.strengths,
-      weaknesses: e.weaknesses,
-      noveltyScore: e.scores.novelty,
-      methodologicalRigorScore: e.scores.methodologicalRigor,
-      experimentalQualityScore: e.scores.experimentalQuality,
-      venueSourceCredibilityScore: e.scores.venueSourceCredibility,
-      totalScore: recomputedTotal,
-      recommendationReason: e.recommendationReason,
-      recommendationDecision: e.recommendationDecision,
-      pdfAnalysisStatus: e.pdfAnalysisStatus,
-      tableFigureAnalysis: e.tableFigureAnalysis,
-      digest: e.digest,
-    });
-    await tagsRepo.addAll(paperId, e.tags, 'LLM_GENERATED');
-
-    // Backfill the abstract the evaluate step pulled from the PDF, but only for papers
-    // whose collection source had none (guarded to abstract = null inside the repo).
-    if (e.abstract) {
-      await papersRepo.backfillAbstract(paperId, e.abstract);
-    }
-
-    if (e.figure) {
-      const paper = await papersRepo.findById(paperId);
-      const outcome = await ingestFigure({
-        paperId,
-        runDir,
-        pdfUrl: paper?.pdfUrl ?? null,
-        figure: e.figure,
-      });
-      figureStats[outcome]++;
-    }
-
     const bucket = evalsByPaperId.get(paperId) ?? [];
     bucket.push(e);
     evalsByPaperId.set(paperId, bucket);
+    evalTasks.push({ paperId, e });
+  }
+
+  const figureStats = { ok: 0, missing: 0, oversize: 0, error: 0 };
+  const figureOutcomes = await mapWithConcurrency(
+    evalTasks,
+    DB_CONCURRENCY,
+    async ({ paperId, e }) => {
+      await evaluationsRepo.upsert({
+        paperId,
+        runId: run.id,
+        evaluationStage: e.evaluationStage,
+        llmModel: 'claude-code',
+        llmPromptVersion: promptVersion,
+        summary: e.summary,
+        strengths: e.strengths,
+        weaknesses: e.weaknesses,
+        noveltyScore: e.scores.novelty,
+        methodologicalRigorScore: e.scores.methodologicalRigor,
+        experimentalQualityScore: e.scores.experimentalQuality,
+        venueSourceCredibilityScore: e.scores.venueSourceCredibility,
+        totalScore: recomputeTotal(e.scores),
+        recommendationReason: e.recommendationReason,
+        recommendationDecision: e.recommendationDecision,
+        pdfAnalysisStatus: e.pdfAnalysisStatus,
+        tableFigureAnalysis: e.tableFigureAnalysis,
+        digest: e.digest,
+      });
+      await tagsRepo.addAll(paperId, e.tags, 'LLM_GENERATED');
+
+      // Backfill the abstract the evaluate step pulled from the PDF, but only for papers
+      // whose collection source had none (guarded to abstract = null inside the repo).
+      if (e.abstract) {
+        await papersRepo.backfillAbstract(paperId, e.abstract);
+      }
+
+      if (e.figure) {
+        return ingestFigure({
+          paperId,
+          runDir,
+          pdfUrl: pdfUrlByPaperId.get(paperId) ?? null,
+          figure: e.figure,
+        });
+      }
+      return null;
+    },
+  );
+  for (const outcome of figureOutcomes) {
+    if (outcome) figureStats[outcome]++;
   }
 
   // ---------- Post-persist dedup check: same paperId + stage ----------
@@ -362,9 +413,9 @@ async function main() {
     .filter((s): s is NonNullable<typeof s> => s !== null);
   const ranked = rankPapers(scored);
 
-  for (const r of ranked) {
-    await runResultsRepo.updateRanking(run.id, r.paperId, r.rank, r.isRecommended);
-  }
+  await mapWithConcurrency(ranked, DB_CONCURRENCY, (r) =>
+    runResultsRepo.updateRanking(run.id, r.paperId, r.rank, r.isRecommended),
+  );
 
   await runsRepo.setStatus(run.id, 'COMPLETED', true);
 

@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
 
 from .. import config, eval_import, export, importer, ingest, pdf as pdfops
 from ..db import Store
-from ..models import Batch, Bucket, Paper, Stage
+from ..models import Batch, Bucket, Paper, ReviewDecision, Stage
 from .db_page import DbPage
 from .paper_panel import PaperPanel
 
@@ -227,6 +227,8 @@ class MainWindow(QMainWindow):
         self.tree.header().setStretchLastSection(True)
         self.tree.setSelectionMode(QTreeWidget.ExtendedSelection)
         self.tree.itemSelectionChanged.connect(self.on_select_paper)
+        self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._tree_context_menu)
 
         # --- workspace ---
         self.panel = PaperPanel(self.store)
@@ -439,6 +441,47 @@ class MainWindow(QMainWindow):
             if key and key[0] == "paper":
                 out.append(key[1])
         return out
+
+    def _tree_context_menu(self, pos) -> None:
+        ids = self.selected_paper_ids()
+        if not ids:
+            return
+        menu = QMenu(self)
+        pass_act = menu.addAction(f"✓ Pass selected ({len(ids)})")
+        reject_act = menu.addAction(f"✗ Reject selected ({len(ids)})")
+        chosen = menu.exec(self.tree.viewport().mapToGlobal(pos))
+        if chosen is pass_act:
+            self._batch_review(ids, ReviewDecision.PASS)
+        elif chosen is reject_act:
+            self._batch_review(ids, ReviewDecision.REJECT)
+
+    def _batch_review(self, paper_ids: list[str], decision: ReviewDecision) -> None:
+        """Mark every selected paper that has an evaluation with one review decision.
+
+        Mirrors the single-paper review in PaperPanel: only evaluated papers can
+        be reviewed, so unevaluated picks in the selection are reported and skipped
+        rather than silently advanced to REVIEWED.
+        """
+        papers = [p for p in (self.store.get_paper(pid) for pid in paper_ids) if p]
+        reviewable = [p for p in papers if p.evaluation_json is not None]
+        skipped = len(papers) - len(reviewable)
+        if not reviewable:
+            QMessageBox.warning(
+                self, "Batch review",
+                "None of the selected papers have evaluation results yet.",
+            )
+            return
+        prompt = f"Mark {len(reviewable)} paper(s) as {decision.value}?"
+        if skipped:
+            prompt += f"\n\n{skipped} unevaluated paper(s) will be skipped."
+        if QMessageBox.question(self, "Batch review", prompt) != QMessageBox.Yes:
+            return
+        for p in reviewable:
+            self.store.update_fields(
+                p.id, review_decision=decision, stage=Stage.REVIEWED, failed_step=None
+            )
+        self.refresh_tree()
+        self.on_select_paper()
 
     def import_inbox(self) -> None:
         results = importer.import_inbox(self.store)
