@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code Review Report - Last Commit</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --text: #172033;
+        --muted: #667085;
+        --border: #d9e1ee;
+        --critical: #9f1239;
+        --high: #b42318;
+        --medium: #b54708;
+        --low: #475467;
+        --ok: #027a48;
+        --code: #f2f4f7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 24px 64px;
+      }
+
+      header,
+      section {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: 0 16px 40px rgba(16, 24, 40, 0.06);
+      }
+
+      header {
+        padding: 28px;
+        margin-bottom: 18px;
+      }
+
+      section {
+        padding: 24px;
+        margin-top: 18px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      h3 {
+        font-size: 16px;
+      }
+
+      p {
+        margin: 10px 0 0;
+      }
+
+      code {
+        background: var(--code);
+        border-radius: 5px;
+        padding: 2px 5px;
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 0.92em;
+      }
+
+      ul {
+        margin: 12px 0 0;
+        padding-left: 22px;
+      }
+
+      li + li {
+        margin-top: 8px;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .metric {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px;
+        background: #fbfcff;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 22px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .badge {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 12px;
+        font-weight: 700;
+        vertical-align: middle;
+      }
+
+      .comment {
+        color: #175cd3;
+        background: #eff8ff;
+      }
+
+      .medium {
+        color: var(--medium);
+        background: #fffaeb;
+      }
+
+      .low {
+        color: var(--low);
+        background: #f2f4f7;
+      }
+
+      .ok {
+        color: var(--ok);
+        background: #ecfdf3;
+      }
+
+      .finding {
+        border-top: 1px solid var(--border);
+        padding-top: 18px;
+        margin-top: 18px;
+      }
+
+      .finding:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .path {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 6px;
+      }
+
+      .summary {
+        color: var(--muted);
+      }
+
+      .verification {
+        display: grid;
+        gap: 10px;
+      }
+
+      .verification div {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        background: #fbfcff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Code Review Report</h1>
+        <p class="summary">
+          Scope: last commit <code>6c09330 feat: user collection page v1</code>.
+          Review covered the new library repository, App Router API routes,
+          library UI, Prisma schema and migrations, i18n changes, and commit
+          artifacts.
+        </p>
+        <div class="meta">
+          <div class="metric">
+            <strong>33</strong>
+            <span>Files changed in commit</span>
+          </div>
+          <div class="metric">
+            <strong>0</strong>
+            <span>Critical or high findings</span>
+          </div>
+          <div class="metric">
+            <strong>2</strong>
+            <span>Medium findings</span>
+          </div>
+          <div class="metric">
+            <strong>2</strong>
+            <span>Low findings</span>
+          </div>
+          <div class="metric">
+            <strong>COMMENT</strong>
+            <span>Recommendation</span>
+          </div>
+        </div>
+      </header>
+
+      <section>
+        <h2>Executive Summary</h2>
+        <p>
+          No blocking security or correctness issue was found. The largest risks
+          are robustness gaps in the newly exposed mutation endpoints and a race
+          in first-time default collection creation. The commit builds and passes
+          existing automated checks, but the new library API/repository paths do
+          not appear to have dedicated tests.
+        </p>
+      </section>
+
+      <section>
+        <h2>Findings</h2>
+
+        <article class="finding">
+          <h3>
+            <span class="badge medium">MEDIUM</span>
+            Invalid or missing paper IDs can bubble up as server errors
+          </h3>
+          <div class="path">
+            src/app/api/library/papers/[paperId]/route.ts:55,91,124;
+            src/server/repos/library.ts:237-278
+          </div>
+          <p>
+            The paper mutation route trusts the dynamic <code>paperId</code>
+            segment and passes it directly into Prisma upserts/deletes. The body
+            validates <code>collectionId</code> as a UUID, but the path
+            parameter is not validated and the repository does not check that the
+            paper exists before creating <code>user_papers</code> or
+            <code>paper_collection_items</code>. A malformed UUID or deleted
+            paper can therefore produce Prisma/foreign-key errors and return a
+            500 instead of a controlled 400/404 response.
+          </p>
+          <p>
+            Recommendation: validate <code>paperId</code> with the same UUID
+            schema used for <code>collectionId</code>, check paper existence
+            before upsert, and map Prisma errors such as invalid UUID or foreign
+            key failures to explicit client responses.
+          </p>
+        </article>
+
+        <article class="finding">
+          <h3>
+            <span class="badge medium">MEDIUM</span>
+            Default collection creation is race-prone
+          </h3>
+          <div class="path">src/server/repos/library.ts:35-54</div>
+          <p>
+            <code>ensureDefaultCollection</code> performs a read, then a second
+            read by name, then a create. Two concurrent first requests for the
+            same user can both observe no default/name match and race into
+            <code>paperCollection.create</code>. Because the table has
+            <code>@@unique([userId, name])</code>, one request can fail with a
+            unique constraint error, which can break initial library page loads
+            or first-time collection mutations.
+          </p>
+          <p>
+            Recommendation: make this path idempotent with an upsert on
+            <code>userId_name</code>, or catch the unique-constraint failure and
+            re-read the collection. If exactly one default collection per user is
+            required, also consider a database-level uniqueness guard for
+            <code>is_default</code>.
+          </p>
+        </article>
+
+        <article class="finding">
+          <h3>
+            <span class="badge low">LOW</span>
+            English users receive a Chinese default list name
+          </h3>
+          <div class="path">src/server/repos/library.ts:33</div>
+          <p>
+            The default collection name is hard-coded as a Chinese string in the
+            server repository. Since the library page supports
+            <code>en</code> and <code>zh-TW</code>, a first-time English user
+            will see a localized interface with a non-localized default list
+            name.
+          </p>
+          <p>
+            Recommendation: use a locale-neutral default such as
+            <code>Default</code>, or store a stable system collection flag and
+            render the display label through i18n instead of persisting a
+            localized label.
+          </p>
+        </article>
+
+        <article class="finding">
+          <h3>
+            <span class="badge low">LOW</span>
+            Sign-in required copy bypasses i18n
+          </h3>
+          <div class="path">src/app/library/page.tsx:51-66</div>
+          <p>
+            The signed-out library state uses hard-coded English text. Users in
+            the <code>zh-TW</code> locale get localized navigation and library
+            labels elsewhere, but this new entry state does not use the existing
+            message catalog.
+          </p>
+          <p>
+            Recommendation: add the signed-out title, body, and button label to
+            <code>src/i18n/en.ts</code> and <code>src/i18n/zh-TW.ts</code>, and
+            pass the localized copy into <code>SignInRequired</code>.
+          </p>
+        </article>
+      </section>
+
+      <section>
+        <h2>Verification</h2>
+        <div class="verification">
+          <div>
+            <span class="badge ok">PASS</span>
+            <code>npm test</code>: 17 test files passed, 140 tests passed.
+          </div>
+          <div>
+            <span class="badge ok">PASS</span>
+            <code>npx prisma validate</code>: Prisma schema is valid. Prisma
+            emitted a non-blocking deprecation warning for
+            <code>package.json#prisma</code>.
+          </div>
+          <div>
+            <span class="badge ok">PASS</span>
+            <code>npm run lint</code>: completed successfully.
+          </div>
+          <div>
+            <span class="badge ok">PASS</span>
+            <code>npm run build</code>: completed successfully after allowing
+            network access for Next font fetching. The first sandboxed attempt
+            failed only because Google Fonts could not be fetched.
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Residual Risk</h2>
+        <ul>
+          <li>
+            No dedicated tests were found for the new library API routes or
+            <code>libraryRepo</code> behavior, so authorization boundaries,
+            duplicate collection handling, and collection membership mutations
+            are currently protected mostly by manual review and existing build
+            checks.
+          </li>
+          <li>
+            The generated HTML/PNG mock assets were reviewed only as commit
+            artifacts, not as source of truth for production behavior.
+          </li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

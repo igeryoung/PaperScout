@@ -1,30 +1,33 @@
 import 'server-only';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import {
   ArrowRight,
   BarChart3,
-  Bookmark,
   FileText,
-  Grid2X2,
-  Lightbulb,
-  List,
+  LoaderCircle,
   Shield,
   Sparkles,
   Star,
   TrendingUp,
 } from 'lucide-react';
-import type { PaperEvaluation, PaperSource } from '@prisma/client';
 import { runsRepo } from '@/server/repos/runs';
+import { runResultsRepo, type RunResultWithDetail } from '@/server/repos/runResults';
 import {
-  runResultsRepo,
-  type RunResultWithDetail,
-} from '@/server/repos/runResults';
-import { trendsRepo, type RunSummary, type TagCount } from '@/server/repos/trends';
-import { selectBestEvaluation } from '@/server/lib/select-evaluation';
-import { formatAuthors, formatDate } from '@/lib/format';
-import { getLocale, pickLocalized, type Locale } from '@/lib/locale';
+  trendsRepo,
+  type RunSummary,
+  type SourceCount,
+  type TagCount,
+} from '@/server/repos/trends';
+import { formatDate } from '@/lib/format';
+import { getLocale, type Locale } from '@/lib/locale';
+import { formatConferenceLabel, formatSourceLabel } from '@/lib/source-label';
 import { getMessages, type Messages } from '@/i18n';
+import { getCurrentSession } from '@/server/auth/current-user';
+import { libraryRepo } from '@/server/repos/library';
+import { PaperFeedCard } from '@/components/paper-feed-card';
+import { FeedControls, type FeedControlsLabels } from '@/components/feed-controls';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,16 +40,78 @@ const TOPIC_FALLBACKS = [
   'AI Safety',
 ];
 
-const HOME_FEED_PAGE_SIZE = 10;
+// "For you" feed shows a random handful of papers, reshuffled each request.
+const HOME_FEED_RANDOM_COUNT = 5;
 
-interface HomePageProps {
-  searchParams: Promise<{ page?: string; locale?: string }>;
+type TimeKey = 'all' | 'week' | 'month' | 'year';
+
+interface FeedFilters {
+  domain: string;
+  time: TimeKey;
 }
 
-function parsePageParam(value: string | undefined): number {
-  if (!value) return 1;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+interface HomePageProps {
+  searchParams: Promise<{
+    locale?: string;
+    domain?: string;
+    time?: string;
+  }>;
+}
+
+interface HomeDataPromises {
+  summary: Promise<RunSummary>;
+  sourceDistribution: Promise<SourceCount[]>;
+  tagDistribution: Promise<TagCount[]>;
+  recommended: Promise<RunResultWithDetail[]>;
+  session: ReturnType<typeof getCurrentSession>;
+}
+
+function parseTimeParam(value: string | undefined): TimeKey {
+  return value === 'week' || value === 'month' || value === 'year' ? value : 'all';
+}
+
+function timeCutoff(time: TimeKey): Date | null {
+  if (time === 'all') return null;
+  const days = time === 'week' ? 7 : time === 'month' ? 30 : 365;
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+function resultDate(result: RunResultWithDetail): Date | null {
+  const raw = result.paper.publishedDate ?? result.paper.createdAt;
+  return raw ? new Date(raw) : null;
+}
+
+function resultConference(result: RunResultWithDetail): string | null {
+  const venue = result.paper.venue?.trim();
+  return venue ? formatConferenceLabel(venue) : null;
+}
+
+function applyFeedFilters(
+  results: RunResultWithDetail[],
+  filters: FeedFilters,
+): RunResultWithDetail[] {
+  let out = results;
+  if (filters.domain) {
+    out = out.filter((r) => resultConference(r) === filters.domain);
+  }
+  const cutoff = timeCutoff(filters.time);
+  if (cutoff) {
+    out = out.filter((r) => {
+      const date = resultDate(r);
+      return date != null && date >= cutoff;
+    });
+  }
+  return out;
+}
+
+/** Fisher-Yates shuffle, then take the first `count` items. */
+function sampleRandom<T>(items: T[], count: number): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, count);
 }
 
 function EmptyState({ messages }: { messages: Messages }) {
@@ -58,9 +123,7 @@ function EmptyState({ messages }: { messages: Messages }) {
           <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-[#eef0ff] text-[#5b4df1]">
             <Sparkles aria-hidden className="h-7 w-7" />
           </div>
-          <h1 className="text-3xl font-semibold tracking-normal text-[#111827]">
-            {t.emptyTitle}
-          </h1>
+          <h1 className="text-3xl font-semibold tracking-normal text-[#111827]">{t.emptyTitle}</h1>
           <p className="mt-3 text-sm leading-6 text-[#667085]">{t.emptyBody}</p>
           <pre className="mx-auto mt-6 max-w-xl overflow-x-auto rounded-lg bg-[#f2f4f8] p-4 text-left font-mono text-xs text-[#344054]">
             {t.emptyCommands}
@@ -75,6 +138,141 @@ function EmptyState({ messages }: { messages: Messages }) {
         </div>
       </section>
     </main>
+  );
+}
+
+function HomePagePlaceholder() {
+  return (
+    <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
+      <section className="grid min-h-[216px] items-center gap-10 rounded-[10px] bg-[linear-gradient(100deg,#edf7ff_0%,#f8f0ff_51%,#eaf4ff_100%)] px-5 py-6 shadow-[0_18px_50px_rgba(31,42,68,0.08)] md:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:px-24 xl:px-44">
+        <div className="max-w-[700px]">
+          <div className="mb-4 h-8 w-72 max-w-full animate-pulse rounded bg-white/80" />
+          <div className="mb-5 h-4 w-full max-w-[560px] animate-pulse rounded bg-white/70" />
+          <div className="h-[54px] rounded-[9px] border border-[#d9deea] bg-white shadow-[0_12px_26px_rgba(45,52,88,0.14)]" />
+          <div className="mt-4 flex flex-wrap gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <span key={i} className="h-[27px] w-24 animate-pulse rounded-full bg-[#dfe4ff]" />
+            ))}
+          </div>
+        </div>
+        <div className="hidden min-h-[176px] animate-pulse rounded-[10px] bg-white/50 md:block" />
+      </section>
+
+      <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
+          <div className="border-b border-[#e5e9f3] px-5 pt-2.5">
+            <div className="mb-3 h-5 w-60 animate-pulse rounded bg-[#edf1f7]" />
+          </div>
+          <div className="grid gap-3.5 px-5 py-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-1 gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 xl:grid-cols-[280px_minmax(0,1fr)_230px]"
+              >
+                <div className="h-44 animate-pulse rounded-lg bg-[#edf1f7]" />
+                <div className="space-y-3">
+                  <div className="h-5 w-4/5 animate-pulse rounded bg-[#edf1f7]" />
+                  <div className="h-4 w-1/2 animate-pulse rounded bg-[#edf1f7]" />
+                  <div className="h-16 animate-pulse rounded bg-[#edf1f7]" />
+                </div>
+                <div className="space-y-3">
+                  <div className="h-16 w-16 animate-pulse rounded-full bg-[#edf1f7]" />
+                  <div className="h-[68px] animate-pulse rounded-lg bg-[#eaf8f4]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <aside className="grid content-start gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <section
+              key={i}
+              className="min-h-[132px] rounded-[10px] border border-[#e5e9f3] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+            >
+              <div className="mb-4 h-5 w-36 animate-pulse rounded bg-[#edf1f7]" />
+              <div className="grid gap-2">
+                <div className="h-4 animate-pulse rounded bg-[#edf1f7]" />
+                <div className="h-4 w-2/3 animate-pulse rounded bg-[#edf1f7]" />
+              </div>
+            </section>
+          ))}
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function LoadingIcon({ label }: { label: string }) {
+  return (
+    <span
+      role="status"
+      aria-label={label}
+      className="inline-grid h-8 w-8 place-items-center rounded-full bg-[#eef0ff] text-[#5b4df1]"
+    >
+      <LoaderCircle aria-hidden className="h-4 w-4 animate-spin" />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
+function LoadingPanel({ label, minHeight = 132 }: { label: string; minHeight?: number }) {
+  return (
+    <section
+      className="grid place-items-center rounded-[10px] border border-[#e5e9f3] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+      style={{ minHeight }}
+    >
+      <LoadingIcon label={label} />
+    </section>
+  );
+}
+
+function HeroLoading({ messages }: { messages: Messages }) {
+  return (
+    <section className="grid min-h-[216px] items-center gap-10 rounded-[10px] bg-[linear-gradient(100deg,#edf7ff_0%,#f8f0ff_51%,#eaf4ff_100%)] px-5 py-6 shadow-[0_18px_50px_rgba(31,42,68,0.08)] md:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:px-24 xl:px-44">
+      <div className="max-w-[700px]">
+        <div className="mb-4 flex items-center gap-3">
+          <LoadingIcon label={messages.home.loadingHero} />
+          <div className="h-8 w-72 max-w-full animate-pulse rounded bg-white/80" />
+        </div>
+        <div className="mb-5 h-4 w-full max-w-[560px] animate-pulse rounded bg-white/70" />
+        <div className="h-[54px] rounded-[9px] border border-[#d9deea] bg-white shadow-[0_12px_26px_rgba(45,52,88,0.14)]" />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <span key={i} className="h-[27px] w-24 animate-pulse rounded-full bg-[#dfe4ff]" />
+          ))}
+        </div>
+      </div>
+      <div className="hidden min-h-[176px] animate-pulse rounded-[10px] bg-white/50 md:block" />
+    </section>
+  );
+}
+
+function FeedResultsLoading({ messages }: { messages: Messages }) {
+  return (
+    <>
+      <div className="flex items-center gap-3 rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-4">
+        <LoadingIcon label={messages.home.loadingFeed} />
+        <span className="h-4 w-48 max-w-full animate-pulse rounded bg-[#edf1f7]" />
+      </div>
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-1 gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 xl:grid-cols-[280px_minmax(0,1fr)_230px]"
+        >
+          <div className="h-44 animate-pulse rounded-lg bg-[#edf1f7]" />
+          <div className="space-y-3">
+            <div className="h-5 w-4/5 animate-pulse rounded bg-[#edf1f7]" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-[#edf1f7]" />
+            <div className="h-16 animate-pulse rounded bg-[#edf1f7]" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-16 w-16 animate-pulse rounded-full bg-[#edf1f7]" />
+            <div className="h-[68px] animate-pulse rounded-lg bg-[#eaf8f4]" />
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -179,333 +377,103 @@ function Hero({ summary, messages }: { summary: RunSummary; messages: Messages }
   );
 }
 
-function FeedToolbar({ messages }: { messages: Messages }) {
+function FeedTabs({ messages }: { messages: Messages }) {
   const t = messages.home;
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#e5e9f3] px-5 pt-2.5 max-lg:flex-col max-lg:items-stretch">
-      <div
-        className="flex min-w-0 gap-6 overflow-x-auto"
-        role="tablist"
-        aria-label={t.feedTablistAria}
-      >
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 border-b-[3px] border-[#5b4df1] pb-3 text-sm font-extrabold whitespace-nowrap text-[#392ee5]"
-          role="tab"
-          aria-selected="true"
-        >
-          <Star aria-hidden className="h-4 w-4" />
-          {t.feedTabRecommended}
-        </button>
-        {[
-          { label: t.feedTabTrending, icon: TrendingUp },
-          { label: t.feedTabLatest, icon: Shield },
-          { label: t.feedTabTop, icon: BarChart3 },
-        ].map(({ label, icon: Icon }) => (
-          <button
-            key={label}
-            type="button"
-            disabled
-            className="inline-flex cursor-not-allowed items-center gap-2 border-b-[3px] border-transparent pb-3 text-sm whitespace-nowrap text-[#344054] opacity-80"
-            role="tab"
-          >
-            <Icon aria-hidden className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-3 pb-2.5 max-sm:flex-wrap" aria-label={t.feedControlsAria}>
-        {[t.feedFilterDomain, t.feedFilterTime, t.feedFilterSort].map((label) => (
-          <select
-            key={label}
-            aria-label={label}
-            disabled
-            className="min-h-9 rounded-lg border border-[#d7deea] bg-white px-3 text-sm text-[#344054] disabled:opacity-80 max-sm:flex-1"
-          >
-            <option>{label}</option>
-          </select>
-        ))}
-        <div className="flex" aria-label={t.feedViewAria}>
-          <button
-            type="button"
-            aria-label={t.feedViewCard}
-            className="grid h-9 w-[38px] place-items-center rounded-l-lg border border-[#d7deea] bg-[#ebe9ff] text-[#5b4df1]"
-          >
-            <Grid2X2 aria-hidden className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            disabled
-            aria-label={t.feedViewList}
-            className="-ml-px grid h-9 w-[38px] cursor-not-allowed place-items-center rounded-r-lg border border-[#d7deea] bg-white text-[#344054] opacity-80"
-          >
-            <List aria-hidden className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function findSourceLink(paper: RunResultWithDetail['paper'], source: PaperSource['source']) {
-  return paper.sources.find((s) => s.source === source)?.sourceUrl ?? null;
-}
-
-function estimateReadingMinutes(parts: Array<string | null | undefined>): number {
-  const text = parts.filter(Boolean).join(' ');
-  if (!text.trim()) return 1;
-
-  const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length ?? 0;
-  const latinWords = text.match(/[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)*/g)?.length ?? 0;
-  const estimatedWords = latinWords + cjkChars / 2;
-
-  return Math.max(1, Math.ceil(estimatedWords / 220));
-}
-
-function ScoreRing({
-  evaluation,
-  messages,
-}: {
-  evaluation: PaperEvaluation | null;
-  messages: Messages;
-}) {
-  if (!evaluation) {
-    return (
-      <div className="grid h-16 w-16 place-items-center rounded-full bg-[#eef2f8] text-center text-xs text-[#667085]">
-        {messages.home.cardScoreNa}
-      </div>
-    );
-  }
-  const score = Math.max(0, Math.min(100, evaluation.totalScore));
-  return (
     <div
-      className="grid h-16 w-16 shrink-0 place-items-center rounded-full"
-      style={{
-        background: `radial-gradient(circle at center, #fff 0 59%, transparent 60%), conic-gradient(#5b4df1 0 ${score}%, #e8ecf5 ${score}% 100%)`,
-      }}
+      className="flex min-w-0 gap-6 overflow-x-auto"
+      role="tablist"
+      aria-label={t.feedTablistAria}
     >
-      <div className="text-center">
-        <strong className="block text-lg leading-none text-[#392ee5]">
-          {(score / 10).toFixed(1)}
-        </strong>
-        <span className="block text-xs text-[#667085]">/10</span>
-      </div>
-    </div>
-  );
-}
-
-function PlaceholderThumb({ index }: { index: number }) {
-  if (index % 2 === 0) {
-    return (
-      <div className="relative h-44 min-h-44 overflow-hidden rounded-lg border border-[#dce3ef] bg-[#fbfcff]">
-        <span className="absolute top-[65px] left-6 grid min-h-[38px] min-w-[58px] place-items-center rounded border border-[#8ba0b8] bg-white text-[10px] text-[#344054]">
-          Query
-        </span>
-        <span className="absolute top-[108px] left-[88px] grid min-h-[38px] min-w-[58px] place-items-center rounded border border-[#8ba0b8] bg-white text-[10px] text-[#344054]">
-          Docs
-        </span>
-        <span className="absolute top-[83px] left-[135px] grid min-h-[38px] min-w-[58px] place-items-center rounded border border-[#8ba0b8] bg-[#dff5df] text-[10px] text-[#344054]">
-          Model
-        </span>
-        <span className="absolute top-[83px] left-[208px] grid min-h-[38px] min-w-[58px] place-items-center rounded border border-[#8ba0b8] bg-[#d9edff] text-[10px] text-[#344054]">
-          LLM
-        </span>
-        <span className="absolute top-[84px] left-[79px] h-0.5 w-[55px] bg-[#98a2b3] after:absolute after:top-[-4px] after:right-[-1px] after:border-y-[5px] after:border-l-[7px] after:border-y-transparent after:border-l-[#98a2b3]" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid h-44 min-h-44 grid-cols-3 gap-3 overflow-hidden rounded-lg border border-[#dce3ef] bg-[#fbfcff] p-4">
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="relative min-h-[68px] border-b border-l border-[#ccd5e2] bg-[linear-gradient(#eef2f8_1px,transparent_1px),linear-gradient(90deg,#eef2f8_1px,transparent_1px)] bg-[length:100%_18px,22px_100%] before:absolute before:inset-[10px_9px_11px] before:border-t-[3px] before:border-[#5b7cff]"
-        />
+      <button
+        type="button"
+        className="inline-flex items-center gap-2 border-b-[3px] border-[#5b4df1] pb-3 text-sm font-extrabold whitespace-nowrap text-[#392ee5]"
+        role="tab"
+        aria-selected="true"
+      >
+        <Star aria-hidden className="h-4 w-4" />
+        {t.feedTabRecommended}
+      </button>
+      {[
+        { label: t.feedTabTrending, icon: TrendingUp },
+        { label: t.feedTabLatest, icon: Shield },
+        { label: t.feedTabTop, icon: BarChart3 },
+      ].map(({ label, icon: Icon }) => (
+        <button
+          key={label}
+          type="button"
+          disabled
+          className="inline-flex cursor-not-allowed items-center gap-2 border-b-[3px] border-transparent pb-3 text-sm whitespace-nowrap text-[#344054] opacity-80"
+          role="tab"
+        >
+          <Icon aria-hidden className="h-4 w-4" />
+          {label}
+        </button>
       ))}
-      <div className="col-span-3 grid grid-cols-4 gap-2">
-        {[0, 1, 2, 3].map((i) => (
-          <i
-            key={i}
-            className="min-h-[42px] rounded-[5px] bg-[radial-gradient(circle_at_30%_30%,#f7d38d_0_15%,transparent_16%),radial-gradient(circle_at_70%_50%,#82c7a5_0_18%,transparent_19%),linear-gradient(135deg,#bdc8e7,#f1f4fb)]"
-          />
-        ))}
-      </div>
     </div>
   );
 }
 
-function PaperThumb({
-  result,
-  index,
-  locale,
-  messages,
-}: {
-  result: RunResultWithDetail;
-  index: number;
-  locale: Locale;
-  messages: Messages;
-}) {
-  if (!result.paper.figure) return <PlaceholderThumb index={index} />;
-  const labelPart = result.paper.figure.figureLabel ?? messages.home.cardFigureFallback;
-  const captionText = pickLocalized(result.paper.figure.caption, locale);
-  const captionPart = captionText ? `: ${captionText}` : '';
-  return (
-    // eslint-disable-next-line @next/next/no-img-element -- served by the existing cache-controlled route.
-    <img
-      src={`/api/papers/${result.paper.id}/figure`}
-      alt={`${labelPart}${captionPart}`}
-      loading="lazy"
-      decoding="async"
-      className="h-44 min-h-44 rounded-lg border border-[#dce3ef] bg-[#fbfcff] object-cover"
-    />
-  );
+function feedControlLabels(messages: Messages): FeedControlsLabels {
+  const t = messages.home;
+  return {
+    controlsAria: t.feedControlsAria,
+    domainAria: t.feedFilterDomain,
+    domainAll: t.feedFilterDomain,
+    timeAria: t.feedFilterTime,
+    timeAll: t.feedFilterTime,
+    timeWeek: t.feedTimeWeek,
+    timeMonth: t.feedTimeMonth,
+    timeYear: t.feedTimeYear,
+  };
 }
 
-function ExternalLinks({
-  result,
-  evaluation,
+const FEED_TOOLBAR_CLASS =
+  'flex items-center justify-between gap-4 border-b border-[#e5e9f3] px-5 pt-2.5 max-lg:flex-col max-lg:items-stretch';
+
+function FeedToolbarFallback({
+  filters,
   messages,
 }: {
-  result: RunResultWithDetail;
-  evaluation: PaperEvaluation | null;
+  filters: FeedFilters;
   messages: Messages;
 }) {
-  const paper = result.paper;
-  const arxivUrl = findSourceLink(paper, 'ARXIV');
-  const openReviewUrl = findSourceLink(paper, 'OPENREVIEW');
-  const huggingFaceUrl = findSourceLink(paper, 'HUGGINGFACE');
-  const firstExternal =
-    paper.pdfUrl ?? arxivUrl ?? openReviewUrl ?? huggingFaceUrl ?? paper.codeLinks[0]?.codeUrl;
-
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-bold text-[#392ee5] xl:justify-end">
-      <Link href={`/papers/${paper.id}`}>{messages.home.cardViewSummary}</Link>
-      {firstExternal ? (
-        <a href={firstExternal} target="_blank" rel="noreferrer">
-          {messages.home.cardOpenPaper}
-        </a>
-      ) : evaluation ? (
-        <span>{evaluation.evaluationStage}</span>
-      ) : null}
+    <div className={FEED_TOOLBAR_CLASS}>
+      <FeedTabs messages={messages} />
+      <FeedControls
+        domain={filters.domain}
+        time={filters.time}
+        domainOptions={[]}
+        labels={feedControlLabels(messages)}
+      />
     </div>
   );
 }
 
-function HomePaperCard({
-  result,
-  index,
-  locale,
+async function FeedToolbar({
+  summary,
+  filters,
   messages,
 }: {
-  result: RunResultWithDetail;
-  index: number;
-  locale: Locale;
+  summary: Promise<RunSummary>;
+  filters: FeedFilters;
   messages: Messages;
 }) {
-  const paper = result.paper;
-  const evaluation = selectBestEvaluation(paper.evaluations);
-  const sourceLabels = messages.common.sources;
-  const summary =
-    pickLocalized(evaluation?.summary, locale) ?? messages.home.summaryFallback;
-  const reason =
-    pickLocalized(evaluation?.recommendationReason, locale) ??
-    pickLocalized(evaluation?.rankingExplanation, locale) ??
-    messages.home.reasonFallback;
-  const readingMinutes = estimateReadingMinutes([paper.abstract, summary, reason]);
-
+  const domainOptions = (await summary).topConferences.map((c) => c.tag);
   return (
-    <article className="grid grid-cols-1 items-start gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)_230px]">
-      <div className="min-w-0">
-        <PaperThumb result={result} index={index} locale={locale} messages={messages} />
-      </div>
-
-      <div className="min-w-0">
-        <h2 className="mb-2 text-lg leading-snug font-semibold tracking-normal text-[#111827]">
-          <Link href={`/papers/${paper.id}`} className="hover:text-[#392ee5]">
-            {paper.title}
-          </Link>
-        </h2>
-        <div className="mb-2 flex flex-wrap gap-2 text-[13px] text-[#667085]">
-          <span>{formatAuthors(paper.authors, 3)}</span>
-          <span>|</span>
-          <span>{sourceLabels[paper.primarySource]}</span>
-          <span>|</span>
-          <span>{formatDate(paper.publishedDate)}</span>
-        </div>
-        <p className="mb-4 text-sm leading-relaxed text-[#273142]">{summary}</p>
-      </div>
-
-      <div className="flex min-w-0 flex-col gap-3.5">
-        <div className="flex items-center gap-4">
-          <ScoreRing evaluation={evaluation} messages={messages} />
-          <span className="text-[13px] whitespace-nowrap text-[#344054]">
-            {messages.home.cardAiScore} ⓘ
-          </span>
-        </div>
-        <div className="min-h-[68px] rounded-lg bg-[#eaf8f4] px-3.5 py-3 text-sm leading-snug text-[#195b50]">
-          <strong className="mb-1.5 flex items-center gap-2 text-[13px] text-[#0f9f86]">
-            <Lightbulb aria-hidden className="h-4 w-4" />
-            {messages.home.cardReasonHeader}
-          </strong>
-          <span className="line-clamp-5">{reason}</span>
-        </div>
-      </div>
-
-      <div className="grid gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-3 xl:grid-cols-[280px_minmax(0,1fr)_230px] xl:items-start">
-        {paper.tags.length > 0 ? (
-          <div className="paper-tag-marquee overflow-hidden py-0.5">
-            <div className="paper-tag-marquee__track flex w-max gap-2">
-              {[false, true].map((isDuplicate) => (
-                <div
-                  key={isDuplicate ? 'duplicate' : 'primary'}
-                  aria-hidden={isDuplicate}
-                  className="flex shrink-0 gap-2"
-                >
-                  {paper.tags.map((tag) => (
-                    <Link
-                      key={`${isDuplicate ? 'duplicate' : 'primary'}-${tag.id}`}
-                      href={`/library?tags=${encodeURIComponent(tag.tag)}`}
-                      tabIndex={isDuplicate ? -1 : undefined}
-                      className="inline-flex min-h-[26px] shrink-0 items-center rounded-full bg-[#eef0ff] px-3 text-[13px] font-bold whitespace-nowrap text-[#3442c8]"
-                    >
-                      {tag.tag}
-                    </Link>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div aria-hidden />
-        )}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-[33px] cursor-not-allowed items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] opacity-80"
-          >
-            <Star aria-hidden className="h-4 w-4" />
-            {messages.home.cardFavorite}
-          </button>
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-[33px] cursor-not-allowed items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] opacity-80"
-          >
-            <Bookmark aria-hidden className="h-4 w-4" />
-            {messages.home.cardReadLater}
-          </button>
-          <span className="text-[13px] text-[#667085]">
-            {messages.home.cardReadTime(readingMinutes)}
-          </span>
-        </div>
-        <ExternalLinks result={result} evaluation={evaluation} messages={messages} />
-      </div>
-    </article>
+    <div className={FEED_TOOLBAR_CLASS}>
+      <FeedTabs messages={messages} />
+      <FeedControls
+        domain={filters.domain}
+        time={filters.time}
+        domainOptions={domainOptions}
+        labels={feedControlLabels(messages)}
+      />
+    </div>
   );
 }
+
 
 function HotTagsCard({ tags, messages }: { tags: TagCount[]; messages: Messages }) {
   const visible = tags.slice(0, 8);
@@ -570,7 +538,12 @@ function RecentRecommendationsCard({
                 <Link href={`/papers/${r.paper.id}`}>{r.paper.title}</Link>
               </h4>
               <p className="text-xs text-[#667085]">
-                {sourceLabels[r.paper.primarySource]} | {formatDate(r.paper.publishedDate)}
+                {formatSourceLabel({
+                  source: r.paper.primarySource,
+                  venue: r.paper.venue,
+                  sourceLabels,
+                })}{' '}
+                | {formatDate(r.paper.publishedDate)}
               </p>
             </div>
             <span className="text-[#5b4df1]">♡</span>
@@ -581,8 +554,14 @@ function RecentRecommendationsCard({
   );
 }
 
-function SourceMixCard({ summary, messages }: { summary: RunSummary; messages: Messages }) {
-  const total = summary.sources.reduce((acc, source) => acc + source.count, 0);
+function SourceMixCard({
+  sources,
+  messages,
+}: {
+  sources: SourceCount[];
+  messages: Messages;
+}) {
+  const total = sources.reduce((acc, source) => acc + source.count, 0);
   const t = messages.home;
   const sourceLabels = messages.common.sources;
   return (
@@ -596,10 +575,10 @@ function SourceMixCard({ summary, messages }: { summary: RunSummary; messages: M
         <p className="text-sm text-[#667085]">{t.sourceMixEmpty}</p>
       ) : (
         <ul className="grid gap-3">
-          {summary.sources.map((source) => (
-            <li key={source.source} className="flex items-center justify-between text-sm">
-              <span className="text-[#344054]">{sourceLabels[source.source]}</span>
-              <span className="font-semibold tabular-nums text-[#392ee5]">
+          {sources.map((source) => (
+            <li key={source.key} className="flex items-center justify-between text-sm">
+              <span className="text-[#344054]">{source.label ?? sourceLabels[source.source]}</span>
+              <span className="font-semibold text-[#392ee5] tabular-nums">
                 {source.count} ({Math.round((source.count / total) * 100)}%)
               </span>
             </li>
@@ -635,164 +614,218 @@ function PersonalCard({ messages }: { messages: Messages }) {
   );
 }
 
-function Pagination({
-  currentPage,
-  totalPages,
-  totalItems,
+
+async function HeroSection({
+  summary,
   messages,
 }: {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
+  summary: Promise<RunSummary>;
   messages: Messages;
 }) {
-  const t = messages.home;
-  if (totalPages <= 1) {
-    return (
-      <p className="text-center text-sm text-[#667085]">{t.paginationAllShown(totalItems)}</p>
-    );
-  }
+  return <Hero summary={await summary} messages={messages} />;
+}
 
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
-  const pageHref = (page: number) => (page === 1 ? '/' : `/?page=${page}`);
+async function FeedResults({
+  runId,
+  filters,
+  session,
+  locale,
+  messages,
+}: {
+  runId: string;
+  filters: FeedFilters;
+  session: HomeDataPromises['session'];
+  locale: Locale;
+  messages: Messages;
+}) {
+  // Runs hold a small number of papers, so filter in memory — then surface a
+  // random handful as the "for you" feed (reshuffled on each request).
+  const allResults = await runResultsRepo.findByRunWithDetail(runId, {
+    recommendedOnly: false,
+  });
+  const matched = applyFeedFilters(allResults, filters);
+  const results = sampleRandom(matched, HOME_FEED_RANDOM_COUNT);
+  const resolvedSession = await session;
+  const paperStates = resolvedSession
+    ? await libraryRepo.findPaperStates({
+        userId: resolvedSession.user.id,
+        paperIds: results.map((result) => result.paper.id),
+      })
+    : new Map<string, { liked: boolean; status: string }>();
 
   return (
-    <nav
-      className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5e9f3] pt-4 text-sm"
-      aria-label={t.paginationAria}
-    >
-      <p className="text-[#667085]">{t.paginationStatus(currentPage, totalPages, totalItems)}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        {currentPage > 1 ? (
-          <Link
-            href={pageHref(currentPage - 1)}
-            className="inline-flex min-h-9 items-center rounded-lg border border-[#d7deea] bg-white px-3 font-semibold text-[#344054] hover:text-[#392ee5]"
-          >
-            {t.paginationPrev}
-          </Link>
-        ) : (
-          <span className="inline-flex min-h-9 cursor-not-allowed items-center rounded-lg border border-[#d7deea] bg-[#f2f4f8] px-3 font-semibold text-[#98a2b3]">
-            {t.paginationPrev}
-          </span>
-        )}
+    <>
+      {results.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-6 text-sm text-[#667085]">
+          {messages.home.feedNoResults}
+        </div>
+      ) : (
+        results.map((result, index) => (
+          <PaperFeedCard
+            key={result.id}
+            paper={result.paper}
+            index={index}
+            locale={locale}
+            messages={messages}
+            userState={{
+              liked: paperStates.get(result.paper.id)?.liked ?? false,
+              readLater: paperStates.get(result.paper.id)?.status === 'UNREAD',
+            }}
+          />
+        ))
+      )}
+    </>
+  );
+}
 
-        {pageNumbers.map((page) => (
-          <Link
-            key={page}
-            href={pageHref(page)}
-            aria-current={page === currentPage ? 'page' : undefined}
-            className={
-              page === currentPage
-                ? 'grid h-9 min-w-9 place-items-center rounded-lg bg-[#5b4df1] px-3 font-bold text-white'
-                : 'grid h-9 min-w-9 place-items-center rounded-lg border border-[#d7deea] bg-white px-3 font-semibold text-[#344054] hover:text-[#392ee5]'
+function FeedSection({
+  run,
+  data,
+  filters,
+  locale,
+  messages,
+}: {
+  run: NonNullable<Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>>;
+  data: HomeDataPromises;
+  filters: FeedFilters;
+  locale: Locale;
+  messages: Messages;
+}) {
+  return (
+    <section
+      className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
+      aria-labelledby="feed-title"
+    >
+      <Suspense fallback={<FeedToolbarFallback filters={filters} messages={messages} />}>
+        <FeedToolbar summary={data.summary} filters={filters} messages={messages} />
+      </Suspense>
+      <div className="sr-only" id="feed-title">
+        {messages.home.feedTitleSr}
+      </div>
+      <div className="grid gap-3.5 px-5 py-4">
+        <Suspense fallback={<FeedResultsLoading messages={messages} />}>
+          <FeedResults
+            runId={run.id}
+            filters={filters}
+            session={data.session}
+            locale={locale}
+            messages={messages}
+          />
+        </Suspense>
+      </div>
+    </section>
+  );
+}
+
+async function HotTagsSection({
+  tagDistribution,
+  messages,
+}: {
+  tagDistribution: Promise<TagCount[]>;
+  messages: Messages;
+}) {
+  return <HotTagsCard tags={await tagDistribution} messages={messages} />;
+}
+
+async function RecentRecommendationsSection({
+  recommended,
+  messages,
+}: {
+  recommended: Promise<RunResultWithDetail[]>;
+  messages: Messages;
+}) {
+  const resolvedRecommended = await recommended;
+  return resolvedRecommended.length > 0 ? (
+    <RecentRecommendationsCard recommended={resolvedRecommended} messages={messages} />
+  ) : null;
+}
+
+async function SourceMixSection({
+  sourceDistribution,
+  messages,
+}: {
+  sourceDistribution: Promise<SourceCount[]>;
+  messages: Messages;
+}) {
+  return <SourceMixCard sources={await sourceDistribution} messages={messages} />;
+}
+
+async function HomePageContent({
+  searchParams,
+  locale,
+}: {
+  searchParams: Awaited<HomePageProps['searchParams']>;
+  locale: Locale;
+}) {
+  const run = await runsRepo.latestCompletedForDisplay();
+  const messages = getMessages(locale);
+  if (!run) return <EmptyState messages={messages} />;
+
+  const filters: FeedFilters = {
+    domain: searchParams.domain ?? '',
+    time: parseTimeParam(searchParams.time),
+  };
+  const data: HomeDataPromises = {
+    summary: trendsRepo.getRunSummary(run.id),
+    sourceDistribution: trendsRepo.getSourceDistribution(),
+    tagDistribution: trendsRepo.getTagDistribution(),
+    recommended: runResultsRepo.findByRunWithDetail(run.id, {
+      recommendedOnly: true,
+      limit: 3,
+    }),
+    session: getCurrentSession(),
+  };
+
+  return (
+    <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
+      <Suspense fallback={<HeroLoading messages={messages} />}>
+        <HeroSection summary={data.summary} messages={messages} />
+      </Suspense>
+
+      <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <FeedSection
+          run={run}
+          data={data}
+          filters={filters}
+          locale={locale}
+          messages={messages}
+        />
+
+        <aside className="grid content-start gap-3" aria-label={messages.home.sidebarAria}>
+          <Suspense
+            fallback={<LoadingPanel label={messages.home.loadingHotTags} minHeight={132} />}
+          >
+            <HotTagsSection tagDistribution={data.tagDistribution} messages={messages} />
+          </Suspense>
+          <Suspense
+            fallback={
+              <LoadingPanel label={messages.home.loadingRecommendations} minHeight={156} />
             }
           >
-            {page}
-          </Link>
-        ))}
-
-        {currentPage < totalPages ? (
-          <Link
-            href={pageHref(currentPage + 1)}
-            className="inline-flex min-h-9 items-center rounded-lg border border-[#d7deea] bg-white px-3 font-semibold text-[#344054] hover:text-[#392ee5]"
+            <RecentRecommendationsSection recommended={data.recommended} messages={messages} />
+          </Suspense>
+          <Suspense
+            fallback={<LoadingPanel label={messages.home.loadingSourceMix} minHeight={132} />}
           >
-            {t.paginationNext}
-          </Link>
-        ) : (
-          <span className="inline-flex min-h-9 cursor-not-allowed items-center rounded-lg border border-[#d7deea] bg-[#f2f4f8] px-3 font-semibold text-[#98a2b3]">
-            {t.paginationNext}
-          </span>
-        )}
+            <SourceMixSection
+              sourceDistribution={data.sourceDistribution}
+              messages={messages}
+            />
+          </Suspense>
+          <PersonalCard messages={messages} />
+        </aside>
       </div>
-    </nav>
+    </main>
   );
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const sp = await searchParams;
-  const [run, locale] = await Promise.all([
-    runsRepo.latestCompletedForDisplay(),
-    getLocale(sp),
-  ]);
-  const messages = getMessages(locale);
-  if (!run) return <EmptyState messages={messages} />;
-
-  const requestedPage = parsePageParam(sp.page);
-
-  const [summary, recommended, totalResults] = await Promise.all([
-    trendsRepo.getRunSummary(run.id),
-    runResultsRepo.findByRunWithDetail(run.id, { recommendedOnly: true }),
-    runResultsRepo.countByRun(run.id),
-  ]);
-  const totalPages = Math.max(1, Math.ceil(totalResults / HOME_FEED_PAGE_SIZE));
-  const currentPage = Math.min(requestedPage, totalPages);
-  const results = await runResultsRepo.findByRunWithDetail(run.id, {
-    recommendedOnly: false,
-    limit: HOME_FEED_PAGE_SIZE,
-    offset: (currentPage - 1) * HOME_FEED_PAGE_SIZE,
-  });
+  const locale = await getLocale(sp);
 
   return (
-    <main className="mx-auto max-w-[1760px] px-4 py-4 sm:px-6 lg:px-12">
-      <Hero summary={summary} messages={messages} />
-
-      <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <section
-          className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
-          aria-labelledby="feed-title"
-        >
-          <FeedToolbar messages={messages} />
-          <div className="sr-only" id="feed-title">
-            {messages.home.feedTitleSr}
-          </div>
-          <div className="grid gap-3.5 px-5 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#667085]">
-              <span>
-                {messages.home.runMeta(
-                  formatDate(run.completedAt ?? run.createdAt),
-                  summary.totalPapers,
-                  summary.recommendedCount,
-                  currentPage,
-                )}
-              </span>
-              <Link href={`/runs/${run.id}`} className="font-semibold text-[#392ee5]">
-                {messages.home.viewFullRun}
-              </Link>
-            </div>
-
-            {results.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-6 text-sm text-[#667085]">
-                {messages.home.feedNoResults}
-              </div>
-            ) : (
-              results.map((result, index) => (
-                <HomePaperCard
-                  key={result.id}
-                  result={result}
-                  index={index}
-                  locale={locale}
-                  messages={messages}
-                />
-              ))
-            )}
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={totalResults}
-              messages={messages}
-            />
-          </div>
-        </section>
-
-        <aside className="grid content-start gap-3" aria-label={messages.home.sidebarAria}>
-          <HotTagsCard tags={summary.topTags} messages={messages} />
-          {recommended.length > 0 ? (
-            <RecentRecommendationsCard recommended={recommended} messages={messages} />
-          ) : null}
-          <SourceMixCard summary={summary} messages={messages} />
-          <PersonalCard messages={messages} />
-        </aside>
-      </div>
-    </main>
+    <Suspense fallback={<HomePagePlaceholder />}>
+      <HomePageContent searchParams={sp} locale={locale} />
+    </Suspense>
   );
 }

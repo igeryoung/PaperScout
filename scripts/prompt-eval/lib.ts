@@ -24,7 +24,6 @@ export const DIMENSION_KEYS = [
   'methodologicalRigor',
   'experimentalQuality',
   'venueSourceCredibility',
-  'authorInstitutionReputation',
 ] as const;
 export type DimensionKey = (typeof DIMENSION_KEYS)[number];
 

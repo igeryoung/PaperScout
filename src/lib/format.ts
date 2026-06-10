@@ -11,6 +11,17 @@ export function formatDate(d: Date | null | undefined): string {
   return d ? DATE_FMT.format(d) : '—';
 }
 
+const ISO_DATE_FMT = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: 'UTC',
+});
+
+export function formatDateISO(d: Date | null | undefined): string {
+  return d ? ISO_DATE_FMT.format(d) : '—';
+}
+
 export function authorsFromJson(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((v): v is string => typeof v === 'string');

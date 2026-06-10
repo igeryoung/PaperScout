@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { scoreTier, type ScoreTier } from '@/server/lib/select-evaluation';
 import { pickLocalized, type Locale } from '@/lib/locale';
+import { formatSourceLabel } from '@/lib/source-label';
 import type { Messages } from '@/i18n';
 
 export interface PaperCardPaper {
@@ -17,6 +18,7 @@ export interface PaperCardPaper {
   title: string;
   authors: unknown;
   primarySource: PaperSource['source'];
+  venue: string | null;
   publishedDate: Date | null;
   pdfUrl: string | null;
   sources: PaperSource[];
@@ -90,6 +92,11 @@ export function PaperCard({ rank, paper, evaluation, locale, messages }: PaperCa
   const summary = pickLocalized(evaluation?.summary, locale);
   const reason = pickLocalized(evaluation?.recommendationReason, locale);
   const sourceLabels = messages.common.sources;
+  const primarySourceLabel = formatSourceLabel({
+    source: paper.primarySource,
+    venue: paper.venue,
+    sourceLabels,
+  });
 
   return (
     <article className="bg-card rounded-lg border p-5 shadow-sm">
@@ -127,7 +134,7 @@ export function PaperCard({ rank, paper, evaluation, locale, messages }: PaperCa
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{sourceLabels[paper.primarySource]}</Badge>
+            <Badge variant="secondary">{primarySourceLabel}</Badge>
             {evaluation ? <StageBadge evaluation={evaluation} messages={messages} /> : null}
             {evaluation?.recommendationDecision ? (
               <Badge

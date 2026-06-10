@@ -1,47 +1,45 @@
 [
   {
-    "title": "ViT-Lite: Compact Vision Transformers via Token Merging",
-    "authors": ["Lin Chen", "Sara Ahmed", "Wei Zhang"],
-    "abstract": "We introduce ViT-Lite, a family of vision transformer variants that achieve a 3x reduction in compute by progressively merging tokens at each layer. Across ImageNet-1k, COCO detection, and ADE20K segmentation, ViT-Lite matches or outperforms standard ViT baselines while using 60% fewer FLOPs. We further analyze how the optimal merge schedule varies with task and provide pretrained checkpoints. Code and pretrained models are released.",
-    "venue": null,
-    "publishedDate": "2026-05-06",
-    "sourceUrl": "https://arxiv.org/abs/2605.12345",
-    "pdfUrl": "https://arxiv.org/pdf/2605.12345",
-    "sourcePaperId": "2605.12345",
-    "source": "ARXIV",
-    "codeUrls": ["https://github.com/example-org/vit-lite"],
+    "title": "Decomposing LLM Computation with Jets",
+    "authors": [
+      "Yihong Chen",
+      "Xiangxiang Xu",
+      "Pontus Stenetorp",
+      "Sebastian Riedel",
+      "Luca Franceschi"
+    ],
+    "abstract": "Large language models are becoming general knowledge engines for diverse applications. However, their computations are deeply entangled after training, resisting modularization which complicates interpretability, auditing, and long-term maintenance. We introduce Jet Expansions, a framework for expanding computational graphs using jet operators that generalize truncated Taylor series. Our method systematically decomposes language models into explicit input-to-output computational paths and complementary remainders. This functional decomposition provides a principled, knife-like operator for cutting through entanglement in LLMs, enabling scalable model inspection. We demonstrate how Jet Expansions ground and subsume the popular interpretability technique Logit Lens, reveal a (super-)exponential path structure with respect to recursive residual depth, and support several interpretability applications, including sketching a transformer language model with $n$-gram statistics extracted from its computations and indexing model toxicity levels *without* curated benchmarks.",
+    "venue": "ICLR 2026 Poster",
+    "publishedDate": "2026-01-26",
+    "sourceUrl": "https://openreview.net/forum?id=u6JLh0BO5h",
+    "pdfUrl": "https://openreview.net/pdf?id=u6JLh0BO5h",
+    "sourcePaperId": "u6JLh0BO5h",
+    "source": "OPENREVIEW",
+    "codeUrls": [],
     "additionalSources": []
   },
   {
-    "title": "DiffSeg: Diffusion Models for Open-Vocabulary Segmentation",
-    "authors": ["Alex Park", "Maria Chen", "Tom Williams", "Yuki Tanaka"],
-    "abstract": "We present DiffSeg, a framework that repurposes pretrained text-to-image diffusion models for open-vocabulary semantic segmentation without any segmentation supervision. By extracting cross-attention maps at multiple diffusion timesteps and applying a novel boundary-aware refinement that uses latent-space gradient information, DiffSeg outperforms prior zero-shot baselines on PASCAL VOC, COCO, and ADE20K. We further show that segmentation quality scales with diffusion model capacity, suggesting a path to even stronger zero-shot segmentation as base models improve.",
-    "venue": null,
-    "publishedDate": "2026-05-05",
-    "sourceUrl": "https://huggingface.co/papers/2605.09876",
-    "pdfUrl": "https://arxiv.org/pdf/2605.09876",
-    "sourcePaperId": "2605.09876",
-    "source": "HUGGINGFACE",
-    "codeUrls": ["https://github.com/example-org/diffseg"],
-    "additionalSources": [
-      {
-        "source": "ARXIV",
-        "sourceUrl": "https://arxiv.org/abs/2605.09876",
-        "sourcePaperId": "2605.09876"
-      }
-    ]
-  },
-  {
-    "title": "Robust 3D Reconstruction from Sparse Views via Geometric Self-Supervision",
-    "authors": ["Jordan Lee", "Priya Patel"],
-    "abstract": "Sparse-view 3D reconstruction remains challenging due to depth ambiguity and limited multi-view geometric constraints. We propose a self-supervised geometric consistency loss that enforces multi-view agreement at both feature and depth levels, enabling reconstruction from as few as 3 input views. Experiments on DTU and BlendedMVS show consistent improvements over recent NeRF-based and Gaussian-Splatting baselines under sparse-view settings, with PSNR gains of 1.2-2.4 dB.",
-    "venue": "CVPR 2026 (under review)",
-    "publishedDate": "2026-05-04",
-    "sourceUrl": "https://openreview.net/forum?id=cv-sparse-recon-2026",
-    "pdfUrl": "https://openreview.net/pdf?id=cv-sparse-recon-2026",
-    "sourcePaperId": "cv-sparse-recon-2026",
+    "title": "Time-o1: Time-Series Forecasting Needs Transformed Label Alignment",
+    "authors": [
+      "Hao Wang",
+      "Licheng Pan",
+      "Zhichao Chen",
+      "Xu Chen",
+      "Qingyang Dai",
+      "Lei Wang",
+      "Haoxuan Li",
+      "Zhouchen Lin"
+    ],
+    "abstract": "Training time-series forecasting models poses unique challenges in loss function design. Most existing approaches adopt temporal mean squared error, but this study reveals two critical limitations: (1) it ignores the presence of label autocorrelation, which biases it from the true label sequence likelihood;  (2) it involves excessive number of tasks, which complicates optimization, especially for long-term forecasting. To address these issues, we introduce Time-o1, a transform-enhanced loss function for time-series forecasting. The central idea is to transform the label sequence into decorrelated components with discriminated significance. Models are then trained to align the most significant components, thereby effectively mitigating label autocorrelation and reducing task amount. Experiments demonstrate that Time-o1 achieves state-of-the-art performance and is compatible with various forecast models. Code is available at https://github.com/Master-PLC/Time-o1.",
+    "venue": "NeurIPS 2025 poster",
+    "publishedDate": "2025-09-18",
+    "sourceUrl": "https://openreview.net/forum?id=RxWILaXuhb",
+    "pdfUrl": "https://openreview.net/pdf?id=RxWILaXuhb",
+    "sourcePaperId": "RxWILaXuhb",
     "source": "OPENREVIEW",
-    "codeUrls": [],
+    "codeUrls": [
+      "https://github.com/Master-PLC/Time-o1"
+    ],
     "additionalSources": []
   }
 ]

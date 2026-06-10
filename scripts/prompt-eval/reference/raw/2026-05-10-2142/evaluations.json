@@ -10,8 +10,7 @@
       "methodologicalRigor": 20,
       "experimentalQuality": 18,
       "venueSourceCredibility": 13,
-      "authorInstitutionReputation": 13,
-      "total": 86
+      "total": 73
     },
     "summary": {
       "en": "SAM proposes a promptable segmentation foundation model trained on a 1.1B-mask, 11M-image dataset (SA-1B) collected via a model-in-the-loop data engine, yielding strong zero-shot transfer across 23 segmentation benchmarks.",
@@ -20,14 +19,6 @@
     "recommendationReason": {
       "en": "Genuinely new paradigm for segmentation: promptable task formulation, ambiguity-aware multi-mask prediction, and a scale of supervision (1.1B masks) unprecedented in segmentation.",
       "zh-TW": "Genuinely new paradigm for segmentation: promptable task formulation, ambiguity-aware multi-mask prediction, and a scale of supervision (1.1B masks) unprecedented in segmentation."
-    },
-    "keyContribution": {
-      "en": "Promptable segmentation as a pre-training objective, paired with a data engine that bootstraps a 1.1B-mask dataset, enabling zero-shot transfer to many downstream segmentation tasks via prompt engineering.",
-      "zh-TW": "Promptable segmentation as a pre-training objective, paired with a data engine that bootstraps a 1.1B-mask dataset, enabling zero-shot transfer to many downstream segmentation tasks via prompt engineering."
-    },
-    "methodologySummary": {
-      "en": "SAM is composed of an MAE-pretrained ViT-H image encoder, a lightweight prompt encoder (points/boxes/text/masks via positional + CLIP embeddings), and a two-layer transformer mask decoder that predicts three masks per prompt to handle ambiguity. Training uses a focal+dice loss (20:1) over interactively simulated prompts on the SA-1B dataset built by a three-stage (assisted-manual → semi-automatic → fully-automatic) data engine.",
-      "zh-TW": "SAM is composed of an MAE-pretrained ViT-H image encoder, a lightweight prompt encoder (points/boxes/text/masks via positional + CLIP embeddings), and a two-layer transformer mask decoder that predicts three masks per prompt to handle ambiguity. Training uses a focal+dice loss (20:1) over interactively simulated prompts on the SA-1B dataset built by a three-stage (assisted-manual → semi-automatic → fully-automatic) data engine."
     },
     "strengths": {
       "en": [
@@ -66,10 +57,6 @@
       "zero-shot",
       "dataset"
     ],
-    "rankingExplanation": {
-      "en": "PDF analysis confirms novelty=22 (new task formulation + foundation-model paradigm for segmentation), methodologicalRigor=20 (ambiguity-aware design, three-stage data engine, RAI analysis), experimentalQuality=18 (23-dataset zero-shot + four downstream tasks + human study). Top-1 by total (86).",
-      "zh-TW": "PDF analysis confirms novelty=22 (new task formulation + foundation-model paradigm for segmentation), methodologicalRigor=20 (ambiguity-aware design, three-stage data engine, RAI analysis), experimentalQuality=18 (23-dataset zero-shot + four downstream tasks + human study). Top-1 by total (86)."
-    },
     "recommendationDecision": "RECOMMEND",
     "pdfAnalysisStatus": "SUCCESS",
     "tableFigureAnalysis": null
@@ -85,8 +72,7 @@
       "methodologicalRigor": 17,
       "experimentalQuality": 15,
       "venueSourceCredibility": 11,
-      "authorInstitutionReputation": 9,
-      "total": 61
+      "total": 52
     },
     "summary": {
       "en": "EfficientFormerV2 revisits ViT design choices for mobile devices and proposes a fine-grained joint NAS over depth, width, and FFN expansion ratios that jointly optimizes a Mobile Efficiency Score (MES), achieving MobileNetV2-level latency at 3.5% higher top-1 on ImageNet-1K.",
@@ -95,14 +81,6 @@
     "recommendationReason": {
       "en": "Solid execution of mobile-ViT engineering with multi-task validation (ImageNet, COCO, ADE20K) and on-device latency measurement. Novelty is incremental over EfficientFormer v1 and prior efficient-ViT NAS works.",
       "zh-TW": "Solid execution of mobile-ViT engineering with multi-task validation (ImageNet, COCO, ADE20K) and on-device latency measurement. Novelty is incremental over EfficientFormer v1 and prior efficient-ViT NAS works."
-    },
-    "keyContribution": {
-      "en": "Fine-grained per-block NAS over FFN expansion ratios alongside depth and width, with a joint MES objective that simultaneously optimizes latency and parameter count, applied to a unified-FFN supernet.",
-      "zh-TW": "Fine-grained per-block NAS over FFN expansion ratios alongside depth and width, with a joint MES objective that simultaneously optimizes latency and parameter count, applied to a unified-FFN supernet."
-    },
-    "methodologySummary": {
-      "en": "Builds on EfficientFormer-L1 by unifying token mixers (drop residual local mixers, use depth-wise FFN globally), adding talking-head attention with locality, dual-path attention downsampling, and stride attention at higher resolutions. The supernet is pretrained with the slimmable-network sandwich rule, then a frontier-search algorithm jointly minimizes ΔAccuracy/ΔMES over depth/width/expansion actions.",
-      "zh-TW": "Builds on EfficientFormer-L1 by unifying token mixers (drop residual local mixers, use depth-wise FFN globally), adding talking-head attention with locality, dual-path attention downsampling, and stride attention at higher resolutions. The supernet is pretrained with the slimmable-network sandwich rule, then a frontier-search algorithm jointly minimizes ΔAccuracy/ΔMES over depth/width/expansion actions."
     },
     "strengths": {
       "en": [
@@ -136,10 +114,6 @@
       "mobile",
       "neural-architecture-search"
     ],
-    "rankingExplanation": {
-      "en": "PDF confirms incremental nature: novelty=9 (FFN-ratio search + minor block tweaks over v1), methodologicalRigor=17 (proper supernet + sandwich rule + multi-platform latency), experimentalQuality=15 (three benchmarks, three hardware platforms, real ablations). Total 61 → STORE_ONLY (just below the 65 RECOMMEND threshold).",
-      "zh-TW": "PDF confirms incremental nature: novelty=9 (FFN-ratio search + minor block tweaks over v1), methodologicalRigor=17 (proper supernet + sandwich rule + multi-platform latency), experimentalQuality=15 (three benchmarks, three hardware platforms, real ablations). Total 61 → STORE_ONLY (just below the 65 RECOMMEND threshold)."
-    },
     "recommendationDecision": "STORE_ONLY",
     "pdfAnalysisStatus": "SUCCESS",
     "tableFigureAnalysis": null
@@ -155,8 +129,7 @@
       "methodologicalRigor": 19,
       "experimentalQuality": 17,
       "venueSourceCredibility": 12,
-      "authorInstitutionReputation": 14,
-      "total": 73
+      "total": 59
     },
     "summary": {
       "en": "ViT-22B presents a recipe for stably training a 22B-parameter Vision Transformer (parallel attention/MLP, QK normalization, omitted biases) and evaluates the resulting frozen-feature model across classification, OOD, segmentation, depth, video, fairness, robustness, and distillation tasks.",
@@ -165,14 +138,6 @@
     "recommendationReason": {
       "en": "Substantial scaling and engineering achievement with broad downstream evaluation, but the core architectural changes are inherited from PaLM and prior scaling literature; algorithmic novelty is modest.",
       "zh-TW": "Substantial scaling and engineering achievement with broad downstream evaluation, but the core architectural changes are inherited from PaLM and prior scaling literature; algorithmic novelty is modest."
-    },
-    "keyContribution": {
-      "en": "Three minimal architectural modifications — parallel layers, query/key LayerNorm, and bias removal on QKV/LayerNorm — that, combined with explicit JAX-xmap sharding, enable stable training of a 22B-parameter dense ViT achieving 54.9% MFU on TPUv4.",
-      "zh-TW": "Three minimal architectural modifications — parallel layers, query/key LayerNorm, and bias removal on QKV/LayerNorm — that, combined with explicit JAX-xmap sharding, enable stable training of a 22B-parameter dense ViT achieving 54.9% MFU on TPUv4."
-    },
-    "methodologySummary": {
-      "en": "Architecturally a parallel-block ViT with QK-norm to control attention-logit growth observed at the 8B scale; trained on a 4B-image extension of JFT for 177k steps with multi-label sigmoid cross-entropy. The implementation uses jax.xmap with asynchronous parallel linear operations to overlap communication and computation across a 2D mesh, with row/column sharding alternated to control reduce-scatter cost.",
-      "zh-TW": "Architecturally a parallel-block ViT with QK-norm to control attention-logit growth observed at the 8B scale; trained on a 4B-image extension of JFT for 177k steps with multi-label sigmoid cross-entropy. The implementation uses jax.xmap with asynchronous parallel linear operations to overlap communication and computation across a 2D mesh, with row/column sharding alternated to control reduce-scatter cost."
     },
     "strengths": {
       "en": [
@@ -209,10 +174,6 @@
       "transfer-learning",
       "robustness"
     ],
-    "rankingExplanation": {
-      "en": "PDF analysis tightens novelty=11 (engineering recipe; architectural changes are derivative). methodologicalRigor=19 from training-stability ablations + MFU engineering. experimentalQuality=17 from breadth across 8+ task families. authorInstitutionReputation=14 — Google Research, all flagship affiliations (median rule yields a high but consistent score). Total 73 → RECOMMEND.",
-      "zh-TW": "PDF analysis tightens novelty=11 (engineering recipe; architectural changes are derivative). methodologicalRigor=19 from training-stability ablations + MFU engineering. experimentalQuality=17 from breadth across 8+ task families. authorInstitutionReputation=14 — Google Research, all flagship affiliations (median rule yields a high but consistent score). Total 73 → RECOMMEND."
-    },
     "recommendationDecision": "RECOMMEND",
     "pdfAnalysisStatus": "SUCCESS",
     "tableFigureAnalysis": null
@@ -228,8 +189,7 @@
       "methodologicalRigor": 17,
       "experimentalQuality": 15,
       "venueSourceCredibility": 12,
-      "authorInstitutionReputation": 8,
-      "total": 71
+      "total": 63
     },
     "summary": {
       "en": "SeaThru-NeRF integrates the SeaThru wideband image-formation model into NeRF rendering, decomposing each ray into separate object and medium components so the scene and the scattering/absorbing medium are jointly recovered, enabling photorealistic novel-view synthesis and medium-free reconstruction in real underwater scenes.",
@@ -238,14 +198,6 @@
     "recommendationReason": {
       "en": "Genuinely opens NeRF to scattering media via a physics-grounded rendering equation, with quantitative gains over MIP-NeRF360, NeRF-W, and NeRFReN on real Red-Sea/Curaçao/Panama footage from a small lab.",
       "zh-TW": "Genuinely opens NeRF to scattering media via a physics-grounded rendering equation, with quantitative gains over MIP-NeRF360, NeRF-W, and NeRFReN on real Red-Sea/Curaçao/Panama footage from a small lab."
-    },
-    "keyContribution": {
-      "en": "A NeRF rendering model in scattering media that splits each ray's color into object and medium contributions with separate per-color-channel medium parameters (σ^attn, σ^bs, c^med), enabling restoration of the clear scene and recovery of medium properties from posed underwater images.",
-      "zh-TW": "A NeRF rendering model in scattering media that splits each ray's color into object and medium contributions with separate per-color-channel medium parameters (σ^attn, σ^bs, c^med), enabling restoration of the clear scene and recovery of medium properties from posed underwater images."
-    },
-    "methodologySummary": {
-      "en": "Starts from NeRF's volume-rendering equation and the SeaThru underwater image-formation model, derives discretized rendering equations that splits transmittance into 'attenuation' (T_i^obj × exp(-σ^attn s_i)) and 'backscatter' branches with different medium densities. The architecture has a position-only MLP for object density/color and a direction-only Medium MLP for medium parameters; training adds a propagation prior and a Laplacian-mixture occupancy prior to L_recon.",
-      "zh-TW": "Starts from NeRF's volume-rendering equation and the SeaThru underwater image-formation model, derives discretized rendering equations that splits transmittance into 'attenuation' (T_i^obj × exp(-σ^attn s_i)) and 'backscatter' branches with different medium densities. The architecture has a position-only MLP for object density/color and a direction-only Medium MLP for medium parameters; training adds a propagation prior and a Laplacian-mixture occupancy prior to L_recon."
     },
     "strengths": {
       "en": [
@@ -284,10 +236,6 @@
       "physics-based",
       "3d-reconstruction"
     ],
-    "rankingExplanation": {
-      "en": "PDF confirms strong novelty=19 (first principled NeRF-in-medium formulation). methodologicalRigor=17 from the derivation + ablations. experimentalQuality=15 — solid real-world results but the three-scene sample is small. authorInstitutionReputation=8 — University of Haifa + IUI Eilat, deliberately not a flagship roster, which is the F4 anti-pattern signal. Total 71 → RECOMMEND, confirming unknown-author papers can clear the floor.",
-      "zh-TW": "PDF confirms strong novelty=19 (first principled NeRF-in-medium formulation). methodologicalRigor=17 from the derivation + ablations. experimentalQuality=15 — solid real-world results but the three-scene sample is small. authorInstitutionReputation=8 — University of Haifa + IUI Eilat, deliberately not a flagship roster, which is the F4 anti-pattern signal. Total 71 → RECOMMEND, confirming unknown-author papers can clear the floor."
-    },
     "recommendationDecision": "RECOMMEND",
     "pdfAnalysisStatus": "SUCCESS",
     "tableFigureAnalysis": null
@@ -303,8 +251,7 @@
       "methodologicalRigor": 6,
       "experimentalQuality": 4,
       "venueSourceCredibility": 4,
-      "authorInstitutionReputation": 11,
-      "total": 30
+      "total": 19
     },
     "summary": {
       "en": "A qualitative report cataloguing GPT-4V's behavior on hand-curated multimodal samples, organized by task family and prompting style, framed as preliminary exploration of large multimodal models.",
@@ -314,8 +261,6 @@
       "en": "No quantitative methodology, no benchmarks, and sweeping language ('unprecedented ability', 'powerful generalist system') unsupported by measured results. Useful as a probe of GPT-4V capabilities but not as a primary CV research contribution.",
       "zh-TW": "No quantitative methodology, no benchmarks, and sweeping language ('unprecedented ability', 'powerful generalist system') unsupported by measured results. Useful as a probe of GPT-4V capabilities but not as a primary CV research contribution."
     },
-    "keyContribution": null,
-    "methodologySummary": null,
     "strengths": null,
     "weaknesses": null,
     "tags": [
@@ -324,10 +269,6 @@
       "qualitative-study",
       "gpt-4v"
     ],
-    "rankingExplanation": {
-      "en": "Stage 2 PDF analysis was attempted but the PDF (45.6 MB) exceeds the 32 MB skill cap; the record falls back to UNAVAILABLE with Stage-1 scoring preserved. From the abstract alone: novelty=5 (analyzes an existing third-party model), methodologicalRigor=6 (qualitative samples only), experimentalQuality=4 (no benchmarks). Bottom-1 by total (30) → LOW_QUALITY, confirming the F5 hype-driven anti-pattern.",
-      "zh-TW": "Stage 2 PDF analysis was attempted but the PDF (45.6 MB) exceeds the 32 MB skill cap; the record falls back to UNAVAILABLE with Stage-1 scoring preserved. From the abstract alone: novelty=5 (analyzes an existing third-party model), methodologicalRigor=6 (qualitative samples only), experimentalQuality=4 (no benchmarks). Bottom-1 by total (30) → LOW_QUALITY, confirming the F5 hype-driven anti-pattern."
-    },
     "recommendationDecision": "LOW_QUALITY",
     "pdfAnalysisStatus": "UNAVAILABLE",
     "tableFigureAnalysis": null

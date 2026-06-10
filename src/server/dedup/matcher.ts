@@ -1,5 +1,6 @@
 import { distance } from 'fastest-levenshtein';
 import type { MatchMethod } from '@prisma/client';
+import type { SourceType } from '@/server/schema/candidate';
 import { normalizeTitle, normalizeAuthor } from './normalize';
 
 export type MatchResult = {
@@ -36,9 +37,9 @@ export async function findMatch(
     sourceUrl: string;
     pdfUrl: string | null;
     sourcePaperId: string | null;
-    source: 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE';
+    source: SourceType;
     additionalSources?: Array<{
-      source: 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE';
+      source: SourceType;
       sourceUrl: string;
       sourcePaperId: string;
     }>;

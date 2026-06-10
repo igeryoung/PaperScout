@@ -1,16 +1,27 @@
 // View-model aggregates for the Phase 4 trend dashboard.
 // All Prisma calls live here so pages stay free of joins.
 
+import { unstable_cache } from 'next/cache';
 import { db } from '@/lib/db';
 import type {
-  PaperEvaluation,
+  EvaluationStage,
   PdfAnalysisStatus,
   Source,
 } from '@prisma/client';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
+import { formatConferenceLabel, matchConferenceAcronym } from '@/lib/source-label';
+
+type SummaryEvalRow = {
+  paperId: string;
+  evaluationStage: EvaluationStage;
+  totalScore: number;
+  pdfAnalysisStatus: PdfAnalysisStatus | null;
+};
 
 export interface SourceCount {
+  key: string;
   source: Source;
+  label: string | null;
   count: number;
 }
 
@@ -37,6 +48,7 @@ export interface RunSummary {
   recommendedCount: number;
   sources: SourceCount[];
   topTags: TagCount[];
+  topConferences: TagCount[];
   scoreStats: ScoreStats | null;
   pdfStatus: PdfStatusCounts;
 }
@@ -50,14 +62,95 @@ function median(values: number[]): number {
     : sorted[mid];
 }
 
-function bestEvalPerPaper(evals: PaperEvaluation[]): Map<string, PaperEvaluation> {
-  const byPaper = new Map<string, PaperEvaluation[]>();
+type SourceRow = { source: Source; paper: { venue: string | null } };
+
+/** Tally PaperSource rows into a sorted SourceCount[] (OPENREVIEW split by venue). */
+function tallySources(rows: SourceRow[]): SourceCount[] {
+  const sourceCounts = new Map<string, SourceCount>();
+  for (const row of rows) {
+    const label =
+      row.source === 'OPENREVIEW' && row.paper.venue?.trim()
+        ? formatConferenceLabel(row.paper.venue)
+        : null;
+    const key = label ? `${row.source}:${label}` : row.source;
+    const existing = sourceCounts.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      sourceCounts.set(key, { key, source: row.source, label, count: 1 });
+    }
+  }
+  return [...sourceCounts.values()].sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.key.localeCompare(b.key);
+  });
+}
+
+/** Cache tag for the database-wide source distribution; revalidate on ingest. */
+export const SOURCE_DISTRIBUTION_TAG = 'source-distribution';
+
+// Statistic over EVERY paper in the database, not a single run. Restricted to
+// top-conference papers (venue resolves to a tracked acronym) and counted ONE
+// per paper. Cached so it is computed once and reused across reloads instead of
+// recalculated each request.
+const getCachedSourceDistribution = unstable_cache(
+  async (): Promise<SourceCount[]> => {
+    const papers = await db.paper.findMany({
+      select: { primarySource: true, venue: true },
+    });
+    const counts = new Map<string, SourceCount>();
+    for (const p of papers) {
+      const acronym = matchConferenceAcronym(p.venue);
+      if (!acronym) continue; // top conferences only
+      const existing = counts.get(acronym);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(acronym, {
+          key: acronym,
+          source: p.primarySource,
+          label: acronym,
+          count: 1,
+        });
+      }
+    }
+    return [...counts.values()].sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.key.localeCompare(b.key);
+    });
+  },
+  ['source-distribution'],
+  { tags: [SOURCE_DISTRIBUTION_TAG], revalidate: 3600 },
+);
+
+/** Cache tag for the database-wide tag distribution; revalidate on ingest. */
+export const TAG_DISTRIBUTION_TAG = 'tag-distribution';
+
+// Statistic over EVERY paper in the database, not a single run. Counted once per
+// PaperTag row across all papers, top 10 by frequency. Cached so it is computed
+// once and reused across reloads instead of recalculated each request.
+const getCachedTagDistribution = unstable_cache(
+  async (): Promise<TagCount[]> => {
+    const rows = await db.paperTag.groupBy({
+      by: ['tag'],
+      _count: { tag: true },
+      orderBy: [{ _count: { tag: 'desc' } }, { tag: 'asc' }],
+      take: 10,
+    });
+    return rows.map((r) => ({ tag: r.tag, count: r._count.tag }));
+  },
+  ['tag-distribution'],
+  { tags: [TAG_DISTRIBUTION_TAG], revalidate: 3600 },
+);
+
+function bestEvalPerPaper(evals: SummaryEvalRow[]): Map<string, SummaryEvalRow> {
+  const byPaper = new Map<string, SummaryEvalRow[]>();
   for (const e of evals) {
     const arr = byPaper.get(e.paperId) ?? [];
     arr.push(e);
     byPaper.set(e.paperId, arr);
   }
-  const best = new Map<string, PaperEvaluation>();
+  const best = new Map<string, SummaryEvalRow>();
   for (const [paperId, list] of byPaper) {
     const picked = selectBestEvaluation(list);
     if (picked) best.set(paperId, picked);
@@ -66,6 +159,10 @@ function bestEvalPerPaper(evals: PaperEvaluation[]): Map<string, PaperEvaluation
 }
 
 export const trendsRepo = {
+  /** Database-wide source distribution (all papers), cached across reloads. */
+  getSourceDistribution: (): Promise<SourceCount[]> => getCachedSourceDistribution(),
+  /** Database-wide top tags (all papers), cached across reloads. */
+  getTagDistribution: (): Promise<TagCount[]> => getCachedTagDistribution(),
   getRunSummary: async (runId: string): Promise<RunSummary> => {
     const results = await db.paperRunResult.findMany({
       where: { runId },
@@ -81,16 +178,20 @@ export const trendsRepo = {
         recommendedCount: 0,
         sources: [],
         topTags: [],
+        topConferences: [],
         scoreStats: null,
         pdfStatus: { success: 0, failed: 0, unavailable: 0, none: 0 },
       };
     }
 
-    const [sourceGroups, tagGroups, evals] = await Promise.all([
-      db.paperSource.groupBy({
-        by: ['source'],
+    const [sourceRows, tagGroups, evals] = await Promise.all([
+      db.paperSource.findMany({
         where: { paperId: { in: paperIds } },
-        _count: { source: true },
+        select: {
+          paperId: true,
+          source: true,
+          paper: { select: { venue: true } },
+        },
       }),
       db.paperTag.groupBy({
         by: ['tag'],
@@ -101,12 +202,34 @@ export const trendsRepo = {
       }),
       db.paperEvaluation.findMany({
         where: { runId },
+        select: {
+          paperId: true,
+          evaluationStage: true,
+          totalScore: true,
+          pdfAnalysisStatus: true,
+        },
       }),
     ]);
 
-    const sources: SourceCount[] = sourceGroups
-      .map((g) => ({ source: g.source, count: g._count.source }))
-      .sort((a, b) => b.count - a.count);
+    const sources = tallySources(sourceRows);
+
+    // One conference label per paper (venue lives on the paper, so dedupe by
+    // paperId before counting) for the home feed's conference filter.
+    const conferenceByPaper = new Map<string, string>();
+    for (const row of sourceRows) {
+      if (conferenceByPaper.has(row.paperId)) continue;
+      const venue = row.paper.venue?.trim();
+      if (!venue) continue;
+      const label = formatConferenceLabel(venue);
+      if (label) conferenceByPaper.set(row.paperId, label);
+    }
+    const conferenceCounts = new Map<string, number>();
+    for (const label of conferenceByPaper.values()) {
+      conferenceCounts.set(label, (conferenceCounts.get(label) ?? 0) + 1);
+    }
+    const topConferences: TagCount[] = [...conferenceCounts.entries()]
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 
     const topTags: TagCount[] = tagGroups.map((g) => ({
       tag: g.tag,
@@ -147,6 +270,7 @@ export const trendsRepo = {
       recommendedCount,
       sources,
       topTags,
+      topConferences,
       scoreStats,
       pdfStatus,
     };

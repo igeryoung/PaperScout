@@ -1,9 +1,10 @@
 import 'server-only';
 
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { UserPaperStatus } from '@prisma/client';
 import { papersRepo } from '@/server/repos/papers';
-import { runsRepo } from '@/server/repos/runs';
+import { libraryRepo } from '@/server/repos/library';
+import { getCurrentSession } from '@/server/auth/current-user';
 import { PaperDetail } from '@/components/paper-detail';
 import { getLocale } from '@/lib/locale';
 import { getMessages } from '@/i18n';
@@ -16,25 +17,35 @@ interface PaperPageProps {
 
 export default async function PaperPage({ params }: PaperPageProps) {
   const { id } = await params;
-  const [paper, latestRun, locale] = await Promise.all([
+  const [paper, locale, session] = await Promise.all([
     papersRepo.findDetailById(id),
-    runsRepo.latestCompleted(),
     getLocale(),
+    getCurrentSession(),
   ]);
   if (!paper) notFound();
+
+  let userPaper: { liked: boolean; status: UserPaperStatus; note: string } | null = null;
+  if (session) {
+    await libraryRepo.recordView({ userId: session.user.id, paperId: paper.id });
+    const row = await libraryRepo.findUserPaperDetail({
+      userId: session.user.id,
+      paperId: paper.id,
+    });
+    if (row) {
+      userPaper = { liked: row.liked, status: row.status, note: row.note ?? '' };
+    }
+  }
   const messages = getMessages(locale);
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
-      <div className="text-muted-foreground text-sm">
-        <Link
-          href={latestRun ? `/runs/${latestRun.id}` : '/library'}
-          className="hover:text-foreground"
-        >
-          ← {latestRun ? messages.paperPage.backToRun : messages.paperPage.backToLibrary}
-        </Link>
-      </div>
-      <PaperDetail paper={paper} locale={locale} messages={messages} />
+    <main className="mx-auto max-w-6xl px-6 pt-4 pb-10">
+      <PaperDetail
+        paper={paper}
+        locale={locale}
+        messages={messages}
+        userPaper={userPaper}
+        signedIn={Boolean(session)}
+      />
     </main>
   );
 }

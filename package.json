@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "db:seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env prisma/seed.ts",
     "ingest": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/ingest.ts",
+    "factory:db": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/factory-db.ts",
     "validate:candidates": "tsx scripts/validate-candidates.ts",
     "validate:evaluations": "tsx scripts/validate-evaluations.ts",
     "prompt:fixtures": "tsx scripts/prompt-eval/build-fixture-run.ts",
@@ -31,6 +32,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-select": "^2.2.6",

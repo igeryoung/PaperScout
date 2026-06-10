@@ -14,7 +14,6 @@ function mkScores(over: Partial<Evaluation['scores']> = {}): Evaluation['scores'
     methodologicalRigor: 10,
     experimentalQuality: 10,
     venueSourceCredibility: 10,
-    authorInstitutionReputation: 10,
   };
   const merged = { ...base, ...over };
   return {
@@ -23,8 +22,7 @@ function mkScores(over: Partial<Evaluation['scores']> = {}): Evaluation['scores'
       merged.novelty +
       merged.methodologicalRigor +
       merged.experimentalQuality +
-      merged.venueSourceCredibility +
-      merged.authorInstitutionReputation,
+      merged.venueSourceCredibility,
   };
 }
 
@@ -38,12 +36,9 @@ function mkEval(over: Partial<Evaluation> = {}): Evaluation {
     scores: mkScores(),
     summary: L('summary'),
     recommendationReason: L('reason'),
-    keyContribution: null,
-    methodologySummary: null,
     strengths: null,
     weaknesses: null,
     tags: [],
-    rankingExplanation: L('expl'),
     recommendationDecision: 'STORE_ONLY',
     pdfAnalysisStatus: null,
     tableFigureAnalysis: null,
@@ -58,11 +53,11 @@ function mkPaperEval(paperId: string, evals: Evaluation[], candidateOrder = 0): 
 describe('recomputeTotal', () => {
   it('returns the dimension sum ignoring scores.total', () => {
     const scores = { ...mkScores({ novelty: 5 }), total: 999 };
-    expect(recomputeTotal(scores)).toBe(45);
+    expect(recomputeTotal(scores)).toBe(35);
   });
 
   it('handles zero scores', () => {
-    expect(recomputeTotal(mkScores({ novelty: 0, methodologicalRigor: 0, experimentalQuality: 0, venueSourceCredibility: 0, authorInstitutionReputation: 0 }))).toBe(0);
+    expect(recomputeTotal(mkScores({ novelty: 0, methodologicalRigor: 0, experimentalQuality: 0, venueSourceCredibility: 0 }))).toBe(0);
   });
 });
 
@@ -77,14 +72,12 @@ describe('chooseRankingScore', () => {
       evaluationStage: 'FULL_PDF',
       scores: mkScores({ novelty: 20 }),
       pdfAnalysisStatus: 'SUCCESS',
-      keyContribution: L('kc'),
-      methodologySummary: L('ms'),
       strengths: LL(['s']),
       weaknesses: LL(['w']),
     });
     const got = chooseRankingScore(mkPaperEval('p1', [abstract, full]));
     expect(got?.sourceEval).toBe(full);
-    expect(got?.score).toBe(60); // 20 + 10*4
+    expect(got?.score).toBe(50); // 20 + 10*3
   });
 
   it('FULL_PDF FAILED falls back to ABSTRACT_SCREENING when present', () => {
@@ -96,19 +89,19 @@ describe('chooseRankingScore', () => {
     });
     const got = chooseRankingScore(mkPaperEval('p1', [abstract, full]));
     expect(got?.sourceEval).toBe(abstract);
-    expect(got?.score).toBe(45);
+    expect(got?.score).toBe(35);
   });
 
   it('FULL_PDF UNAVAILABLE alone returns its Stage-1-preserved score (F5 path)', () => {
     const full = mkEval({
       evaluationStage: 'FULL_PDF',
-      scores: mkScores({ novelty: 5, methodologicalRigor: 6, experimentalQuality: 4, venueSourceCredibility: 4, authorInstitutionReputation: 11 }),
+      scores: mkScores({ novelty: 5, methodologicalRigor: 6, experimentalQuality: 4, venueSourceCredibility: 4 }),
       pdfAnalysisStatus: 'UNAVAILABLE',
       recommendationDecision: 'LOW_QUALITY',
     });
     const got = chooseRankingScore(mkPaperEval('p1', [full]));
     expect(got?.sourceEval).toBe(full);
-    expect(got?.score).toBe(30);
+    expect(got?.score).toBe(19);
     expect(got?.recommendationDecision).toBe('LOW_QUALITY');
   });
 
@@ -116,7 +109,7 @@ describe('chooseRankingScore', () => {
     const abstract = mkEval({ scores: mkScores({ novelty: 8 }) });
     const got = chooseRankingScore(mkPaperEval('p1', [abstract]));
     expect(got?.sourceEval).toBe(abstract);
-    expect(got?.score).toBe(48);
+    expect(got?.score).toBe(38);
   });
 
   it('FULL_PDF FAILED alone returns its score (no abstract fallback available)', () => {
@@ -127,7 +120,7 @@ describe('chooseRankingScore', () => {
     });
     const got = chooseRankingScore(mkPaperEval('p1', [full]));
     expect(got?.sourceEval).toBe(full);
-    expect(got?.score).toBe(43);
+    expect(got?.score).toBe(33);
   });
 });
 
@@ -201,15 +194,15 @@ describe('rankPapers', () => {
     expect(ranked.map((r) => r.paperId)).toEqual(['alpha', 'zeta']);
   });
 
-  it('reproduces the Phase 2.5 F1>F3>F4>F2>F5 ranking', () => {
-    const f1 = score({ paperId: 'F1', score: 86, recommendationDecision: 'RECOMMEND', candidateOrder: 0 });
-    const f2 = score({ paperId: 'F2', score: 61, recommendationDecision: 'STORE_ONLY', candidateOrder: 1 });
-    const f3 = score({ paperId: 'F3', score: 73, recommendationDecision: 'RECOMMEND', candidateOrder: 2 });
-    const f4 = score({ paperId: 'F4', score: 71, recommendationDecision: 'RECOMMEND', candidateOrder: 3 });
-    const f5 = score({ paperId: 'F5', score: 30, recommendationDecision: 'LOW_QUALITY', candidateOrder: 4 });
+  it('reproduces the Phase 2.5 F1>F4>F3>F2>F5 ranking (4-dimension scores)', () => {
+    const f1 = score({ paperId: 'F1', score: 73, recommendationDecision: 'RECOMMEND', candidateOrder: 0 });
+    const f2 = score({ paperId: 'F2', score: 52, recommendationDecision: 'STORE_ONLY', candidateOrder: 1 });
+    const f3 = score({ paperId: 'F3', score: 59, recommendationDecision: 'RECOMMEND', candidateOrder: 2 });
+    const f4 = score({ paperId: 'F4', score: 63, recommendationDecision: 'RECOMMEND', candidateOrder: 3 });
+    const f5 = score({ paperId: 'F5', score: 19, recommendationDecision: 'LOW_QUALITY', candidateOrder: 4 });
     const ranked = rankPapers([f2, f5, f1, f4, f3]); // intentionally shuffled
-    expect(ranked.map((r) => r.paperId)).toEqual(['F1', 'F3', 'F4', 'F2', 'F5']);
-    // Only RECOMMEND decisions within the top-min(10, 5)=5 → F1, F3, F4.
-    expect(ranked.filter((r) => r.isRecommended).map((r) => r.paperId)).toEqual(['F1', 'F3', 'F4']);
+    expect(ranked.map((r) => r.paperId)).toEqual(['F1', 'F4', 'F3', 'F2', 'F5']);
+    // Only RECOMMEND decisions within the top-min(10, 5)=5 → F1, F4, F3.
+    expect(ranked.filter((r) => r.isRecommended).map((r) => r.paperId)).toEqual(['F1', 'F4', 'F3']);
   });
 });

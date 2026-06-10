@@ -6,11 +6,16 @@
 //   3. FULL_PDF (any status) when ABSTRACT_SCREENING absent
 //   4. null when there are no evaluations
 
-import type { PaperEvaluation } from '@prisma/client';
+import type { EvaluationStage, PdfAnalysisStatus } from '@prisma/client';
 
-export function selectBestEvaluation(
-  evals: readonly PaperEvaluation[],
-): PaperEvaluation | null {
+type EvaluationLike = {
+  evaluationStage: EvaluationStage;
+  pdfAnalysisStatus: PdfAnalysisStatus | null;
+};
+
+export function selectBestEvaluation<T extends EvaluationLike>(
+  evals: readonly T[],
+): T | null {
   if (evals.length === 0) return null;
   const fullPdf = evals.find((e) => e.evaluationStage === 'FULL_PDF');
   const abstract = evals.find((e) => e.evaluationStage === 'ABSTRACT_SCREENING');

@@ -137,7 +137,7 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ui-repos integration', () => {
   });
 
   it('findByRunWithDetail + findDetailById expose figure metadata but NOT imageBytes', async () => {
-    // Sample run has figure blocks for 2 of 3 papers, with PNG fixtures under
+    // Sample run has figure blocks for both papers, with PNG fixtures under
     // data/sample/figures/. The ingest copies them into paper_figures.
     runIngest(copyRunDir(SAMPLE_DIR));
 
@@ -149,12 +149,12 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ui-repos integration', () => {
     const results = await runResultsRepo.findByRunWithDetail(run.id, {
       recommendedOnly: false,
     });
-    expect(results.length).toBe(3);
+    expect(results.length).toBe(2);
 
     const withFigure = results.filter((r) => r.paper.figure !== null);
     const withoutFigure = results.filter((r) => r.paper.figure === null);
     expect(withFigure.length).toBe(2);
-    expect(withoutFigure.length).toBe(1);
+    expect(withoutFigure.length).toBe(0);
 
     for (const r of withFigure) {
       const fig = r.paper.figure!;

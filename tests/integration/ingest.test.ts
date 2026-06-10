@@ -58,22 +58,21 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
     await setupTestDb();
   });
 
-  it('sample run: 3 papers, ranks 1..3, 2 recommended (matches RECOMMEND decisions)', async () => {
+  it('sample run: 2 papers, ranks 1..2, 2 recommended (matches RECOMMEND decisions)', async () => {
     const dir = copyRunDir(SAMPLE_DIR);
     const r = runIngest(dir);
     expect(r.status, r.stderr).toBe(0);
 
     const { db } = await import('@/lib/db');
     const papers = await db.paper.findMany();
-    expect(papers.length).toBe(3);
+    expect(papers.length).toBe(2);
 
     const evals = await db.paperEvaluation.findMany();
-    expect(evals.length).toBe(3);
+    expect(evals.length).toBe(2);
 
     const results = await db.paperRunResult.findMany({ orderBy: { finalRank: 'asc' } });
-    expect(results.map((r) => r.finalRank)).toEqual([1, 2, 3]);
+    expect(results.map((r) => r.finalRank)).toEqual([1, 2]);
     expect(results.every((r) => r.finalRank !== null)).toBe(true);
-    // Sample: 2 RECOMMEND + 1 STORE_ONLY → 2 recommended.
     expect(results.filter((r) => r.isRecommended).length).toBe(2);
   }, 60_000);
 
@@ -97,11 +96,11 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
       expect(caption?.['zh-TW']?.length ?? 0).toBeGreaterThan(0);
     }
 
-    // The figureLabel sort puts "Figure 1" before "Figure 2".
+    // The current sample carries one highlighted figure for each paper.
     expect(figures[0].figureLabel).toBe('Figure 1');
     expect(figures[0].pageNumber).toBe(2);
-    expect(figures[1].figureLabel).toBe('Figure 2');
-    expect(figures[1].pageNumber).toBe(4);
+    expect(figures[1].figureLabel).toBe('Figure 1');
+    expect(figures[1].pageNumber).toBe(2);
 
     // Final ingest summary mentions the figure counts.
     expect(r.stdout).toMatch(/figures: 2 ok/);
@@ -122,10 +121,10 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
     const runs = await db.dailyRun.findMany();
     expect(runs.length).toBe(1);
     const results = await db.paperRunResult.findMany({ orderBy: { finalRank: 'asc' } });
-    expect(results.map((r) => r.finalRank)).toEqual([1, 2, 3]);
+    expect(results.map((r) => r.finalRank)).toEqual([1, 2]);
   }, 90_000);
 
-  it('Phase 2.5 reference run: F1>F3>F4>F2>F5, 3 recommended, F5 keeps UNAVAILABLE', async () => {
+  it('Phase 2.5 reference run: F1>F4>F3>F2>F5, 3 recommended, F5 keeps UNAVAILABLE', async () => {
     const dir = copyRunDir(REFERENCE_DIR);
     const r = runIngest(dir);
     expect(r.status, r.stderr).toBe(0);
@@ -157,11 +156,11 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
       decision: string;
       pdfStatus: string | null;
     }> = [
-      { arxiv: '2304.02643', rank: 1, totalScore: 86, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
-      { arxiv: '2302.05442', rank: 2, totalScore: 73, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
-      { arxiv: '2304.07743', rank: 3, totalScore: 71, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
-      { arxiv: '2212.08059', rank: 4, totalScore: 61, decision: 'STORE_ONLY', pdfStatus: 'SUCCESS' },
-      { arxiv: '2309.17421', rank: 5, totalScore: 30, decision: 'LOW_QUALITY', pdfStatus: 'UNAVAILABLE' },
+      { arxiv: '2304.02643', rank: 1, totalScore: 73, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
+      { arxiv: '2304.07743', rank: 2, totalScore: 63, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
+      { arxiv: '2302.05442', rank: 3, totalScore: 59, decision: 'RECOMMEND', pdfStatus: 'SUCCESS' },
+      { arxiv: '2212.08059', rank: 4, totalScore: 52, decision: 'STORE_ONLY', pdfStatus: 'SUCCESS' },
+      { arxiv: '2309.17421', rank: 5, totalScore: 19, decision: 'LOW_QUALITY', pdfStatus: 'UNAVAILABLE' },
     ];
 
     for (const exp of expectations) {
@@ -229,17 +228,13 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
           methodologicalRigor: 15,
           experimentalQuality: 12,
           venueSourceCredibility: 10,
-          authorInstitutionReputation: 10,
-          total: 62,
+          total: 52,
         },
         summary: { en: 's', 'zh-TW': 's' },
         recommendationReason: { en: 'r', 'zh-TW': 'r' },
-        keyContribution: null,
-        methodologySummary: null,
         strengths: null,
         weaknesses: null,
         tags: ['x'],
-        rankingExplanation: { en: 'e', 'zh-TW': 'e' },
         recommendationDecision: 'RECOMMEND',
         pdfAnalysisStatus: null,
         tableFigureAnalysis: null,
@@ -303,17 +298,13 @@ describe.skipIf(!SHOULD_RUN_INTEGRATION)('ingest integration', () => {
           methodologicalRigor: 10,
           experimentalQuality: 10,
           venueSourceCredibility: 10,
-          authorInstitutionReputation: 10,
-          total: 50,
+          total: 40,
         },
         summary: { en: 's', 'zh-TW': 's' },
         recommendationReason: { en: 'r', 'zh-TW': 'r' },
-        keyContribution: null,
-        methodologySummary: null,
         strengths: null,
         weaknesses: null,
         tags: [],
-        rankingExplanation: { en: 'e', 'zh-TW': 'e' },
         recommendationDecision: 'STORE_ONLY',
         pdfAnalysisStatus: null,
         tableFigureAnalysis: null,

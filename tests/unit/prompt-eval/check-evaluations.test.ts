@@ -31,11 +31,10 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
 
 const validScores = {
   novelty: 18,
-  methodologicalRigor: 18,
-  experimentalQuality: 16,
+  methodologicalRigor: 22,
+  experimentalQuality: 18,
   venueSourceCredibility: 12,
-  authorInstitutionReputation: 10,
-  total: 74,
+  total: 70,
 };
 
 const L = (en: string) => ({ en, 'zh-TW': en });
@@ -48,15 +47,21 @@ function makeEvaluation(joinKey: { source: string; sourcePaperId: string }, over
     scores: { ...validScores },
     summary: L('summary'),
     recommendationReason: L('reason'),
-    keyContribution: L('kc'),
-    methodologySummary: L('ms'),
     strengths: LL(['s1']),
     weaknesses: LL(['w1']),
     tags: ['tag'],
-    rankingExplanation: L('re'),
     recommendationDecision: 'RECOMMEND',
     pdfAnalysisStatus: 'SUCCESS',
     tableFigureAnalysis: null,
+    figure: null,
+    digest: {
+      tldr: L('tldr'),
+      problemMotivation: L('problem motivation'),
+      keyContributions: L('key contributions'),
+      methodOverview: L('method overview'),
+      resultsInterpretation: L('results interpretation'),
+      aiCommentary: L('ai commentary'),
+    },
     ...overrides,
   };
 }
@@ -138,8 +143,8 @@ describe('resolveJoinKey', () => {
 describe('recomputeTotal', () => {
   it('reports no mismatch when reported equals sum of dimensions', () => {
     const result = recomputeTotal(validScores);
-    expect(result.computed).toBe(74);
-    expect(result.reported).toBe(74);
+    expect(result.computed).toBe(70);
+    expect(result.reported).toBe(70);
     expect(result.mismatch).toBe(false);
   });
 
@@ -149,10 +154,9 @@ describe('recomputeTotal', () => {
       methodologicalRigor: 5,
       experimentalQuality: 5,
       venueSourceCredibility: 5,
-      authorInstitutionReputation: 5,
       total: 30,
     });
-    expect(result.computed).toBe(25);
+    expect(result.computed).toBe(20);
     expect(result.reported).toBe(30);
     expect(result.mismatch).toBe(true);
   });
@@ -254,9 +258,8 @@ describe('summarize coarse flags', () => {
     const dims = {
       novelty: 0,
       methodologicalRigor: 0,
-      experimentalQuality: 0,
+      experimentalQuality: total,
       venueSourceCredibility: 0,
-      authorInstitutionReputation: total,
     };
     return makeEvaluation(joinKey, { scores: { ...dims, total } });
   }

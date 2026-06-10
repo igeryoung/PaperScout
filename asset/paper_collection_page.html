@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PaperMate - 已收藏 mock</title>
+    <style>
+      :root {
+        --bg: #f8faff;
+        --panel: #ffffff;
+        --panel-soft: #fbfcff;
+        --line: #e4e9f2;
+        --line-soft: #eef2f7;
+        --text: #121826;
+        --muted: #657083;
+        --faint: #98a2b3;
+        --primary: #5848f5;
+        --primary-dark: #392ee5;
+        --primary-soft: #eeedff;
+        --teal: #0f9f86;
+        --teal-soft: #e9f7f2;
+        --shadow: 0 12px 32px rgba(24, 34, 64, 0.055);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 1180px;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", "Noto Sans TC", "PingFang TC", sans-serif;
+        font-size: 14px;
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .topbar {
+        height: 68px;
+        border-bottom: 1px solid #dfe4ed;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(16px);
+      }
+
+      .topbar-inner {
+        display: grid;
+        grid-template-columns: 282px 1fr auto;
+        align-items: center;
+        gap: 28px;
+        height: 100%;
+        padding: 0 39px 0 47px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--primary-dark);
+      }
+
+      .brand-mark {
+        position: relative;
+        display: grid;
+        width: 35px;
+        height: 35px;
+        place-items: center;
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 22% 24%, #fff 0 7%, transparent 8%),
+          linear-gradient(145deg, #836cff, #4433d5);
+        box-shadow: 0 12px 24px rgba(91, 77, 241, 0.26);
+      }
+
+      .brand-mark::before {
+        content: "";
+        width: 19px;
+        height: 15px;
+        clip-path: polygon(0 28%, 100% 0, 74% 100%, 45% 62%, 16% 84%);
+        background: #fff;
+        transform: rotate(-8deg);
+      }
+
+      .global-search {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        width: 506px;
+        height: 44px;
+        margin-left: 114px;
+        padding: 0 10px 0 15px;
+        border: 1px solid #d7dee9;
+        border-radius: 9px;
+        background: #fff;
+        color: #465366;
+      }
+
+      .global-search input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        color: #344054;
+        background: transparent;
+      }
+
+      .global-search input::placeholder {
+        color: #9aa4b4;
+      }
+
+      .kbd {
+        min-width: 38px;
+        border-radius: 7px;
+        background: #eef1f6;
+        padding: 4px 8px;
+        color: #6d7687;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 31px;
+        font-weight: 700;
+        color: #101828;
+        white-space: nowrap;
+      }
+
+      .nav a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .divider {
+        width: 1px;
+        height: 22px;
+        background: #ccd3df;
+      }
+
+      .icon-btn {
+        display: grid;
+        width: 35px;
+        height: 35px;
+        place-items: center;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: #111827;
+      }
+
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 50% 37%, #f0b6a0 0 21%, transparent 22%),
+          radial-gradient(circle at 50% 77%, #263238 0 32%, transparent 33%),
+          linear-gradient(#e5ecff, #fbf5ff);
+        box-shadow: inset 0 0 0 1px rgba(18, 24, 38, 0.08);
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 282px 1fr;
+        min-height: calc(100vh - 68px);
+      }
+
+      .sidebar {
+        border-right: 1px solid #dde3ee;
+        background: rgba(255, 255, 255, 0.52);
+        padding: 29px 21px 28px 25px;
+      }
+
+      .side-title {
+        margin: 0 0 14px 14px;
+        color: #334155;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .side-section {
+        padding-bottom: 22px;
+        margin-bottom: 19px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .side-section:last-child {
+        border-bottom: 0;
+      }
+
+      .side-item {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        align-items: center;
+        gap: 9px;
+        height: 36px;
+        padding: 0 13px;
+        border-radius: 8px;
+        color: #4d5a6c;
+        font-weight: 650;
+      }
+
+      .side-item.active {
+        background: #efedff;
+        color: var(--primary);
+      }
+
+      .side-count {
+        color: #7c8698;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .side-item.active .side-count {
+        color: var(--primary);
+      }
+
+      .side-subtitle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0 11px 13px 14px;
+        color: #334155;
+        font-weight: 800;
+      }
+
+      .new-list {
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .storage {
+        margin: 16px 9px 0;
+        padding: 16px 14px;
+        border: 1px solid #dfe5ef;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .storage h3 {
+        margin: 0 0 14px;
+        font-size: 13px;
+      }
+
+      .storage p {
+        margin: 0 0 12px;
+        color: #667085;
+        font-size: 12px;
+      }
+
+      .meter {
+        height: 6px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #ebeef7;
+      }
+
+      .meter span {
+        display: block;
+        width: 32%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--primary);
+      }
+
+      .upgrade {
+        width: 100%;
+        height: 34px;
+        margin-top: 13px;
+        border: 1px solid #c9c8ff;
+        border-radius: 6px;
+        background: #f8f7ff;
+        color: var(--primary);
+        font-weight: 750;
+      }
+
+      .main {
+        padding: 29px 82px 24px 39px;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 30px;
+        margin-bottom: 12px;
+      }
+
+      h1 {
+        margin: 0 0 5px;
+        font-size: 27px;
+        line-height: 1.15;
+        font-weight: 850;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: #576173;
+        font-size: 14px;
+      }
+
+      .filters {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding-bottom: 4px;
+      }
+
+      .local-search {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 264px;
+        height: 36px;
+        padding: 0 13px;
+        border: 1px solid #d9e0ea;
+        border-radius: 7px;
+        background: #fff;
+        color: #98a2b3;
+      }
+
+      .local-search input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+      }
+
+      .local-search input::placeholder {
+        color: #9aa4b4;
+      }
+
+      .select,
+      .view-toggle {
+        display: flex;
+        align-items: center;
+        height: 36px;
+        border: 1px solid #d9e0ea;
+        border-radius: 7px;
+        background: #fff;
+        color: #344054;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .select {
+        gap: 9px;
+        padding: 0 13px;
+      }
+
+      .view-toggle {
+        gap: 7px;
+        padding: 0 10px;
+      }
+
+      .view-active {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 6px;
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .metric {
+        position: relative;
+        display: grid;
+        grid-template-columns: 38px 1fr;
+        align-items: start;
+        gap: 12px;
+        min-height: 92px;
+        padding: 16px 18px 14px;
+        border: 1px solid #e0e6ef;
+        border-radius: 9px;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+
+      .metric-icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .metric strong {
+        display: block;
+        margin: -2px 0 1px;
+        color: var(--primary);
+        font-size: 22px;
+        line-height: 1.05;
+      }
+
+      .metric b {
+        display: block;
+        color: #344054;
+        font-size: 13px;
+      }
+
+      .metric-copy span {
+        display: block;
+        margin-top: 4px;
+        color: #8a94a6;
+        font-size: 12px;
+      }
+
+      .paper-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .paper-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 210px minmax(360px, 1fr) 292px 150px;
+        gap: 22px;
+        min-height: 214px;
+        padding: 20px 16px 20px 14px;
+        border: 1px solid #dfe5ef;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+
+      .paper-media {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .thumb {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 146px;
+        border: 1px solid #e2e7ef;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #fbfcff, #f4f7fb);
+        overflow: hidden;
+      }
+
+      .thumb-inner {
+        width: 150px;
+        height: 132px;
+        background: #fff;
+        box-shadow: 0 6px 16px rgba(48, 60, 90, 0.1);
+      }
+
+      .rag-diagram {
+        position: relative;
+        border: 1px solid #cad4e2;
+        border-radius: 2px;
+        background:
+          linear-gradient(90deg, transparent 31%, #d8dee8 31% 32%, transparent 32% 64%, #d8dee8 64% 65%, transparent 65%),
+          linear-gradient(#f2f5f9 0 20px, transparent 20px),
+          #f8fafc;
+      }
+
+      .rag-diagram::before,
+      .rag-diagram::after {
+        content: "";
+        position: absolute;
+        border: 1px solid #aab5c5;
+        border-radius: 2px;
+        background: #dde7f8;
+      }
+
+      .rag-diagram::before {
+        left: 18px;
+        top: 58px;
+        width: 30px;
+        height: 24px;
+      }
+
+      .rag-diagram::after {
+        left: 73px;
+        top: 52px;
+        width: 32px;
+        height: 30px;
+        background: #bde0b6;
+      }
+
+      .rag-node {
+        position: absolute;
+        border: 1px solid #98a7bb;
+        border-radius: 2px;
+        background: #bfd8f2;
+      }
+
+      .rag-node.llm {
+        left: 109px;
+        top: 52px;
+        width: 29px;
+        height: 30px;
+      }
+
+      .rag-line {
+        position: absolute;
+        height: 1px;
+        background: #9aa8ba;
+        transform-origin: left center;
+      }
+
+      .rag-line.one {
+        left: 47px;
+        top: 70px;
+        width: 27px;
+      }
+
+      .rag-line.two {
+        left: 105px;
+        top: 67px;
+        width: 17px;
+      }
+
+      .charts {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 7px;
+        padding: 10px;
+        border: 1px solid #e3e7ee;
+        border-radius: 2px;
+      }
+
+      .chart {
+        min-height: 50px;
+        background:
+          linear-gradient(160deg, transparent 0 45%, rgba(88, 72, 245, 0.85) 46% 48%, transparent 49%),
+          linear-gradient(24deg, transparent 0 54%, rgba(15, 159, 134, 0.8) 55% 57%, transparent 58%),
+          linear-gradient(90deg, transparent 18px, #eef2f7 19px),
+          repeating-linear-gradient(to bottom, #fff 0 14px, #eef2f7 15px);
+        border: 1px solid #e5e7eb;
+      }
+
+      .law-plot {
+        border: 1px solid #e1e6ef;
+        border-radius: 2px;
+        background:
+          linear-gradient(145deg, transparent 0 35%, #ef4444 36% 38%, transparent 39%),
+          linear-gradient(148deg, transparent 0 44%, #22c55e 45% 47%, transparent 48%),
+          linear-gradient(150deg, transparent 0 52%, #3b82f6 53% 55%, transparent 56%),
+          linear-gradient(152deg, transparent 0 61%, #a855f7 62% 64%, transparent 65%),
+          repeating-linear-gradient(to bottom, #fff 0 18px, #eef2f7 19px),
+          repeating-linear-gradient(to right, transparent 0 24px, #eef2f7 25px);
+      }
+
+      .paper-main {
+        min-width: 0;
+      }
+
+      .paper-title {
+        margin: 0 0 5px;
+        color: #101828;
+        font-size: 16.5px;
+        line-height: 1.32;
+        font-weight: 850;
+      }
+
+      .authors,
+      .venue,
+      .abstract {
+        margin: 0;
+        color: #667085;
+        font-size: 12.5px;
+        line-height: 1.55;
+      }
+
+      .venue {
+        margin-top: 2px;
+      }
+
+      .abstract {
+        margin-top: 8px;
+        color: #475467;
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .tag {
+        border-radius: 999px;
+        background: #eeedff;
+        color: var(--primary);
+        padding: 5px 8px;
+        font-size: 11.5px;
+        font-weight: 750;
+      }
+
+      .tag.more {
+        background: #eef1f6;
+        color: #667085;
+      }
+
+      .progress-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-top: 22px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 27px;
+        min-width: 88px;
+        justify-content: center;
+        border: 1px solid #cfe9df;
+        border-radius: 999px;
+        background: var(--teal-soft);
+        color: #087d6c;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .circle {
+        position: relative;
+        width: 78px;
+        height: 78px;
+        margin: 18px auto 11px;
+        border-radius: 50%;
+        background: conic-gradient(var(--primary) var(--value), #edf0f8 0);
+      }
+
+      .circle::before {
+        content: "";
+        position: absolute;
+        inset: 5px;
+        border-radius: 50%;
+        background: #fff;
+      }
+
+      .circle strong,
+      .circle span {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        text-align: center;
+      }
+
+      .circle strong {
+        top: 26px;
+        color: var(--primary);
+        font-size: 18px;
+      }
+
+      .circle span {
+        top: 49px;
+        color: #667085;
+        font-size: 10px;
+        font-weight: 750;
+      }
+
+      .paper-meta {
+        width: 100%;
+        margin-left: 0;
+        color: #667085;
+        font-size: 11.5px;
+        line-height: 1.65;
+      }
+
+      .split-line {
+        display: none;
+      }
+
+      .summary {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-top: 42px;
+      }
+
+      .tools {
+        position: absolute;
+        top: 22px;
+        right: 32px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 18px;
+        height: 22px;
+        color: #536276;
+      }
+
+      .ai-box {
+        height: 118px;
+        overflow: hidden;
+        padding: 12px 16px;
+        border: 1px solid #d8ebe5;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #f9fffc, #edf8f5);
+      }
+
+      .ai-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 5px;
+        color: #087d6c;
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .ai-box p {
+        margin: 0 0 9px;
+        color: #536276;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .ai-box a {
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      svg {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><span class="brand-mark"></span><span>PaperMate</span></div>
+        <label class="global-search">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          <input placeholder="搜尋論文標題、作者、關鍵字或主題..." />
+          <span class="kbd">⌘ K</span>
+        </label>
+        <nav class="nav">
+          <a href="#">熱門</a>
+          <a href="#">最新</a>
+          <a href="#">我的收藏</a>
+          <span class="divider"></span>
+          <a href="#">上傳論文</a>
+          <span class="divider"></span>
+          <button class="icon-btn" aria-label="通知">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+          </button>
+          <span class="avatar"></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
+        </nav>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <section class="side-section">
+          <h2 class="side-title">我的圖書館</h2>
+          <div class="side-item active">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+            <span>已收藏</span><span class="side-count">156</span>
+          </div>
+          <div class="side-item">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18" /><path d="M3 7v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7" /><path d="m8 7 2-3h4l2 3" /></svg>
+            <span>閱讀清單</span><span class="side-count">28</span>
+          </div>
+          <div class="side-item">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6" /><path d="M12 9v6" /></svg>
+            <span>筆記</span><span class="side-count">64</span>
+          </div>
+          <div class="side-item">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 3v6h6" /><path d="M12 7v5l3 2" /></svg>
+            <span>歷史紀錄</span><span class="side-count">132</span>
+          </div>
+        </section>
+
+        <section class="side-section">
+          <h2 class="side-title">閱讀狀態</h2>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg><span>全部論文</span><span class="side-count">156</span></div>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><span>待閱讀</span><span class="side-count">28</span></div>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 5h7a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H2z" /><path d="M22 5h-7a3 3 0 0 0-3 3v11a3 3 0 0 1 3-3h7z" /></svg><span>閱讀中</span><span class="side-count">18</span></div>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="m9 12 2 2 4-5" /></svg><span>已讀完</span><span class="side-count">110</span></div>
+        </section>
+
+        <section class="side-section">
+          <div class="side-subtitle"><span>個人清單</span><span class="new-list">⊕ 新增清單</span></div>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14l4-4z" /></svg><span>AI for Science</span><span class="side-count">24</span></div>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14l4-4z" /></svg><span>LLM &amp; RAG</span><span class="side-count">32</span></div>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14l4-4z" /></svg><span>Multimodal Learning</span><span class="side-count">18</span></div>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14l4-4z" /></svg><span>Healthcare AI</span><span class="side-count">15</span></div>
+          <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span>未分類</span><span class="side-count">67</span></div>
+        </section>
+
+        
+      </aside>
+
+      <main class="main">
+        <div class="title-row">
+          <div>
+            <h1>已收藏</h1>
+            <p class="subtitle">管理你收藏的論文、閱讀狀態與評分</p>
+          </div>
+          <div class="filters">
+            <label class="local-search">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              <input placeholder="搜尋已收藏的論文..." />
+            </label>
+            <div class="select">狀態 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg></div>
+            <div class="select">標籤 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg></div>
+            <div class="select">排序：最近開啟 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg></div>
+            <div class="view-toggle"><span class="view-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg></span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg></div>
+          </div>
+        </div>
+
+        <section class="metrics">
+          <div class="metric"><span class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg></span><div class="metric-copy"><strong>156</strong><b>已收藏論文</b><span>所有收藏的論文總數</span></div></div>
+          <div class="metric"><span class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 5h7a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H2z" /><path d="M22 5h-7a3 3 0 0 0-3 3v11a3 3 0 0 1 3-3h7z" /></svg></span><div class="metric-copy"><strong>28</strong><b>待閱讀</b><span>尚未開始閱讀</span></div></div>
+          <div class="metric"><span class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 5h7a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H2z" /><path d="M22 5h-7a3 3 0 0 0-3 3v11a3 3 0 0 1 3-3h7z" /></svg></span><div class="metric-copy"><strong>18</strong><b>閱讀中</b><span>正在閱讀的論文</span></div></div>
+          <div class="metric"><span class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="m9 12 2 2 4-5" /></svg></span><div class="metric-copy"><strong>110</strong><b>已讀完</b><span>已完成閱讀</span></div></div>
+          <div class="metric"><span class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6" /></svg></span><div class="metric-copy"><strong>64</strong><b>筆記數量</b><span>所有論文筆記總數</span></div></div>
+        </section>
+
+        <section class="paper-list">
+          <article class="paper-card">
+            <div class="paper-media">
+              <span class="status">● 閱讀中</span>
+              <div class="thumb"><div class="thumb-inner rag-diagram"><span class="rag-node llm"></span><span class="rag-line one"></span><span class="rag-line two"></span></div></div>
+            </div>
+            <div class="paper-main">
+              <h2 class="paper-title">Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection</h2>
+              <p class="authors">Aman Madaan, Niket Tandon, Prakhar Gupta, et al.</p>
+              <p class="venue">arXiv&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;2024-01-24</p>
+              <p class="abstract">這篇論文提出 Self-RAG，一個讓語言模型在生成過程中能自行檢索、評估並反思的框架。模型透過自我反思來決定是否需要檢索更多資訊，並調整輸出策略以提升答案品質與準確性。</p>
+              <div class="tags"><span class="tag">LLM</span><span class="tag">RAG</span><span class="tag">Self-Reflection</span><span class="tag">Question Answering</span><span class="tag">NLP</span><span class="tag more">+ 2</span></div>
+            </div>
+            <div class="split-line"></div>
+            <div class="summary">
+              <div class="tools">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" /></svg>
+                <span style="height:20px;width:1px;background:#d9e0ea"></span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v.01M12 12v.01M12 19v.01" /></svg>
+              </div>
+              <div class="ai-box">
+                <div class="ai-title">✧ AI 摘要</div>
+                <p>Self-RAG 透過整合檢索、生成與反思三個階段，讓模型提升模型在開放域問答任務中的語義性與可靠性，特別是在缺乏事實知識的情況下表現更佳。</p>
+                <a href="#">查看完整摘要</a>
+              </div>
+            </div>
+            <div class="progress-col">
+              <div class="circle" style="--value: 67%"><strong>67%</strong><span>評分</span></div>
+              <div class="paper-meta">▣&nbsp;&nbsp;上次開啟：2024-05-20 14:32<br />▣&nbsp;&nbsp;筆記： 3</div>
+            </div>
+          </article>
+
+          <article class="paper-card">
+            <div class="paper-media">
+              <span class="status">● 已讀完</span>
+              <div class="thumb"><div class="thumb-inner charts"><div class="chart"></div><div class="chart"></div><div class="chart"></div><div class="chart"></div></div></div>
+            </div>
+            <div class="paper-main">
+              <h2 class="paper-title">Video-LLaMA 2: Advancing Spatial-Temporal Modeling and Audio Understanding in Video-LLMs</h2>
+              <p class="authors">Zesen Cheng, Sicong Leng, Hang Zhang, et al.</p>
+              <p class="venue">NeurIPS 2023&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;2023-10-10</p>
+              <p class="abstract">Video-LLaMA 2 是一個能同時多模態理解，能夠理解影片中的視覺與音訊內容，並在時空建模方面做顯著強化，能更準確地預測影片長度與 LLM 對 OTA 效果。</p>
+              <div class="tags"><span class="tag">Multimodal</span><span class="tag">Video Understanding</span><span class="tag">Audio</span><span class="tag">LLM</span><span class="tag">Vision</span><span class="tag more">+ 3</span></div>
+            </div>
+            <div class="split-line"></div>
+            <div class="summary">
+              <div class="tools">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" /></svg>
+                <span style="height:20px;width:1px;background:#d9e0ea"></span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v.01M12 12v.01M12 19v.01" /></svg>
+              </div>
+              <div class="ai-box">
+                <div class="ai-title">✧ AI 摘要</div>
+                <p>本論文提出的 Video-LLaMA 2 在多模態理解與時空建模任務上取得了 SOTA 表現，特別是在長視頻理解與音訊-視覺對齊方面有顯著突破。</p>
+                <a href="#">查看完整摘要</a>
+              </div>
+            </div>
+            <div class="progress-col">
+              <div class="circle" style="--value: 100%"><strong>100%</strong><span>評分</span></div>
+              <div class="paper-meta">▣&nbsp;&nbsp;上次開啟：2024-05-18 09:11<br />▣&nbsp;&nbsp;筆記： 5</div>
+            </div>
+          </article>
+
+          <article class="paper-card">
+            <div class="paper-media">
+              <span class="status">● 已讀完</span>
+              <div class="thumb"><div class="thumb-inner law-plot"></div></div>
+            </div>
+            <div class="paper-main">
+              <h2 class="paper-title">Scaling Laws for Neural Language Models</h2>
+              <p class="authors">Jared Kaplan, Sam McCandlish, Tom Henighan, et al.</p>
+              <p class="venue">arXiv&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;2020-01-23</p>
+              <p class="abstract">本文系統性地研究神經語言模型的擴展定律，分析模型大小、資料量與計算資源對性能的影響，為大型模型的訓練提供重要的指導原則。</p>
+              <div class="tags"><span class="tag">Scaling Laws</span><span class="tag">Language Model</span><span class="tag">Training</span><span class="tag">Compute</span><span class="tag more">+ 2</span></div>
+            </div>
+            <div class="split-line"></div>
+            <div class="summary">
+              <div class="tools">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" /></svg>
+                <span style="height:20px;width:1px;background:#d9e0ea"></span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v.01M12 12v.01M12 19v.01" /></svg>
+              </div>
+              <div class="ai-box">
+                <div class="ai-title">✧ AI 摘要</div>
+                <p>研究發現模型性能與參數量、資料量、計算量之間存在可預測的冪律關係，為大型語言模型的設計與資源配置提供了理論基礎。</p>
+                <a href="#">查看完整摘要</a>
+              </div>
+            </div>
+            <div class="progress-col">
+              <div class="circle" style="--value: 100%"><strong>100%</strong><span>評分</span></div>
+              <div class="paper-meta">▣&nbsp;&nbsp;上次開啟：2024-05-16 16:45<br />▣&nbsp;&nbsp;筆記： 2</div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

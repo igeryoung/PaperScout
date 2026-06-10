@@ -38,7 +38,8 @@
 
 # Local agent/tool state
 /.claude/settings.local.json
-/.omc/
+.omc/
+/.playwright-mcp/
 
 # Local runtime services
 /.local/
@@ -70,3 +71,17 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+
+# Paper Factory (Python GUI) working data + venv
+/data/factory/factory.db
+/data/factory/pdfs/
+/data/factory/truncated/
+/data/factory/figures/
+/data/factory/exports/
+/data/factory/inbox/
+/paper_factory/.venv/
+/paper_factory/**/__pycache__/
+/paper_factory/*.egg-info/
+
+# Python bytecode in skills
+.claude/skills/**/__pycache__/

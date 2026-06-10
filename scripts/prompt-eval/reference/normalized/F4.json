@@ -9,16 +9,12 @@
     "methodologicalRigor": 17,
     "experimentalQuality": 15,
     "venueSourceCredibility": 12,
-    "authorInstitutionReputation": 8,
-    "total": 71
+    "total": 63
   },
   "recommendationDecision": "RECOMMEND",
   "recommendationReason": "Genuinely opens NeRF to scattering media via a physics-grounded rendering equation, with quantitative gains over MIP-NeRF360, NeRF-W, and NeRFReN on real Red-Sea/Curaçao/Panama footage from a small lab.",
-  "rankingExplanation": "PDF confirms strong novelty=19 (first principled NeRF-in-medium formulation). methodologicalRigor=17 from the derivation + ablations. experimentalQuality=15 — solid real-world results but the three-scene sample is small. authorInstitutionReputation=8 — University of Haifa + IUI Eilat, deliberately not a flagship roster, which is the F4 anti-pattern signal. Total 71 → RECOMMEND, confirming unknown-author papers can clear the floor.",
   "summary": "SeaThru-NeRF integrates the SeaThru wideband image-formation model into NeRF rendering, decomposing each ray into separate object and medium components so the scene and the scattering/absorbing medium are jointly recovered, enabling photorealistic novel-view synthesis and medium-free reconstruction in real underwater scenes.",
   "pdfAnalysisStatus": "SUCCESS",
-  "keyContribution": "A NeRF rendering model in scattering media that splits each ray's color into object and medium contributions with separate per-color-channel medium parameters (σ^attn, σ^bs, c^med), enabling restoration of the clear scene and recovery of medium properties from posed underwater images.",
-  "methodologySummary": "Starts from NeRF's volume-rendering equation and the SeaThru underwater image-formation model, derives discretized rendering equations that splits transmittance into 'attenuation' (T_i^obj × exp(-σ^attn s_i)) and 'backscatter' branches with different medium densities. The architecture has a position-only MLP for object density/color and a direction-only Medium MLP for medium parameters; training adds a propagation prior and a Laplacian-mixture occupancy prior to L_recon.",
   "strengths": [
     "Physics-grounded ray model is more principled than prior NeRF-W / NeRFReN extensions for underwater appearance — Eq. 22's medium decomposition is directly tied to the SeaThru image formation model.",
     "Quantitative comparison on three real underwater scenes (Red Sea, Curaçao, Panama) shows ~0.8 dB PSNR improvement over MIP-NeRF360 on novel views, with stronger gains in 'far' regions where scattering dominates.",

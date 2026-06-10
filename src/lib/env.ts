@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+const optionalNonEmpty = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  z.string().min(1).optional(),
+);
+
 const EnvSchema = z.object({
   DATABASE_URL: z
     .string()
@@ -10,6 +15,16 @@ const EnvSchema = z.object({
     .optional()
     .default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).optional().default('development'),
+  APP_BASE_URL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().url('APP_BASE_URL must be a valid URL').optional(),
+  ),
+  AUTH_SECRET: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(32, 'AUTH_SECRET must be at least 32 characters').optional(),
+  ),
+  GOOGLE_CLIENT_ID: optionalNonEmpty,
+  GOOGLE_CLIENT_SECRET: optionalNonEmpty,
 });
 
 const parsed = EnvSchema.safeParse(process.env);

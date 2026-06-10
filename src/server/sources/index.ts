@@ -10,12 +10,16 @@ const SOURCE_PRIORITY: Record<SourceName, number> = {
   ARXIV: 0,
   OPENREVIEW: 1,
   HUGGINGFACE: 2,
+  OPENACCESS: 3,
 };
 
 const DEFAULT_QUOTAS: Record<SourceName, number> = {
   ARXIV: 15,
   HUGGINGFACE: 10,
   OPENREVIEW: 5,
+  // Not fetched by the live multi-source collector — OPENACCESS records arrive
+  // via the Paper Factory inbox import, not collectFromAllSources.
+  OPENACCESS: 0,
 };
 
 export interface CollectOptions {
@@ -31,9 +35,11 @@ function dedupKeysFor(c: Candidate): string[] {
   const keys: string[] = [];
   if (c.source === 'ARXIV' && c.sourcePaperId) keys.push(`arxiv:${c.sourcePaperId}`);
   if (c.source === 'OPENREVIEW' && c.sourcePaperId) keys.push(`openreview:${c.sourcePaperId}`);
+  if (c.source === 'OPENACCESS' && c.sourcePaperId) keys.push(`openaccess:${c.sourcePaperId}`);
   for (const alt of c.additionalSources ?? []) {
     if (alt.source === 'ARXIV') keys.push(`arxiv:${alt.sourcePaperId}`);
     if (alt.source === 'OPENREVIEW') keys.push(`openreview:${alt.sourcePaperId}`);
+    if (alt.source === 'OPENACCESS') keys.push(`openaccess:${alt.sourcePaperId}`);
   }
   const norm = normalizeTitle(c.title);
   if (norm) keys.push(`title:${norm}`);
@@ -137,7 +143,12 @@ function applyQuotas(
   targetCount: number,
   quotas: Record<SourceName, number>,
 ): Candidate[] {
-  const bySource: Record<SourceName, Candidate[]> = { ARXIV: [], OPENREVIEW: [], HUGGINGFACE: [] };
+  const bySource: Record<SourceName, Candidate[]> = {
+    ARXIV: [],
+    OPENREVIEW: [],
+    HUGGINGFACE: [],
+    OPENACCESS: [],
+  };
   for (const c of candidates) bySource[c.source].push(c);
 
   const picked: Candidate[] = [];
@@ -231,6 +242,7 @@ export async function collectFromAllSources(
     ARXIV: 0,
     OPENREVIEW: 0,
     HUGGINGFACE: 0,
+    OPENACCESS: 0,
   };
   for (const c of final) finalBySource[c.source]++;
   logger.info(

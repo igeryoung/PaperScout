@@ -1,0 +1,140 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "PaperScout" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e6]: PaperScout
+      - generic [ref=e7]:
+        - img [ref=e8]
+        - searchbox "搜尋論文" [ref=e11]
+        - generic [ref=e12]: ⌘ K
+      - navigation "主選單" [ref=e13]:
+        - link "熱門" [ref=e14] [cursor=pointer]:
+          - /url: /
+        - link "最新" [ref=e15] [cursor=pointer]:
+          - /url: /runs/cf33bf1d-09b8-456b-8f39-2d7ac7ad11ca
+        - link "我的收藏" [ref=e16] [cursor=pointer]:
+          - /url: /library
+        - generic "V1 目前由本機 skill 產生與匯入資料" [ref=e18]: 上傳論文
+        - combobox "語言" [ref=e20] [cursor=pointer]:
+          - option "English"
+          - option "繁體中文" [selected]
+        - button "通知" [disabled] [ref=e21]:
+          - img [ref=e22]
+        - link "Google 登入" [ref=e25] [cursor=pointer]:
+          - /url: /api/auth/google
+          - img [ref=e26]
+          - text: Google 登入
+  - main [ref=e32]:
+    - link "← 返回最新 run" [ref=e34] [cursor=pointer]:
+      - /url: /runs/cf33bf1d-09b8-456b-8f39-2d7ac7ad11ca
+    - article [ref=e35]:
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - generic [ref=e38]: arXiv
+          - generic [ref=e39]: 完整 PDF 分析 · SUCCESS
+          - generic [ref=e40]: RECOMMEND
+        - heading "Personal Visual Context Learning in Large Multimodal Models" [level=1] [ref=e41]
+        - paragraph [ref=e42]: Zihui Xue, Ami Baid, Sangho Kim, Mi Luo, Kristen Grauman
+        - paragraph [ref=e43]: 發佈於 May 11, 2026
+        - generic [ref=e44]:
+          - generic [ref=e45]: multimodal
+          - generic [ref=e46]: personalization
+          - generic [ref=e47]: vision-language-model
+          - generic [ref=e48]: benchmark
+          - generic [ref=e49]: first-person
+          - generic [ref=e50]: egocentric
+          - generic [ref=e51]: lmm
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - figure "Figure 1 · Personal Visual Context Learning。穿戴裝置的連續第一人稱影像帶來標準預訓練中缺乏的個人脈絡；Personal VCL 探討 LMM 是否能利用此脈絡解答使用者專屬的查詢。" [ref=e54]:
+            - 'img "Figure 1: Personal Visual Context Learning。穿戴裝置的連續第一人稱影像帶來標準預訓練中缺乏的個人脈絡；Personal VCL 探討 LMM 是否能利用此脈絡解答使用者專屬的查詢。" [ref=e55]'
+            - generic [ref=e56]: Figure 1 · Personal Visual Context Learning。穿戴裝置的連續第一人稱影像帶來標準預訓練中缺乏的個人脈絡；Personal VCL 探討 LMM 是否能利用此脈絡解答使用者專屬的查詢。
+          - generic [ref=e57]:
+            - heading "摘要" [level=2] [ref=e58]
+            - paragraph [ref=e59]: 形式化第一人稱 LMM 個人化的 Personal Visual Context Learning（Personal VCL），推出 Personal-VCL-Bench（涵蓋人物／物件／行為共約 2,255 個實例，並附帶 EgoWearer 身分辨識任務），同時提出將使用者視覺歷史結構化為自我精煉記憶的 Agentic Context Bank baseline。
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - img [ref=e63]
+              - heading "推薦原因" [level=2] [ref=e66]
+            - paragraph [ref=e67]: 同時提出明確的新能力定義、涵蓋 absent-persona 情境的 benchmark，並佐以可靠的推論期 baseline；Kristen Grauman 團隊在 egocentric 視覺方面的背景使此框架可信度高。
+          - generic [ref=e68]:
+            - heading "排序註記" [level=2] [ref=e69]
+            - paragraph [ref=e70]: 本次運行排名第一 ── 在問題定義上具明確新穎性，刻意納入 absent-persona 控制條件，並提出可信的 agentic baseline。場域為 arXiv，可信度分數維持中等；Grauman 團隊的歷史紀錄則拉高作者聲譽分數。
+          - group [ref=e72]:
+            - generic "原始摘要 收合" [ref=e73] [cursor=pointer]:
+              - heading "原始摘要" [level=2] [ref=e74]
+              - generic [ref=e75]: 收合
+            - paragraph [ref=e76]: "As wearable devices like smart glasses integrate Large Multimodal Models (LMMs) into the continuous first-person visual streams of individual users, the evolution of these models into true personal assistants hinges on visual personalization: the ability to reason over visual information unique to the wearer. We formalize this capability as Personal Visual Context Learning (Personal VCL), the prompt-time capability of using user-specific visual context to resolve personalized queries. To systematically evaluate this, we present Personal-VCL-Bench, a comprehensive benchmark capturing the personal visual world across persons, objects, and behaviors. Our analysis of frontier LMMs identifies a profound context utilization gap, revealing that the mechanisms for leveraging visual evidence, as well as aggregating multiple visual observations, remain critically understudied. Motivated by these findings, we propose the Agentic Context Bank, a strong inference-time baseline that structures a user's visual context into a self-refining memory bank and employs query-adaptive evidence selection. Our baseline approach consistently improves over standard context prompting regimes across tasks and evaluated backbones, demonstrating a practical path towards future personalized LMMs."
+          - generic [ref=e77]:
+            - heading "核心貢獻" [level=2] [ref=e78]
+            - paragraph [ref=e79]: 提出 Personal VCL 的形式化定義，以及 Agentic Context Bank ── 一個依查詢動態選擇使用者專屬視覺證據的自我精煉記憶庫。
+          - generic [ref=e80]:
+            - heading "方法論" [level=2] [ref=e81]
+            - paragraph [ref=e82]: Personal-VCL-Bench 由第一人稱影像串流建構，採樣使用者專屬的人物、物件與行為，並加入 absent-persona 控制條件；Agentic Context Bank 為每位使用者儲存視覺證據，並以查詢自適應檢索的方式提示前沿 LMM。評估同時考量回答正確率與 Calibrated 指標，以懲罰對個人資訊的捏造。
+          - generic [ref=e83]:
+            - generic [ref=e84]:
+              - heading "優點" [level=2] [ref=e85]
+              - list [ref=e86]:
+                - listitem [ref=e87]:
+                  - generic [ref=e89]: 新能力的動機清楚，並透過 absent-persona 控制條件直接測試模型是否會捏造，而非僅評估召回率
+                - listitem [ref=e90]:
+                  - generic [ref=e92]: Agentic Context Bank 為簡單且無需訓練的 baseline，在多個前沿 LMM 上皆優於標準的 context prompting
+                - listitem [ref=e93]:
+                  - generic [ref=e95]: Benchmark 涵蓋人物、物件與行為，可將失誤歸因到特定的 context 類型
+                - listitem [ref=e96]:
+                  - generic [ref=e98]: EgoWearer 身分辨識任務超越單張影像 QA，能壓測跨片段的連續性
+            - generic [ref=e99]:
+              - heading "缺點" [level=2] [ref=e100]
+              - list [ref=e101]:
+                - listitem [ref=e102]:
+                  - generic [ref=e104]: Benchmark 規模約 2,255 題，相較主流 LMM 評估套件偏小，可能無法涵蓋罕見的互動模式
+                - listitem [ref=e105]:
+                  - generic [ref=e107]: Agentic Context Bank 被定位為推論期 baseline 而非經過學習的方法，未回答訓練式個人化的開放問題
+                - listitem [ref=e108]:
+                  - generic [ref=e110]: 受測者可能在人口統計與穿戴硬體多樣性上不足，影響「真正個人化」的主張強度
+        - complementary [ref=e111]:
+          - generic [ref=e113]:
+            - generic [ref=e114]:
+              - heading "總分" [level=3] [ref=e115]
+              - generic [ref=e116]:
+                - generic [ref=e117]: "76"
+                - generic [ref=e118]: / 100
+            - generic [ref=e119]:
+              - generic [ref=e121]:
+                - generic [ref=e122]: 新穎性
+                - generic [ref=e123]: 20 / 25
+              - generic [ref=e127]:
+                - generic [ref=e128]: 方法論嚴謹度
+                - generic [ref=e129]: 18 / 25
+              - generic [ref=e133]:
+                - generic [ref=e134]: 實驗品質
+                - generic [ref=e135]: 17 / 20
+              - generic [ref=e139]:
+                - generic [ref=e140]: 場域／來源可信度
+                - generic [ref=e141]: 8 / 15
+              - generic [ref=e145]:
+                - generic [ref=e146]: 作者／機構聲望
+                - generic [ref=e147]: 13 / 15
+          - generic [ref=e150]:
+            - img [ref=e152]
+            - heading "登入後即可整理" [level=3] [ref=e154]
+            - paragraph [ref=e155]: 登入後即可收藏論文、標記閱讀狀態，並寫下筆記。
+            - link "使用 Google 登入" [ref=e156] [cursor=pointer]:
+              - /url: /api/auth/google
+          - generic [ref=e157]:
+            - heading "連結" [level=2] [ref=e158]
+            - list [ref=e159]:
+              - listitem [ref=e160]:
+                - link "PDF ↗" [ref=e161] [cursor=pointer]:
+                  - /url: https://arxiv.org/pdf/2605.10936v1
+                  - img [ref=e162]
+                  - generic [ref=e165]: PDF ↗
+              - listitem [ref=e166]:
+                - link "arXiv" [ref=e167] [cursor=pointer]:
+                  - /url: https://arxiv.org/abs/2605.10936v1
+                  - img [ref=e168]
+                  - generic [ref=e171]: arXiv
+  - button "Open Next.js Dev Tools" [ref=e177] [cursor=pointer]:
+    - img [ref=e178]
+  - alert [ref=e181]

@@ -15,8 +15,7 @@ export function recomputeTotal(scores: Evaluation['scores']): number {
     scores.novelty +
     scores.methodologicalRigor +
     scores.experimentalQuality +
-    scores.venueSourceCredibility +
-    scores.authorInstitutionReputation
+    scores.venueSourceCredibility
   );
 }
 

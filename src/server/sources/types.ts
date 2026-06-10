@@ -10,7 +10,7 @@ export type { Candidate as CandidateRecord, SourceType } from '@/server/schema/c
 
 import type { Candidate } from '@/server/schema/candidate';
 
-export type SourceName = 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE';
+export type SourceName = 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE' | 'OPENACCESS';
 
 export type FetchFn = typeof globalThis.fetch;
 

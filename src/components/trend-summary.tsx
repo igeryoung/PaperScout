@@ -27,7 +27,7 @@ export function TrendSummary({ summary, messages }: TrendSummaryProps) {
   const sourceLabels = messages.common.sources;
   const topSource = summary.sources[0];
   const topSourceLabel = topSource
-    ? `${sourceLabels[topSource.source]} · ${topSource.count}`
+    ? `${topSource.label ?? sourceLabels[topSource.source]} · ${topSource.count}`
     : messages.common.dash;
   const median =
     summary.scoreStats !== null ? `${summary.scoreStats.median} / 100` : messages.common.dash;
