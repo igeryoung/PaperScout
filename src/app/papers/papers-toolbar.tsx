@@ -41,7 +41,7 @@ export type PapersToolbarProps = {
 };
 
 const triggerClass =
-  'h-9 min-w-[150px] rounded-lg border-[#d7deea] bg-white px-3 text-sm font-semibold text-[#344054]';
+  'h-9 w-[170px] rounded-lg border-[#d7deea] bg-white px-3 text-sm font-semibold text-[#344054]';
 
 export function PapersToolbar({
   query: initialQuery,
@@ -109,61 +109,63 @@ export function PapersToolbar({
         </label>
       </form>
 
-      <Select
-        value={venue ?? ALL}
-        onValueChange={(value) => navigate({ venue: value === ALL ? '' : value })}
-      >
-        <SelectTrigger className={triggerClass} aria-label={labels.conferenceAria}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>{labels.conferenceAll}</SelectItem>
-          {conferences.map((conference) => (
-            <SelectItem key={conference.value} value={conference.value}>
-              {conference.value} · {conference.count}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={tag ?? ALL}
-        onValueChange={(value) => navigate({ tag: value === ALL ? '' : value })}
-      >
-        <SelectTrigger className={triggerClass} aria-label={labels.tagAria}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>{labels.tagAll}</SelectItem>
-          {tags.map((item) => (
-            <SelectItem key={item.tag} value={item.tag}>
-              {item.tag} · {item.count}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={sort} onValueChange={(value) => navigate({ sort: value as PaperSort })}>
-        <SelectTrigger className={`${triggerClass} min-w-[130px]`} aria-label={labels.sortAria}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="newest">{labels.sortNewest}</SelectItem>
-          <SelectItem value="oldest">{labels.sortOldest}</SelectItem>
-          <SelectItem value="score">{labels.sortScore}</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {hasFilters ? (
-        <button
-          type="button"
-          onClick={onReset}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#d7deea] bg-white px-3 text-sm font-semibold text-[#667085] hover:text-[#392ee5]"
+      <div className="flex flex-wrap items-center gap-3">
+        <Select
+          value={venue ?? ALL}
+          onValueChange={(value) => navigate({ venue: value === ALL ? '' : value })}
         >
-          <X aria-hidden className="h-4 w-4" />
-          {labels.reset}
-        </button>
-      ) : null}
+          <SelectTrigger className={triggerClass} aria-label={labels.conferenceAria}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{labels.conferenceAll}</SelectItem>
+            {conferences.map((conference) => (
+              <SelectItem key={conference.value} value={conference.value}>
+                {conference.value} · {conference.count}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={tag ?? ALL}
+          onValueChange={(value) => navigate({ tag: value === ALL ? '' : value })}
+        >
+          <SelectTrigger className={triggerClass} aria-label={labels.tagAria}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{labels.tagAll}</SelectItem>
+            {tags.map((item) => (
+              <SelectItem key={item.tag} value={item.tag}>
+                {item.tag} · {item.count}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={sort} onValueChange={(value) => navigate({ sort: value as PaperSort })}>
+          <SelectTrigger className={triggerClass} aria-label={labels.sortAria}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">{labels.sortNewest}</SelectItem>
+            <SelectItem value="oldest">{labels.sortOldest}</SelectItem>
+            <SelectItem value="score">{labels.sortScore}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {hasFilters ? (
+          <button
+            type="button"
+            onClick={onReset}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#d7deea] bg-white px-3 text-sm font-semibold text-[#667085] hover:text-[#392ee5]"
+          >
+            <X aria-hidden className="h-4 w-4" />
+            {labels.reset}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

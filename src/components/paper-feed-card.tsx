@@ -195,8 +195,9 @@ export function PaperFeedCard({
     primarySourceLabel,
     formatDate(paper.publishedDate),
   ].join(' · ');
+
   return (
-    <article className="grid grid-cols-1 items-stretch gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)_230px]">
+    <article className="grid grid-cols-1 items-stretch gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,6fr)_minmax(0,4fr)]">
       <div className="min-w-0">
         <PaperThumb paper={paper} index={index} locale={locale} messages={messages} />
       </div>
@@ -235,7 +236,7 @@ export function PaperFeedCard({
         ) : null}
       </div>
 
-      <div className="grid gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-3 xl:grid-cols-[280px_minmax(0,1fr)_230px] xl:items-start">
+      <div className="grid gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-3 xl:grid-cols-[280px_minmax(0,6fr)_minmax(0,4fr)] xl:items-start">
         {paper.tags.length > 0 ? (
           <div className="paper-tag-marquee overflow-hidden py-0.5">
             <div className="paper-tag-marquee__track flex w-max gap-2">

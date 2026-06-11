@@ -143,7 +143,7 @@ async function PapersResults({
           index={index}
           locale={locale}
           messages={messages}
-          showReason={false}
+          showReason
           showActions={false}
         />
       ))}
