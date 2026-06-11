@@ -20,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
+import type { EvaluationStage, PdfAnalysisStatus } from '@prisma/client';
 import { normalizeTitle } from '@/server/dedup/normalize';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 
@@ -129,7 +130,11 @@ async function cmdList(argv: string[]): Promise<void> {
     venue: string | null;
     publishedDate: Date | null;
     primarySource: string;
-    evaluations: { evaluationStage: string; pdfAnalysisStatus: string | null; totalScore: number }[];
+    evaluations: {
+      evaluationStage: EvaluationStage;
+      pdfAnalysisStatus: PdfAnalysisStatus | null;
+      totalScore: number;
+    }[];
     sources: { source: string; sourcePaperId: string | null }[];
   }>;
 
@@ -142,7 +147,7 @@ async function cmdList(argv: string[]): Promise<void> {
       },
     });
     const scored = scoring
-      .map((r) => ({ id: r.id, score: selectBestEvaluation(r.evaluations as never)?.totalScore ?? -1 }))
+      .map((r) => ({ id: r.id, score: selectBestEvaluation(r.evaluations)?.totalScore ?? -1 }))
       .sort((a, b) => (b.score !== a.score ? b.score - a.score : a.id < b.id ? 1 : -1));
     const pageIds = scored
       .slice((safePage - 1) * pageSize, safePage * pageSize)
@@ -176,7 +181,7 @@ async function cmdList(argv: string[]): Promise<void> {
       venue: r.venue,
       year: r.publishedDate ? new Date(r.publishedDate).getUTCFullYear() : null,
       primarySource: r.primarySource,
-      totalScore: selectBestEvaluation(r.evaluations as never)?.totalScore ?? null,
+      totalScore: selectBestEvaluation(r.evaluations)?.totalScore ?? null,
       joinKeys: r.sources
         .filter((s) => s.sourcePaperId)
         .map((s) => ({ source: s.source, sourcePaperId: s.sourcePaperId })),
