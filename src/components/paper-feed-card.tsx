@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Lightbulb } from 'lucide-react';
-import type { PaperEvaluation, PaperSource } from '@prisma/client';
-import type { PaperWithDetail } from '@/server/repos/papers';
+import type { PaperSource } from '@prisma/client';
+import type { PaperCardEvaluation, PaperCardPayload } from '@/server/repos/papers';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { formatAuthors, formatDate, formatDateISO } from '@/lib/format';
 import { pickLocalized, type Locale } from '@/lib/locale';
@@ -12,7 +12,7 @@ import { HomeFigurePreview } from '@/components/home-figure-preview';
 import { HomeSummaryDialog } from '@/components/home-summary-dialog';
 
 export type PaperFeedCardProps = {
-  paper: PaperWithDetail;
+  paper: PaperCardPayload;
   index: number;
   locale: Locale;
   messages: Messages;
@@ -23,7 +23,7 @@ export type PaperFeedCardProps = {
   userState?: { liked: boolean; readLater: boolean };
 };
 
-function findSourceLink(paper: PaperWithDetail, source: PaperSource['source']) {
+function findSourceLink(paper: PaperCardPayload, source: PaperSource['source']) {
   return paper.sources.find((s) => s.source === source)?.sourceUrl ?? null;
 }
 
@@ -31,7 +31,7 @@ function ScoreRing({
   evaluation,
   messages,
 }: {
-  evaluation: PaperEvaluation | null;
+  evaluation: PaperCardEvaluation | null;
   messages: Messages;
 }) {
   if (!evaluation) {
@@ -106,7 +106,7 @@ function PaperThumb({
   locale,
   messages,
 }: {
-  paper: PaperWithDetail;
+  paper: PaperCardPayload;
   index: number;
   locale: Locale;
   messages: Messages;
@@ -134,8 +134,8 @@ function ExternalLinks({
   metaLine,
   messages,
 }: {
-  paper: PaperWithDetail;
-  evaluation: PaperEvaluation | null;
+  paper: PaperCardPayload;
+  evaluation: PaperCardEvaluation | null;
   summary: string;
   metaLine: string;
   messages: Messages;
