@@ -29,8 +29,6 @@ export function TrendSummary({ summary, messages }: TrendSummaryProps) {
   const topSourceLabel = topSource
     ? `${topSource.label ?? sourceLabels[topSource.source]} · ${topSource.count}`
     : messages.common.dash;
-  const median =
-    summary.scoreStats !== null ? `${summary.scoreStats.median} / 100` : messages.common.dash;
   const pdf = summary.pdfStatus;
   const pdfHint = t.pdfHint(pdf.success, pdf.failed + pdf.unavailable, pdf.none);
 
@@ -38,7 +36,6 @@ export function TrendSummary({ summary, messages }: TrendSummaryProps) {
     <div className="flex flex-wrap gap-3">
       <Stat label={t.papers} value={summary.totalPapers} />
       <Stat label={t.recommended} value={summary.recommendedCount} />
-      <Stat label={t.medianScore} value={median} />
       <Stat label={t.pdfAnalysis} value={pdf.success} hint={pdfHint} />
       <Stat label={t.topSource} value={topSourceLabel} />
     </div>

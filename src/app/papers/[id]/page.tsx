@@ -3,6 +3,7 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import type { UserPaperStatus } from '@prisma/client';
 import { papersRepo } from '@/server/repos/papers';
+import { commentsRepo } from '@/server/repos/comments';
 import { libraryRepo } from '@/server/repos/library';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { PaperDetail } from '@/components/paper-detail';
@@ -17,10 +18,11 @@ interface PaperPageProps {
 
 export default async function PaperPage({ params }: PaperPageProps) {
   const { id } = await params;
-  const [paper, locale, session] = await Promise.all([
+  const [paper, locale, session, comments] = await Promise.all([
     papersRepo.findDetailById(id),
     getLocale(),
     getCurrentSession(),
+    commentsRepo.listByPaper(id),
   ]);
   if (!paper) notFound();
 
@@ -45,6 +47,13 @@ export default async function PaperPage({ params }: PaperPageProps) {
         messages={messages}
         userPaper={userPaper}
         signedIn={Boolean(session)}
+        currentUserId={session?.user.id ?? null}
+        comments={comments.map((c) => ({
+          id: c.id,
+          content: c.content,
+          createdAt: c.createdAt.toISOString(),
+          user: c.user,
+        }))}
       />
     </main>
   );

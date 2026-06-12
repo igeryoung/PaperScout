@@ -545,20 +545,6 @@ export function LibraryWorkspace({
                     </button>
                     <MoreVertical aria-hidden className="h-[18px] w-[18px]" />
                   </div>
-                  <div
-                    className="relative my-[11px] h-[78px] w-[78px] rounded-full"
-                    style={{
-                      background: `conic-gradient(#5848f5 ${paper.score ?? 0}%, #edf0f8 0)`,
-                    }}
-                  >
-                    <span className="absolute inset-[5px] rounded-full bg-white" />
-                    <strong className="absolute top-[26px] left-0 w-full text-center text-lg leading-none font-extrabold text-[#5848f5]">
-                      {paper.score ?? 0}%
-                    </strong>
-                    <span className="absolute top-[49px] left-0 w-full text-center text-[10px] font-extrabold text-[#667085]">
-                      評分
-                    </span>
-                  </div>
                   <div className="w-full text-[11.5px] leading-relaxed text-[#667085]">
                     ▣&nbsp;&nbsp;{labels.lastViewed}：{paper.lastViewedAt ?? '-'}
                     <br />

@@ -27,38 +27,6 @@ function findSourceLink(paper: PaperCardPayload, source: PaperSource['source']) 
   return paper.sources.find((s) => s.source === source)?.sourceUrl ?? null;
 }
 
-function ScoreRing({
-  evaluation,
-  messages,
-}: {
-  evaluation: PaperCardEvaluation | null;
-  messages: Messages;
-}) {
-  if (!evaluation) {
-    return (
-      <div className="grid h-16 w-16 place-items-center rounded-full bg-[#eef2f8] text-center text-xs text-[#667085]">
-        {messages.home.cardScoreNa}
-      </div>
-    );
-  }
-  const score = Math.max(0, Math.min(100, evaluation.totalScore));
-  return (
-    <div
-      className="grid h-16 w-16 shrink-0 place-items-center rounded-full"
-      style={{
-        background: `radial-gradient(circle at center, #fff 0 59%, transparent 60%), conic-gradient(#5b4df1 0 ${score}%, #e8ecf5 ${score}% 100%)`,
-      }}
-    >
-      <div className="text-center">
-        <strong className="block text-lg leading-none text-[#392ee5]">
-          {(score / 10).toFixed(1)}
-        </strong>
-        <span className="block text-xs text-[#667085]">/10</span>
-      </div>
-    </div>
-  );
-}
-
 function PlaceholderThumb({ index }: { index: number }) {
   if (index % 2 === 0) {
     return (
@@ -197,7 +165,7 @@ export function PaperFeedCard({
   ].join(' · ');
 
   return (
-    <article className="grid grid-cols-1 items-stretch gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,6fr)_minmax(0,4fr)]">
+    <article className="grid grid-cols-1 items-stretch gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 shadow-[0_10px_30px_rgba(29,41,57,0.05)] xl:grid-cols-[280px_minmax(0,1fr)]">
       <div className="min-w-0">
         <PaperThumb paper={paper} index={index} locale={locale} messages={messages} />
       </div>
@@ -208,35 +176,28 @@ export function PaperFeedCard({
             {paper.title}
           </Link>
         </h2>
-        <div className="mb-2 flex flex-wrap gap-2 text-[13px] text-[#667085]">
+        <div className="mb-3 flex flex-wrap gap-2 text-[13px] text-[#667085]">
           <span>{formatAuthors(paper.authors, 3)}</span>
           <span>|</span>
           <span>{primarySourceLabel}</span>
           <span>|</span>
           <span>{formatDate(paper.publishedDate)}</span>
         </div>
-        <p className="mb-4 text-sm leading-relaxed text-[#273142]">{summary}</p>
-      </div>
-
-      <div className="flex min-w-0 flex-col gap-3.5">
-        <div className="flex items-center gap-4">
-          <ScoreRing evaluation={evaluation} messages={messages} />
-          <span className="text-[13px] whitespace-nowrap text-[#344054]">
-            {messages.home.cardAiScore} ⓘ
-          </span>
+        <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+          <p className="text-sm leading-relaxed text-[#273142]">{summary}</p>
+          {showReason ? (
+            <div className="flex min-h-[120px] flex-col rounded-lg bg-[#eaf8f4] px-4 py-3.5 text-sm leading-relaxed text-[#195b50]">
+              <strong className="mb-2 flex items-center gap-2 text-[13px] text-[#0f9f86]">
+                <Lightbulb aria-hidden className="h-4 w-4" />
+                {messages.home.cardReasonHeader}
+              </strong>
+              <span className="flex-1 overflow-hidden">{reason}</span>
+            </div>
+          ) : null}
         </div>
-        {showReason ? (
-          <div className="flex min-h-[68px] flex-1 flex-col rounded-lg bg-[#eaf8f4] px-3.5 py-3 text-sm leading-snug text-[#195b50]">
-            <strong className="mb-1.5 flex items-center gap-2 text-[13px] text-[#0f9f86]">
-              <Lightbulb aria-hidden className="h-4 w-4" />
-              {messages.home.cardReasonHeader}
-            </strong>
-            <span className="flex-1 overflow-hidden">{reason}</span>
-          </div>
-        ) : null}
       </div>
 
-      <div className="grid gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-3 xl:grid-cols-[280px_minmax(0,6fr)_minmax(0,4fr)] xl:items-start">
+      <div className="grid gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-2 xl:grid-cols-[280px_minmax(0,6fr)_minmax(0,4fr)] xl:items-start">
         {paper.tags.length > 0 ? (
           <div className="paper-tag-marquee overflow-hidden py-0.5">
             <div className="paper-tag-marquee__track flex w-max gap-2">

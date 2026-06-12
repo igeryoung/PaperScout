@@ -4,7 +4,6 @@ import type { PaperCardEvaluation } from '@/server/repos/papers';
 
 import { Badge } from '@/components/ui/badge';
 import { formatAuthors, formatDate } from '@/lib/format';
-import { scoreTier, type ScoreTier } from '@/server/lib/select-evaluation';
 import { pickLocalized, type Locale } from '@/lib/locale';
 import { formatSourceLabel } from '@/lib/source-label';
 import type { Messages } from '@/i18n';
@@ -33,18 +32,6 @@ interface PaperCardProps {
   locale: Locale;
   messages: Messages;
 }
-
-const TIER_TEXT: Record<ScoreTier, string> = {
-  good: 'text-emerald-600 dark:text-emerald-400',
-  mid: 'text-amber-600 dark:text-amber-400',
-  weak: 'text-rose-600 dark:text-rose-400',
-};
-
-const TIER_BG: Record<ScoreTier, string> = {
-  good: 'bg-emerald-500',
-  mid: 'bg-amber-500',
-  weak: 'bg-rose-500',
-};
 
 function StageBadge({
   evaluation,
@@ -78,8 +65,6 @@ function findSourceLink(paper: PaperCardPaper, source: PaperSource['source']): s
 }
 
 export function PaperCard({ rank, paper, evaluation, locale, messages }: PaperCardProps) {
-  const total = evaluation?.totalScore ?? null;
-  const tier = total !== null ? scoreTier(total, 100) : null;
   const arxivUrl = findSourceLink(paper, 'ARXIV');
   const openReviewUrl = findSourceLink(paper, 'OPENREVIEW');
   const huggingFaceUrl = findSourceLink(paper, 'HUGGINGFACE');
@@ -116,17 +101,6 @@ export function PaperCard({ rank, paper, evaluation, locale, messages }: PaperCa
                 {formatDate(paper.publishedDate)}
               </p>
             </div>
-            {total !== null && tier ? (
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <div className={`text-lg font-semibold tabular-nums ${TIER_TEXT[tier]}`}>
-                  {total}
-                  <span className="text-muted-foreground text-sm font-normal"> / 100</span>
-                </div>
-                <div className="bg-muted h-1.5 w-32 overflow-hidden rounded-full">
-                  <div className={`h-full ${TIER_BG[tier]}`} style={{ width: `${total}%` }} />
-                </div>
-              </div>
-            ) : null}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -156,7 +130,7 @@ export function PaperCard({ rank, paper, evaluation, locale, messages }: PaperCa
           ) : null}
 
           {reason ? (
-            <p className="text-muted-foreground border-l-2 pl-3 text-sm italic line-clamp-2">
+            <p className="text-foreground border-l-2 border-emerald-400 pl-3 text-[15px] leading-relaxed line-clamp-4">
               {reason}
             </p>
           ) : null}
