@@ -279,6 +279,32 @@ const getCachedTagFacets = unstable_cache(
   { tags: [ALL_PAPERS_TAG], revalidate: ALL_PAPERS_REVALIDATE },
 );
 
+const getCachedHighScoreCards = unstable_cache(
+  async (minScore: number): Promise<PaperCardPayload[]> => {
+    // Scan lightweight eval rows to find papers whose best evaluation clears the
+    // threshold (score is app-side stage priority, not a column), then load the
+    // card payload for just those papers.
+    const rows = await db.paper.findMany({
+      select: {
+        id: true,
+        evaluations: {
+          select: { evaluationStage: true, pdfAnalysisStatus: true, totalScore: true },
+        },
+      },
+    });
+    const qualifyingIds = rows
+      .filter((row) => (selectBestEvaluation(row.evaluations)?.totalScore ?? -1) >= minScore)
+      .map((row) => row.id);
+    if (qualifyingIds.length === 0) return [];
+    return db.paper.findMany({
+      where: { id: { in: qualifyingIds } },
+      include: paperCardInclude,
+    });
+  },
+  ['high-score-cards'],
+  { tags: [ALL_PAPERS_TAG], revalidate: ALL_PAPERS_REVALIDATE },
+);
+
 export const papersRepo = {
   findByFingerprint: (fp: string) =>
     db.paper.findUnique({ where: { duplicateFingerprint: fp } }),
@@ -366,6 +392,16 @@ export const papersRepo = {
 
   /** Most-used tags for the filter dropdown. Cached (tag: ALL_PAPERS_TAG). */
   listTagFacets: (limit = 30): Promise<TagFacet[]> => getCachedTagFacets(limit),
+
+  /**
+   * All papers whose best evaluation scores at least `minScore` (0-100 scale),
+   * across every run — backs the home feed's "high score" tab, which randomly
+   * samples from this pool. Cached (tag: ALL_PAPERS_TAG).
+   */
+  listHighScoreCards: async (minScore: number): Promise<PaperCardPayload[]> => {
+    const rows = await getCachedHighScoreCards(minScore);
+    return rows.map(revivePaperCardDates);
+  },
 
   /**
    * Backfill the abstract only when it is currently empty (null). Used by ingest

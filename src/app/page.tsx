@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { runsRepo } from '@/server/repos/runs';
 import { runResultsRepo, type RunResultWithDetail } from '@/server/repos/runResults';
+import { papersRepo, type PaperCardPayload } from '@/server/repos/papers';
 import {
   trendsRepo,
   type RunSummary,
@@ -40,10 +41,17 @@ const TOPIC_FALLBACKS = [
   'AI Safety',
 ];
 
-// "For you" feed shows a random handful of papers, reshuffled each request.
-const HOME_FEED_RANDOM_COUNT = 5;
+// Number of papers each feed tab surfaces.
+const HOME_FEED_COUNT = 5;
+
+// "High score" tab samples from papers whose displayed score is >= 7.5; the
+// stored totalScore is on a 0-100 scale (the card shows totalScore / 10).
+const HIGH_SCORE_MIN = 75;
 
 type TimeKey = 'all' | 'week' | 'month' | 'year';
+
+// The four home-feed tabs: 為你推薦 / 熱門趨勢 / 最新發佈 / 高分推薦.
+type FeedTab = 'recommended' | 'trending' | 'latest' | 'top';
 
 interface FeedFilters {
   domain: string;
@@ -55,6 +63,7 @@ interface HomePageProps {
     locale?: string;
     domain?: string;
     time?: string;
+    tab?: string;
   }>;
 }
 
@@ -70,34 +79,38 @@ function parseTimeParam(value: string | undefined): TimeKey {
   return value === 'week' || value === 'month' || value === 'year' ? value : 'all';
 }
 
+function parseTab(value: string | undefined): FeedTab {
+  return value === 'trending' || value === 'latest' || value === 'top' ? value : 'recommended';
+}
+
 function timeCutoff(time: TimeKey): Date | null {
   if (time === 'all') return null;
   const days = time === 'week' ? 7 : time === 'month' ? 30 : 365;
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
-function resultDate(result: RunResultWithDetail): Date | null {
-  const raw = result.paper.publishedDate ?? result.paper.createdAt;
+function paperDate(paper: PaperCardPayload): Date | null {
+  const raw = paper.publishedDate ?? paper.createdAt;
   return raw ? new Date(raw) : null;
 }
 
-function resultConference(result: RunResultWithDetail): string | null {
-  const venue = result.paper.venue?.trim();
+function paperConference(paper: PaperCardPayload): string | null {
+  const venue = paper.venue?.trim();
   return venue ? formatConferenceLabel(venue) : null;
 }
 
 function applyFeedFilters(
-  results: RunResultWithDetail[],
+  papers: PaperCardPayload[],
   filters: FeedFilters,
-): RunResultWithDetail[] {
-  let out = results;
+): PaperCardPayload[] {
+  let out = papers;
   if (filters.domain) {
-    out = out.filter((r) => resultConference(r) === filters.domain);
+    out = out.filter((p) => paperConference(p) === filters.domain);
   }
   const cutoff = timeCutoff(filters.time);
   if (cutoff) {
-    out = out.filter((r) => {
-      const date = resultDate(r);
+    out = out.filter((p) => {
+      const date = paperDate(p);
       return date != null && date >= cutoff;
     });
   }
@@ -112,6 +125,45 @@ function sampleRandom<T>(items: T[], count: number): T[] {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr.slice(0, count);
+}
+
+/**
+ * Resolve the papers shown for the active feed tab (post domain/time filter):
+ * - recommended (為你推薦): a random handful of the latest run, reshuffled each request.
+ * - latest (最新發佈): newest published date first, from the latest run.
+ * - top (高分推薦): a random handful of all papers scoring >= 7.5.
+ * - trending (熱門趨勢): not yet available (needs reader views) — handled by the
+ *   coming-soon panel, never reaches here.
+ */
+async function papersForTab(runId: string, tab: FeedTab, filters: FeedFilters) {
+  if (tab === 'top') {
+    const pool = applyFeedFilters(await papersRepo.listHighScoreCards(HIGH_SCORE_MIN), filters);
+    return sampleRandom(pool, HOME_FEED_COUNT);
+  }
+  const runCards = (
+    await runResultsRepo.findByRunWithDetail(runId, { recommendedOnly: false })
+  ).map((result) => result.paper);
+  const matched = applyFeedFilters(runCards, filters);
+  if (tab === 'latest') {
+    return [...matched]
+      .sort((a, b) => (paperDate(b)?.getTime() ?? 0) - (paperDate(a)?.getTime() ?? 0))
+      .slice(0, HOME_FEED_COUNT);
+  }
+  // recommended (default)
+  return sampleRandom(matched, HOME_FEED_COUNT);
+}
+
+function buildFeedHref(
+  searchParams: Awaited<HomePageProps['searchParams']>,
+  tab: FeedTab,
+): string {
+  const params = new URLSearchParams();
+  if (searchParams.locale) params.set('locale', searchParams.locale);
+  if (searchParams.domain) params.set('domain', searchParams.domain);
+  if (searchParams.time) params.set('time', searchParams.time);
+  if (tab !== 'recommended') params.set('tab', tab);
+  const qs = params.toString();
+  return qs ? `/?${qs}` : '/';
 }
 
 function EmptyState({ messages }: { messages: Messages }) {
@@ -377,39 +429,65 @@ function Hero({ summary, messages }: { summary: RunSummary; messages: Messages }
   );
 }
 
-function FeedTabs({ messages }: { messages: Messages }) {
+function FeedTabs({
+  activeTab,
+  searchParams,
+  messages,
+}: {
+  activeTab: FeedTab;
+  searchParams: Awaited<HomePageProps['searchParams']>;
+  messages: Messages;
+}) {
   const t = messages.home;
+  // 熱門趨勢 needs reader-view data we don't collect yet — disabled for now.
+  const tabs = [
+    { key: 'recommended' as const, label: t.feedTabRecommended, icon: Star, comingSoon: false },
+    { key: 'trending' as const, label: t.feedTabTrending, icon: TrendingUp, comingSoon: true },
+    { key: 'latest' as const, label: t.feedTabLatest, icon: Shield, comingSoon: false },
+    { key: 'top' as const, label: t.feedTabTop, icon: BarChart3, comingSoon: false },
+  ];
   return (
     <div
       className="flex min-w-0 gap-6 overflow-x-auto"
       role="tablist"
       aria-label={t.feedTablistAria}
     >
-      <button
-        type="button"
-        className="inline-flex items-center gap-2 border-b-[3px] border-[#5b4df1] pb-3 text-sm font-extrabold whitespace-nowrap text-[#392ee5]"
-        role="tab"
-        aria-selected="true"
-      >
-        <Star aria-hidden className="h-4 w-4" />
-        {t.feedTabRecommended}
-      </button>
-      {[
-        { label: t.feedTabTrending, icon: TrendingUp },
-        { label: t.feedTabLatest, icon: Shield },
-        { label: t.feedTabTop, icon: BarChart3 },
-      ].map(({ label, icon: Icon }) => (
-        <button
-          key={label}
-          type="button"
-          disabled
-          className="inline-flex cursor-not-allowed items-center gap-2 border-b-[3px] border-transparent pb-3 text-sm whitespace-nowrap text-[#344054] opacity-80"
-          role="tab"
-        >
-          <Icon aria-hidden className="h-4 w-4" />
-          {label}
-        </button>
-      ))}
+      {tabs.map(({ key, label, icon: Icon, comingSoon }) => {
+        if (comingSoon) {
+          return (
+            <span
+              key={key}
+              role="tab"
+              aria-disabled="true"
+              title={t.feedComingSoon}
+              className="inline-flex cursor-not-allowed items-center gap-2 border-b-[3px] border-transparent pb-3 text-sm whitespace-nowrap text-[#98a2b3]"
+            >
+              <Icon aria-hidden className="h-4 w-4" />
+              {label}
+              <span className="rounded-full bg-[#eef0ff] px-2 py-0.5 text-[10px] font-bold text-[#6570e8]">
+                {t.feedComingSoon}
+              </span>
+            </span>
+          );
+        }
+        const active = key === activeTab;
+        return (
+          <Link
+            key={key}
+            href={buildFeedHref(searchParams, key)}
+            role="tab"
+            aria-selected={active}
+            className={
+              active
+                ? 'inline-flex items-center gap-2 border-b-[3px] border-[#5b4df1] pb-3 text-sm font-extrabold whitespace-nowrap text-[#392ee5]'
+                : 'inline-flex items-center gap-2 border-b-[3px] border-transparent pb-3 text-sm whitespace-nowrap text-[#344054] hover:text-[#392ee5]'
+            }
+          >
+            <Icon aria-hidden className="h-4 w-4" />
+            {label}
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -433,14 +511,18 @@ const FEED_TOOLBAR_CLASS =
 
 function FeedToolbarFallback({
   filters,
+  activeTab,
+  searchParams,
   messages,
 }: {
   filters: FeedFilters;
+  activeTab: FeedTab;
+  searchParams: Awaited<HomePageProps['searchParams']>;
   messages: Messages;
 }) {
   return (
     <div className={FEED_TOOLBAR_CLASS}>
-      <FeedTabs messages={messages} />
+      <FeedTabs activeTab={activeTab} searchParams={searchParams} messages={messages} />
       <FeedControls
         domain={filters.domain}
         time={filters.time}
@@ -454,16 +536,20 @@ function FeedToolbarFallback({
 async function FeedToolbar({
   summary,
   filters,
+  activeTab,
+  searchParams,
   messages,
 }: {
   summary: Promise<RunSummary>;
   filters: FeedFilters;
+  activeTab: FeedTab;
+  searchParams: Awaited<HomePageProps['searchParams']>;
   messages: Messages;
 }) {
   const domainOptions = (await summary).topConferences.map((c) => c.tag);
   return (
     <div className={FEED_TOOLBAR_CLASS}>
-      <FeedTabs messages={messages} />
+      <FeedTabs activeTab={activeTab} searchParams={searchParams} messages={messages} />
       <FeedControls
         domain={filters.domain}
         time={filters.time}
@@ -628,48 +714,56 @@ async function HeroSection({
 async function FeedResults({
   runId,
   filters,
+  tab,
   session,
   locale,
   messages,
 }: {
   runId: string;
   filters: FeedFilters;
+  tab: FeedTab;
   session: HomeDataPromises['session'];
   locale: Locale;
   messages: Messages;
 }) {
-  // Runs hold a small number of papers, so filter in memory — then surface a
-  // random handful as the "for you" feed (reshuffled on each request).
-  const allResults = await runResultsRepo.findByRunWithDetail(runId, {
-    recommendedOnly: false,
-  });
-  const matched = applyFeedFilters(allResults, filters);
-  const results = sampleRandom(matched, HOME_FEED_RANDOM_COUNT);
+  // 熱門趨勢 (trending) depends on reader-view data we don't collect yet.
+  if (tab === 'trending') {
+    return (
+      <div className="grid min-h-[160px] place-items-center rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-6 text-center">
+        <div className="max-w-md">
+          <p className="text-sm font-semibold text-[#392ee5]">{messages.home.feedComingSoon}</p>
+          <p className="mt-1.5 text-sm text-[#667085]">{messages.home.feedComingSoonBody}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const papers = await papersForTab(runId, tab, filters);
   const resolvedSession = await session;
   const paperStates = resolvedSession
     ? await libraryRepo.findPaperStates({
         userId: resolvedSession.user.id,
-        paperIds: results.map((result) => result.paper.id),
+        paperIds: papers.map((paper) => paper.id),
       })
     : new Map<string, { liked: boolean; status: string }>();
 
   return (
     <>
-      {results.length === 0 ? (
+      {papers.length === 0 ? (
         <div className="rounded-lg border border-dashed border-[#d9deea] bg-[#fbfcff] p-6 text-sm text-[#667085]">
           {messages.home.feedNoResults}
         </div>
       ) : (
-        results.map((result, index) => (
+        papers.map((paper, index) => (
           <PaperFeedCard
-            key={result.id}
-            paper={result.paper}
+            key={paper.id}
+            paper={paper}
             index={index}
             locale={locale}
             messages={messages}
             userState={{
-              liked: paperStates.get(result.paper.id)?.liked ?? false,
-              readLater: paperStates.get(result.paper.id)?.status === 'UNREAD',
+              liked: paperStates.get(paper.id)?.liked ?? false,
+              readLater: paperStates.get(paper.id)?.status === 'UNREAD',
             }}
           />
         ))
@@ -682,12 +776,16 @@ function FeedSection({
   run,
   data,
   filters,
+  activeTab,
+  searchParams,
   locale,
   messages,
 }: {
   run: NonNullable<Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>>;
   data: HomeDataPromises;
   filters: FeedFilters;
+  activeTab: FeedTab;
+  searchParams: Awaited<HomePageProps['searchParams']>;
   locale: Locale;
   messages: Messages;
 }) {
@@ -696,22 +794,44 @@ function FeedSection({
       className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
       aria-labelledby="feed-title"
     >
-      <Suspense fallback={<FeedToolbarFallback filters={filters} messages={messages} />}>
-        <FeedToolbar summary={data.summary} filters={filters} messages={messages} />
+      <Suspense
+        fallback={
+          <FeedToolbarFallback
+            filters={filters}
+            activeTab={activeTab}
+            searchParams={searchParams}
+            messages={messages}
+          />
+        }
+      >
+        <FeedToolbar
+          summary={data.summary}
+          filters={filters}
+          activeTab={activeTab}
+          searchParams={searchParams}
+          messages={messages}
+        />
       </Suspense>
       <div className="sr-only" id="feed-title">
         {messages.home.feedTitleSr}
       </div>
       <div className="grid gap-3.5 px-5 py-4">
-        <Suspense fallback={<FeedResultsLoading messages={messages} />}>
+        <Suspense key={activeTab} fallback={<FeedResultsLoading messages={messages} />}>
           <FeedResults
             runId={run.id}
             filters={filters}
+            tab={activeTab}
             session={data.session}
             locale={locale}
             messages={messages}
           />
         </Suspense>
+        <Link
+          href="/papers"
+          className="mt-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#d9deea] bg-[#fbfcff] py-3 text-sm font-bold text-[#392ee5] hover:bg-[#f2f4ff]"
+        >
+          {messages.home.feedViewAllPapers}
+        </Link>
       </div>
     </section>
   );
@@ -765,6 +885,7 @@ async function HomePageContent({
     domain: searchParams.domain ?? '',
     time: parseTimeParam(searchParams.time),
   };
+  const activeTab = parseTab(searchParams.tab);
   const data: HomeDataPromises = {
     summary: trendsRepo.getRunSummary(run.id),
     sourceDistribution: trendsRepo.getSourceDistribution(),
@@ -787,6 +908,8 @@ async function HomePageContent({
           run={run}
           data={data}
           filters={filters}
+          activeTab={activeTab}
+          searchParams={searchParams}
           locale={locale}
           messages={messages}
         />
