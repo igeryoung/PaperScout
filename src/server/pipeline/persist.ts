@@ -4,7 +4,7 @@ import { SOURCE_DISTRIBUTION_TAG, TAG_DISTRIBUTION_TAG } from '@/server/repos/tr
 import { findMatch } from '@/server/dedup/matcher';
 import { chooseFingerprint } from '@/server/dedup/fingerprint';
 import { normalizeTitle } from '@/server/dedup/normalize';
-import { papersRepo } from '@/server/repos/papers';
+import { ALL_PAPERS_TAG, papersRepo } from '@/server/repos/papers';
 import { sourcesRepo } from '@/server/repos/sources';
 import { runResultsRepo } from '@/server/repos/runResults';
 import { duplicatesRepo } from '@/server/repos/duplicates';
@@ -155,6 +155,7 @@ export async function persistCandidates(
     try {
       revalidateTag(SOURCE_DISTRIBUTION_TAG, 'max');
       revalidateTag(TAG_DISTRIBUTION_TAG, 'max');
+      revalidateTag(ALL_PAPERS_TAG, 'max');
     } catch {
       // outside a revalidation-capable scope; the time-based revalidate covers it
     }

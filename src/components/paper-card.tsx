@@ -1,10 +1,6 @@
 import Link from 'next/link';
-import type {
-  PaperEvaluation,
-  PaperCodeLink,
-  PaperSource,
-  PaperTag,
-} from '@prisma/client';
+import type { PaperCodeLink, PaperSource, PaperTag } from '@prisma/client';
+import type { PaperCardEvaluation } from '@/server/repos/papers';
 
 import { Badge } from '@/components/ui/badge';
 import { formatAuthors, formatDate } from '@/lib/format';
@@ -21,9 +17,9 @@ export interface PaperCardPaper {
   venue: string | null;
   publishedDate: Date | null;
   pdfUrl: string | null;
-  sources: PaperSource[];
-  tags: PaperTag[];
-  codeLinks: PaperCodeLink[];
+  sources: Array<Pick<PaperSource, 'source' | 'sourceUrl'>>;
+  tags: Array<Pick<PaperTag, 'id' | 'tag'>>;
+  codeLinks: Array<Pick<PaperCodeLink, 'id' | 'codeUrl'>>;
   figure: {
     caption: unknown;
     figureLabel: string | null;
@@ -33,7 +29,7 @@ export interface PaperCardPaper {
 interface PaperCardProps {
   rank: number | null;
   paper: PaperCardPaper;
-  evaluation: PaperEvaluation | null;
+  evaluation: PaperCardEvaluation | null;
   locale: Locale;
   messages: Messages;
 }
@@ -54,7 +50,7 @@ function StageBadge({
   evaluation,
   messages,
 }: {
-  evaluation: PaperEvaluation;
+  evaluation: PaperCardEvaluation;
   messages: Messages;
 }) {
   const stage =
