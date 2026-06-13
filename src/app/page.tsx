@@ -1,6 +1,7 @@
 import 'server-only';
 
 import Link from 'next/link';
+import Form from 'next/form';
 import { Suspense } from 'react';
 import {
   ArrowRight,
@@ -379,7 +380,7 @@ function TopicChips({ tags, label }: { tags: TagCount[]; label: string }) {
       {topics.slice(0, 7).map((topic) => (
         <Link
           key={topic}
-          href={`/library?tags=${encodeURIComponent(topic)}`}
+          href={`/papers?tag=${encodeURIComponent(topic)}`}
           className="inline-flex min-h-[27px] items-center rounded-full bg-[#dfe4ff] px-3.5 text-[13px] font-bold text-[#2734b7]"
         >
           {topic}
@@ -404,24 +405,27 @@ function Hero({ summary, messages }: { summary: RunSummary; messages: Messages }
           {t.heroTitle}
         </h1>
         <p className="mb-5 text-sm text-[#273142]">{t.heroSubtitle}</p>
-        <label className="grid min-h-[54px] grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-[9px] border border-[#d9deea] bg-white pr-2 pl-5 shadow-[0_12px_26px_rgba(45,52,88,0.14)] max-sm:grid-cols-[auto_1fr] max-sm:p-3">
+        <Form
+          action="/papers"
+          className="grid min-h-[54px] grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-[9px] border border-[#d9deea] bg-white pr-2 pl-5 shadow-[0_12px_26px_rgba(45,52,88,0.14)] max-sm:grid-cols-[auto_1fr] max-sm:p-3"
+        >
           <Sparkles aria-hidden className="h-5 w-5 text-[#5b4df1]" />
           <input
             type="text"
+            name="q"
             aria-label={t.heroSearchAria}
             placeholder={t.heroSearchPlaceholder}
             className="min-w-0 border-0 bg-transparent text-[15px] text-[#475467] outline-none placeholder:text-[#98a2b3]"
           />
           <button
-            type="button"
-            disabled
+            type="submit"
             aria-label={t.heroSubmitAria}
             title={t.heroSubmitTitle}
-            className="grid h-[38px] w-[38px] cursor-not-allowed place-items-center rounded-[7px] bg-gradient-to-br from-[#7868ff] to-[#4437e7] text-white shadow-[0_10px_24px_rgba(91,77,241,0.28)] max-sm:col-span-2 max-sm:w-full"
+            className="grid h-[38px] w-[38px] place-items-center rounded-[7px] bg-gradient-to-br from-[#7868ff] to-[#4437e7] text-white shadow-[0_10px_24px_rgba(91,77,241,0.28)] transition hover:brightness-110 max-sm:col-span-2 max-sm:w-full"
           >
             <ArrowRight aria-hidden className="h-5 w-5" />
           </button>
-        </label>
+        </Form>
         <TopicChips tags={summary.topTags} label={t.heroTopicsLabel} />
       </div>
       <HeroArt />
