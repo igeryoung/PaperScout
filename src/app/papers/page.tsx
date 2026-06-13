@@ -71,21 +71,16 @@ function EmptyResults({
 function ResultsLoading({ label }: { label: string }) {
   return (
     <div className="grid gap-3.5" role="status" aria-label={label}>
-      <div className="h-4 w-48 animate-pulse rounded bg-[#edf1f7]" />
       {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
-          className="grid grid-cols-1 gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 xl:grid-cols-[280px_minmax(0,1fr)_230px]"
+          className="grid grid-cols-1 gap-4 rounded-[10px] border border-[#dfe5ee] bg-white p-4 xl:grid-cols-[280px_minmax(0,1fr)]"
         >
           <div className="h-44 animate-pulse rounded-lg bg-[#edf1f7]" />
           <div className="space-y-3">
             <div className="h-5 w-4/5 animate-pulse rounded bg-[#edf1f7]" />
             <div className="h-4 w-1/2 animate-pulse rounded bg-[#edf1f7]" />
             <div className="h-16 animate-pulse rounded bg-[#edf1f7]" />
-          </div>
-          <div className="space-y-3">
-            <div className="h-16 w-16 animate-pulse rounded-full bg-[#edf1f7]" />
-            <div className="h-[68px] animate-pulse rounded-lg bg-[#eef0ff]" />
           </div>
         </div>
       ))}
@@ -130,12 +125,8 @@ async function PapersResults({
     );
   }
 
-  const from = (result.page - 1) * PAGE_SIZE + 1;
-  const to = from + result.papers.length - 1;
-
   return (
     <div className="grid gap-3.5">
-      <p className="text-sm text-[#667085]">{t.rangeLabel(from, to, result.total)}</p>
       {result.papers.map((paper, index) => (
         <PaperFeedCard
           key={paper.id}
@@ -183,54 +174,60 @@ export default async function PapersPage({ searchParams }: PapersPageProps) {
 
   return (
     <main className="mx-auto max-w-[1760px] px-4 py-6 sm:px-6 lg:px-12">
-      <header className="mb-4">
-        <h1 className="text-[27px] leading-tight font-extrabold tracking-normal text-[#111827]">
-          {t.title}
-        </h1>
-        <p className="mt-1 text-sm text-[#576173]">{t.subtitle}</p>
-      </header>
+      <section className="relative overflow-hidden rounded-[14px] bg-[#e7e4fb] bg-[url(/all-paper-hero.png)] bg-cover bg-center bg-no-repeat px-6 py-9 shadow-[0_20px_55px_rgba(46,42,92,0.12)] sm:px-10 sm:py-11">
+        <div className="relative max-w-[640px]">
+          <h1 className="text-[30px] leading-tight font-extrabold tracking-tight text-[#1b1f3b] sm:text-[36px]">
+            {t.title}
+          </h1>
+          <p className="mt-2.5 max-w-[540px] text-sm leading-6 text-[#4c4f78] sm:text-[15px]">
+            {t.subtitle}
+          </p>
+        </div>
+      </section>
 
-      <div className="mb-5">
-        <PapersToolbar
-          query={q}
-          venue={venue}
-          tag={tag}
-          sort={sort}
-          conferences={conferences}
-          tags={tags}
-          labels={{
-            searchPlaceholder: t.searchPlaceholder,
-            searchAria: t.searchAria,
-            searchSubmit: t.searchSubmit,
-            conferenceAll: t.conferenceAll,
-            conferenceAria: t.conferenceAria,
-            tagAll: t.tagAll,
-            tagAria: t.tagAria,
-            tagSearchPlaceholder: t.tagSearchPlaceholder,
-            tagNoResults: t.tagNoResults,
-            sortAria: t.sortAria,
-            sortNewest: t.sortNewest,
-            sortOldest: t.sortOldest,
-            sortScore: t.sortScore,
-            reset: t.reset,
-          }}
-        />
+      <div className="mt-5 mb-8 grid gap-4 rounded-[16px] border border-[#e4e7f3] bg-white p-4 shadow-[0_8px_24px_rgba(40,48,80,0.06)] sm:p-5">
+        <div className="rounded-[12px] border border-[#e7eaf3] bg-[#f7f8fc] p-3 sm:p-3.5">
+          <PapersToolbar
+            query={q}
+            venue={venue}
+            tag={tag}
+            sort={sort}
+            conferences={conferences}
+            tags={tags}
+            labels={{
+              searchPlaceholder: t.searchPlaceholder,
+              searchAria: t.searchAria,
+              searchSubmit: t.searchSubmit,
+              conferenceAll: t.conferenceAll,
+              conferenceAria: t.conferenceAria,
+              tagAll: t.tagAll,
+              tagAria: t.tagAria,
+              tagSearchPlaceholder: t.tagSearchPlaceholder,
+              tagNoResults: t.tagNoResults,
+              sortAria: t.sortAria,
+              sortNewest: t.sortNewest,
+              sortOldest: t.sortOldest,
+              sortScore: t.sortScore,
+              reset: t.reset,
+            }}
+          />
+        </div>
+
+        <Suspense
+          key={`${q}|${venue ?? ''}|${tag ?? ''}|${sort}|${page}`}
+          fallback={<ResultsLoading label={t.loading} />}
+        >
+          <PapersResults
+            q={q}
+            venue={venue}
+            tag={tag}
+            sort={sort}
+            page={page}
+            locale={locale}
+            messages={messages}
+          />
+        </Suspense>
       </div>
-
-      <Suspense
-        key={`${q}|${venue ?? ''}|${tag ?? ''}|${sort}|${page}`}
-        fallback={<ResultsLoading label={t.loading} />}
-      >
-        <PapersResults
-          q={q}
-          venue={venue}
-          tag={tag}
-          sort={sort}
-          page={page}
-          locale={locale}
-          messages={messages}
-        />
-      </Suspense>
     </main>
   );
 }
