@@ -12,15 +12,14 @@ import {
   ExternalLink,
   FileText,
   Folder,
-  Grid2X2,
   Heart,
   History,
-  List,
   MessageSquare,
   MoreVertical,
   Plus,
   Search,
   Trash2,
+  X,
 } from 'lucide-react';
 import type { Source, UserPaperStatus } from '@prisma/client';
 import {
@@ -30,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { cn } from '@/lib/utils';
 
 type CollectionView = {
@@ -48,6 +48,9 @@ type PaperView = {
   sourceLabel: string;
   publishedDate: string;
   storedDate: string;
+  publishedAt: number;
+  storedAt: number;
+  viewedAt: number;
   pdfUrl: string | null;
   score: number | null;
   summary: string;
@@ -85,6 +88,17 @@ export type LibraryWorkspaceProps = {
     emptyTitle: string;
     emptyBody: string;
     searchPlaceholder: string;
+    statusFilterAll: string;
+    statusFilterAria: string;
+    tagFilterAll: string;
+    tagFilterAria: string;
+    tagSearchPlaceholder: string;
+    tagNoResults: string;
+    sortAria: string;
+    sortRecent: string;
+    sortAdded: string;
+    sortScore: string;
+    reset: string;
     statusLabel: string;
     likedLabel: string;
     lastViewed: string;
@@ -115,6 +129,14 @@ export type LibraryWorkspaceProps = {
 };
 
 const STATUS_OPTIONS: UserPaperStatus[] = ['UNREAD', 'READING', 'READ', 'ARCHIVED'];
+
+const ALL = '__all__';
+
+type StatusFilter = UserPaperStatus | typeof ALL;
+type LibrarySort = 'recent' | 'added' | 'score';
+
+const filterTriggerClass =
+  'h-9 gap-2 rounded-[7px] border-[#d9e0ea] bg-white px-[13px] text-[13px] font-bold text-[#344054]';
 
 function statusHref(status?: UserPaperStatus) {
   return status ? `/library?status=${status}` : '/library';
@@ -205,6 +227,9 @@ export function LibraryWorkspace({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(ALL);
+  const [tagFilter, setTagFilter] = useState<string>(ALL);
+  const [sort, setSort] = useState<LibrarySort>('recent');
   const [newListName, setNewListName] = useState('');
 
   const activeCollection = collections.find((collection) => collection.id === activeCollectionId);
@@ -217,16 +242,52 @@ export function LibraryWorkspace({
           ? activeCollection.name
           : labels.title;
 
+  const tagOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const paper of papers) {
+      for (const tag of paper.tags) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([tag, count]) => ({ value: tag, label: `${tag} · ${count}` }));
+  }, [papers]);
+
   const filteredPapers = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return papers;
-    return papers.filter((paper) =>
-      [paper.title, paper.authors, paper.source, paper.summary, ...paper.tags]
-        .join(' ')
-        .toLowerCase()
-        .includes(needle),
-    );
-  }, [papers, query]);
+    const matched = papers.filter((paper) => {
+      if (statusFilter !== ALL && paper.status !== statusFilter) return false;
+      if (tagFilter !== ALL && !paper.tags.includes(tagFilter)) return false;
+      if (
+        needle &&
+        ![paper.title, paper.authors, paper.source, paper.summary, ...paper.tags]
+          .join(' ')
+          .toLowerCase()
+          .includes(needle)
+      ) {
+        return false;
+      }
+      return true;
+    });
+    return matched.sort((a, b) => {
+      if (sort === 'score') return (b.score ?? -1) - (a.score ?? -1);
+      if (sort === 'added') return b.storedAt - a.storedAt;
+      return b.viewedAt - a.viewedAt;
+    });
+  }, [papers, query, statusFilter, tagFilter, sort]);
+
+  const hasFilters =
+    query.trim().length > 0 || statusFilter !== ALL || tagFilter !== ALL || sort !== 'recent';
+
+  const tagTriggerLabel = tagFilter === ALL ? labels.tagFilterAll : tagFilter;
+
+  const resetFilters = () => {
+    setQuery('');
+    setStatusFilter(ALL);
+    setTagFilter(ALL);
+    setSort('recent');
+  };
 
   const refresh = () => {
     startRefresh(() => router.refresh());
@@ -384,31 +445,73 @@ export function LibraryWorkspace({
             </h1>
             <p className="text-sm text-[#576173]">{labels.subtitle}</p>
           </div>
-          <div className="flex items-center gap-[14px]">
-            <label className="flex h-9 w-[264px] items-center gap-2.5 rounded-[7px] border border-[#d9e0ea] bg-white px-[13px] text-[#98a2b3]">
+          <div className="flex flex-wrap items-center gap-[14px]">
+            <label className="flex h-9 w-[264px] items-center gap-2.5 rounded-[7px] border border-[#d9e0ea] bg-white px-[13px] text-[#98a2b3] focus-within:border-[#5b4df1]">
               <Search aria-hidden className="h-4 w-4" />
               <input
+                type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={labels.searchPlaceholder}
                 className="min-w-0 flex-1 border-0 bg-transparent text-sm text-[#344054] outline-none placeholder:text-[#9aa4b4]"
               />
             </label>
-            <div className="flex h-9 items-center gap-2 rounded-[7px] border border-[#d9e0ea] bg-white px-[13px] text-[13px] font-bold text-[#344054]">
-              狀態
-            </div>
-            <div className="flex h-9 items-center gap-2 rounded-[7px] border border-[#d9e0ea] bg-white px-[13px] text-[13px] font-bold text-[#344054]">
-              標籤
-            </div>
-            <div className="flex h-9 items-center gap-2 rounded-[7px] border border-[#d9e0ea] bg-white px-[13px] text-[13px] font-bold text-[#344054]">
-              排序：最近開啟
-            </div>
-            <div className="flex h-9 items-center gap-2 rounded-[7px] border border-[#d9e0ea] bg-white px-2.5 text-[#667085]">
-              <span className="grid h-7 w-7 place-items-center rounded-md bg-[#eeedff] text-[#5848f5]">
-                <Grid2X2 aria-hidden className="h-4 w-4" />
-              </span>
-              <List aria-hidden className="h-4 w-4" />
-            </div>
+
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+            >
+              <SelectTrigger
+                className={cn(filterTriggerClass, 'w-[128px]')}
+                aria-label={labels.statusFilterAria}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{labels.statusFilterAll}</SelectItem>
+                {STATUS_OPTIONS.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {labels.statuses[status]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <SearchableSelect
+              ariaLabel={labels.tagFilterAria}
+              value={tagFilter}
+              onValueChange={setTagFilter}
+              options={[{ value: ALL, label: labels.tagFilterAll }, ...tagOptions]}
+              triggerLabel={tagTriggerLabel}
+              searchPlaceholder={labels.tagSearchPlaceholder}
+              noResultsLabel={labels.tagNoResults}
+              triggerClassName={cn(filterTriggerClass, 'w-[150px] font-bold')}
+            />
+
+            <Select value={sort} onValueChange={(value) => setSort(value as LibrarySort)}>
+              <SelectTrigger
+                className={cn(filterTriggerClass, 'w-[150px]')}
+                aria-label={labels.sortAria}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">{labels.sortRecent}</SelectItem>
+                <SelectItem value="added">{labels.sortAdded}</SelectItem>
+                <SelectItem value="score">{labels.sortScore}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasFilters ? (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="inline-flex h-9 items-center gap-1.5 rounded-[7px] border border-[#d9e0ea] bg-white px-3 text-[13px] font-bold text-[#667085] hover:text-[#392ee5]"
+              >
+                <X aria-hidden className="h-4 w-4" />
+                {labels.reset}
+              </button>
+            ) : null}
           </div>
         </header>
 
@@ -460,14 +563,41 @@ export function LibraryWorkspace({
             filteredPapers.map((paper) => (
               <article
                 key={paper.id}
-                className="relative grid min-h-[214px] grid-cols-[210px_minmax(640px,1fr)_150px] gap-[22px] rounded-[10px] border border-[#dfe5ef] bg-white py-5 pr-4 pl-[14px] shadow-[0_12px_32px_rgba(24,34,64,0.055)]"
+                className="relative grid min-h-[214px] grid-cols-[210px_minmax(0,1fr)] gap-[22px] rounded-[10px] border border-[#dfe5ef] bg-white py-5 pr-4 pl-[14px] shadow-[0_12px_32px_rgba(24,34,64,0.055)]"
               >
-                <div className="flex flex-col items-center justify-start gap-2.5">
+                <div className="flex flex-col items-stretch gap-2.5">
                   <Thumb paper={paper} />
+                  <Select
+                    value={paper.status}
+                    onValueChange={(status) =>
+                      updatePaper(paper.id, { status: status as UserPaperStatus })
+                    }
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        'h-[27px] w-full justify-center rounded-full px-3 text-xs font-extrabold',
+                        statusTone(paper.status),
+                      )}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {labels.statuses[status]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="text-[11.5px] leading-relaxed text-[#667085]">
+                    ▣&nbsp;&nbsp;{labels.lastViewed}：{paper.lastViewedAt ?? '-'}
+                    <br />
+                    ▣&nbsp;&nbsp;{labels.saveNote}： {paper.noteCount}
+                  </div>
                 </div>
 
                 <div className="grid min-w-0 grid-rows-[auto_1fr]">
-                  <h2 className="mb-1 text-[16.5px] leading-snug font-extrabold text-[#101828]">
+                  <h2 className="mb-1 pr-[176px] text-[16.5px] leading-snug font-extrabold text-[#101828]">
                     <Link href={`/papers/${paper.id}`} className="hover:underline">
                       {paper.title}
                     </Link>
@@ -513,65 +643,36 @@ export function LibraryWorkspace({
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center pt-[22px]">
-                  <div className="absolute top-[22px] right-8 flex h-[22px] items-center gap-[18px] text-[#536276]">
-                    <Link href={`/papers/${paper.id}`} aria-label={labels.openPaper}>
-                      <ExternalLink aria-hidden className="h-[18px] w-[18px]" />
-                    </Link>
-                    <button
-                      type="button"
-                      aria-label={labels.likedLabel}
-                      disabled={busy || isRefreshing}
-                      onClick={() => updatePaper(paper.id, { liked: !paper.liked })}
-                      className={cn(paper.liked && 'text-[#5848f5]')}
-                    >
-                      <Heart
-                        aria-hidden
-                        className={cn('h-[18px] w-[18px]', paper.liked && 'fill-current')}
-                      />
-                    </button>
-                    <span className="h-5 w-px bg-[#d9e0ea]" />
-                    <button
-                      type="button"
-                      aria-label={
-                        activeView === 'collection'
-                          ? labels.removeFromList
-                          : labels.removeFromLibrary
-                      }
-                      disabled={busy || isRefreshing}
-                      onClick={() => removePaper(paper.id)}
-                    >
-                      <Trash2 aria-hidden className="h-[18px] w-[18px]" />
-                    </button>
-                    <MoreVertical aria-hidden className="h-[18px] w-[18px]" />
-                  </div>
-                  <div className="w-full text-[11.5px] leading-relaxed text-[#667085]">
-                    ▣&nbsp;&nbsp;{labels.lastViewed}：{paper.lastViewedAt ?? '-'}
-                    <br />
-                    ▣&nbsp;&nbsp;{labels.saveNote}： {paper.noteCount}
-                  </div>
-                  <Select
-                    value={paper.status}
-                    onValueChange={(status) =>
-                      updatePaper(paper.id, { status: status as UserPaperStatus })
-                    }
+                <div className="absolute top-[22px] right-8 flex h-[22px] items-center gap-[18px] text-[#536276]">
+                  <Link href={`/papers/${paper.id}`} aria-label={labels.openPaper}>
+                    <ExternalLink aria-hidden className="h-[18px] w-[18px]" />
+                  </Link>
+                  <button
+                    type="button"
+                    aria-label={labels.likedLabel}
+                    disabled={busy || isRefreshing}
+                    onClick={() => updatePaper(paper.id, { liked: !paper.liked })}
+                    className={cn(paper.liked && 'text-[#5848f5]')}
                   >
-                    <SelectTrigger
-                      className={cn(
-                        'mt-2 h-[27px] min-w-[96px] rounded-full px-3 text-xs font-extrabold',
-                        statusTone(paper.status),
-                      )}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {labels.statuses[status]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Heart
+                      aria-hidden
+                      className={cn('h-[18px] w-[18px]', paper.liked && 'fill-current')}
+                    />
+                  </button>
+                  <span className="h-5 w-px bg-[#d9e0ea]" />
+                  <button
+                    type="button"
+                    aria-label={
+                      activeView === 'collection'
+                        ? labels.removeFromList
+                        : labels.removeFromLibrary
+                    }
+                    disabled={busy || isRefreshing}
+                    onClick={() => removePaper(paper.id)}
+                  >
+                    <Trash2 aria-hidden className="h-[18px] w-[18px]" />
+                  </button>
+                  <MoreVertical aria-hidden className="h-[18px] w-[18px]" />
                 </div>
               </article>
             ))
