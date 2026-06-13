@@ -32,6 +32,11 @@ EXPORT_DIR = DATA_ROOT / "exports"
 INGEST_SCRIPT = REPO_ROOT / "scripts" / "ingest.ts"
 
 
+def batch_dir(batch_id: int) -> Path:
+    """Per-batch working folder. Downloads land here and export finalises it."""
+    return EXPORT_DIR / f"batch-{batch_id}"
+
+
 def ensure_dirs() -> None:
     for d in (DATA_ROOT, INBOX_DIR, PDF_DIR, TRUNCATED_DIR, FIGURE_DIR, EXPORT_DIR):
         d.mkdir(parents=True, exist_ok=True)

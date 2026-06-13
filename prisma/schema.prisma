@@ -87,6 +87,7 @@ model Paper {
   pdfUrl               String?   @map("pdf_url")
   primarySource        Source    @map("primary_source")
   duplicateFingerprint String    @unique @map("duplicate_fingerprint")
+  codeSearchedAt       DateTime? @map("code_searched_at") // set when we've searched for a code repo; null = not yet searched, set + no codeLinks = none found
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 

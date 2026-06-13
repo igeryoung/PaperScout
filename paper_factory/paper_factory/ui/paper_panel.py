@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 
 from .. import config, pdf as pdfops
 from ..db import Store
-from ..models import Paper, ReviewDecision, Stage
+from ..models import Paper, ReviewDecision, Stage, dumps
 from .eval_render import LOCALES, eval_html
 from .pdf_view import CropDialog
 
@@ -131,6 +131,7 @@ class PaperPanel(QWidget):
             f"stage: {paper.stage.value}  ·  bucket: {paper.bucket.value}"
             f"  ·  review: {paper.review_decision.value if paper.review_decision else '—'}"
             + (f"  ·  ⚠ failed at {paper.failed_step}" if paper.failed_step else "")
+            + (f"\ncode: {'  '.join(paper.code_urls)}" if paper.code_urls else "")
         )
         self._update_pdf_btn(paper)
         self._render_figure(paper)
@@ -142,7 +143,7 @@ class PaperPanel(QWidget):
         if not p or not p.pdf_url:
             QMessageBox.warning(self, "No PDF URL", "This paper has no pdfUrl.")
             return
-        dest = config.PDF_DIR / f"{pdfops.safe_id(p.id)}.pdf"
+        dest = pdfops.pdf_dest(p.id, p.batch_id)
         try:
             pdfops.download_pdf(p.pdf_url, dest)
         except Exception as e:  # noqa: BLE001 — surface to user, flag the step
@@ -153,6 +154,9 @@ class PaperPanel(QWidget):
         fields = {"pdf_path": str(dest), "failed_step": None}
         if p.stage.order < Stage.DOWNLOADED.order:
             fields["stage"] = Stage.DOWNLOADED
+        merged = pdfops.merge_code_urls(p.code_urls, p.abstract, dest, title=p.title)
+        if merged is not None:
+            fields["code_urls"] = dumps(merged)
         self.store.update_fields(p.id, **fields)
         self._reload()
 
@@ -160,9 +164,9 @@ class PaperPanel(QWidget):
         p = self.paper
         if not p or not p.pdf_path:
             return
-        dest = config.TRUNCATED_DIR / f"{pdfops.safe_id(p.id)}-main.pdf"
+        dest = Path(p.pdf_path)  # truncate replaces the downloaded PDF in place
         try:
-            pdfops.truncate_pdf(Path(p.pdf_path), dest, cut_page=cut_page)
+            pdfops.truncate_pdf(dest, dest, cut_page=cut_page)
         except Exception as e:  # noqa: BLE001
             self.store.update_fields(p.id, failed_step="truncate")
             QMessageBox.critical(self, "Truncate failed", str(e))

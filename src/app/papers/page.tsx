@@ -206,6 +206,8 @@ export default async function PapersPage({ searchParams }: PapersPageProps) {
             conferenceAria: t.conferenceAria,
             tagAll: t.tagAll,
             tagAria: t.tagAria,
+            tagSearchPlaceholder: t.tagSearchPlaceholder,
+            tagNoResults: t.tagNoResults,
             sortAria: t.sortAria,
             sortNewest: t.sortNewest,
             sortOldest: t.sortOldest,

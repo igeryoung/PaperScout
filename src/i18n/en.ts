@@ -178,6 +178,8 @@ export const messages = {
     conferenceAria: 'Filter by conference',
     tagAll: 'All tags',
     tagAria: 'Filter by tag',
+    tagSearchPlaceholder: 'Search tags…',
+    tagNoResults: 'No matching tags',
     sortAria: 'Sort papers',
     sortNewest: 'Newest',
     sortOldest: 'Oldest',
@@ -303,6 +305,34 @@ export const messages = {
     savedAt: (when: string) => `Saved at ${when}`,
     saveFailed: 'Could not save changes. Please try again.',
     nameRequired: 'Name cannot be empty.',
+  },
+  footer: {
+    ariaLabel: 'Site footer',
+    tagline:
+      'Find papers worth your time, faster. The AI summarizes, scores, and tags the most relevant work for you.',
+    resourcesHeading: 'Resources',
+    navAbout: 'About us',
+    navFaq: 'FAQ',
+    navHowItWorks: 'How it works',
+    contactHeading: 'Contact',
+    email: 'Email us',
+    emailHint: 'Questions or feedback?',
+    topicsHeading: 'Hot topics',
+    copyright: '© 2026 PaperScout. All rights reserved.',
+    privacy: 'Privacy Policy',
+    terms: 'Terms of Service',
+  },
+  placeholder: {
+    badge: 'Coming soon',
+    body: 'This page is still being built. Check back soon.',
+    backHome: 'Back to home',
+    titles: {
+      about: 'About us',
+      faq: 'FAQ',
+      howItWorks: 'How recommendations work',
+      privacy: 'Privacy Policy',
+      terms: 'Terms of Service',
+    },
   },
 };
 
