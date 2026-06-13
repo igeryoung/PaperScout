@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import {
+  AlertTriangle,
   BookMarked,
   BookOpen,
   CheckCircle2,
@@ -15,7 +16,9 @@ import {
   Heart,
   History,
   MessageSquare,
+  Minus,
   MoreVertical,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -29,6 +32,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { cn } from '@/lib/utils';
 
@@ -78,8 +96,11 @@ export type LibraryWorkspaceProps = {
     manageList: string;
     renameList: string;
     deleteList: string;
+    deleteListWarning: string;
+    cancel: string;
     addPapers: string;
     addToList: string;
+    addToListHeading: string;
     removeFromList: string;
     removeFromLibrary: string;
     openPaper: string;
@@ -231,6 +252,9 @@ export function LibraryWorkspace({
   const [tagFilter, setTagFilter] = useState<string>(ALL);
   const [sort, setSort] = useState<LibrarySort>('recent');
   const [newListName, setNewListName] = useState('');
+  const [renameTarget, setRenameTarget] = useState<CollectionView | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<CollectionView | null>(null);
 
   const activeCollection = collections.find((collection) => collection.id === activeCollectionId);
   const title =
@@ -328,14 +352,78 @@ export function LibraryWorkspace({
     });
   };
 
-  const removePaper = (paperId: string) => {
-    const collectionId = activeView === 'collection' ? activeCollectionId : null;
+  const addPaperToList = (paperId: string, collectionId: string) => {
     void runMutation(async () => {
       await jsonRequest(`/api/library/papers/${paperId}`, {
-        method: 'DELETE',
+        method: 'POST',
         body: JSON.stringify({ collectionId }),
       });
     });
+  };
+
+  const removeFromCurrentList = (paperId: string) => {
+    if (!activeCollectionId) return;
+    void runMutation(async () => {
+      await jsonRequest(`/api/library/papers/${paperId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ collectionId: activeCollectionId }),
+      });
+    });
+  };
+
+  const removeFromLibrary = (paperId: string) => {
+    void runMutation(async () => {
+      await jsonRequest(`/api/library/papers/${paperId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ collectionId: null }),
+      });
+    });
+  };
+
+  const openRename = (collection: CollectionView) => {
+    setRenameValue(collection.name);
+    setRenameTarget(collection);
+  };
+
+  const submitRename = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const target = renameTarget;
+    if (!target) return;
+    const name = renameValue.trim();
+    if (!name || name === target.name) {
+      setRenameTarget(null);
+      return;
+    }
+    void runMutation(async () => {
+      await jsonRequest(`/api/library/lists/${target.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name }),
+      });
+      setRenameTarget(null);
+    });
+  };
+
+  const confirmDelete = () => {
+    const target = deleteTarget;
+    if (!target) return;
+    const wasActive = activeView === 'collection' && activeCollectionId === target.id;
+    setBusy(true);
+    setError(null);
+    void (async () => {
+      try {
+        await jsonRequest(`/api/library/lists/${target.id}`, { method: 'DELETE' });
+        setDeleteTarget(null);
+        if (wasActive) {
+          router.push('/library');
+        } else {
+          refresh();
+        }
+      } catch {
+        setError('Update failed. Please retry.');
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   return (
@@ -403,14 +491,14 @@ export function LibraryWorkspace({
         </section>
 
         <section>
-          <div className="mx-[11px] mb-[13px] flex items-center justify-between">
+          <div className="mx-[11px] mb-[13px] flex flex-col gap-2">
             <h2 className="text-sm font-extrabold text-[#334155]">{labels.collections}</h2>
             <form onSubmit={createList} className="flex items-center gap-1">
               <input
                 value={newListName}
                 onChange={(event) => setNewListName(event.target.value)}
                 placeholder={labels.newListPlaceholder}
-                className="h-7 w-[104px] rounded-md border border-[#d9e0ea] bg-white px-2 text-xs outline-none"
+                className="h-7 min-w-0 flex-1 rounded-md border border-[#d9e0ea] bg-white px-2 text-xs outline-none focus:border-[#5b4df1]"
               />
               <button
                 type="submit"
@@ -424,14 +512,42 @@ export function LibraryWorkspace({
           </div>
           <div className="grid gap-1">
             {collections.map((collection) => (
-              <SidebarItem
-                key={collection.id}
-                href={`/library?view=collection&collection=${collection.id}`}
-                active={activeView === 'collection' && activeCollectionId === collection.id}
-                icon={<Folder aria-hidden className="h-4 w-4" />}
-                label={collection.name}
-                count={collection.count}
-              />
+              <div key={collection.id} className="group relative">
+                <SidebarItem
+                  href={`/library?view=collection&collection=${collection.id}`}
+                  active={activeView === 'collection' && activeCollectionId === collection.id}
+                  icon={<Folder aria-hidden className="h-4 w-4" />}
+                  label={collection.name}
+                  count={collection.count}
+                />
+                {!collection.isDefault ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={labels.manageList}
+                        disabled={busy || isRefreshing}
+                        className="absolute top-1/2 right-2 hidden h-6 w-6 -translate-y-1/2 place-items-center rounded-md bg-white text-[#667085] shadow-[0_1px_4px_rgba(24,34,64,0.18)] hover:bg-[#eef0ff] hover:text-[#392ee5] group-hover:grid data-[state=open]:grid data-[state=open]:bg-[#eef0ff] data-[state=open]:text-[#392ee5]"
+                      >
+                        <MoreVertical aria-hidden className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem onSelect={() => openRename(collection)}>
+                        <Pencil aria-hidden className="h-3.5 w-3.5" />
+                        {labels.renameList}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => setDeleteTarget(collection)}
+                        className="text-[#d92d20] focus:bg-[#fff1f0] focus:text-[#b42318] data-[highlighted]:bg-[#fff1f0] data-[highlighted]:text-[#b42318]"
+                      >
+                        <Trash2 aria-hidden className="h-3.5 w-3.5" />
+                        {labels.deleteList}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+              </div>
             ))}
           </div>
         </section>
@@ -643,7 +759,7 @@ export function LibraryWorkspace({
                   </div>
                 </div>
 
-                <div className="absolute top-[22px] right-8 flex h-[22px] items-center gap-[18px] text-[#536276]">
+                <div className="absolute top-[22px] right-8 flex h-[22px] items-center gap-4 text-[#536276]">
                   <Link href={`/papers/${paper.id}`} aria-label={labels.openPaper}>
                     <ExternalLink aria-hidden className="h-[18px] w-[18px]" />
                   </Link>
@@ -660,25 +776,134 @@ export function LibraryWorkspace({
                     />
                   </button>
                   <span className="h-5 w-px bg-[#d9e0ea]" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={labels.addToListHeading}
+                        disabled={busy || isRefreshing}
+                        className="hover:text-[#392ee5] data-[state=open]:text-[#392ee5]"
+                      >
+                        <Plus aria-hidden className="h-[18px] w-[18px]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      <DropdownMenuLabel>{labels.addToListHeading}</DropdownMenuLabel>
+                      {collections.map((collection) => (
+                        <DropdownMenuItem
+                          key={collection.id}
+                          onSelect={() => addPaperToList(paper.id, collection.id)}
+                        >
+                          <Folder aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{collection.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  {activeView === 'collection' && activeCollectionId ? (
+                    <button
+                      type="button"
+                      aria-label={labels.removeFromList}
+                      disabled={busy || isRefreshing}
+                      onClick={() => removeFromCurrentList(paper.id)}
+                      className="hover:text-[#b42318]"
+                    >
+                      <Minus aria-hidden className="h-[18px] w-[18px]" />
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    aria-label={
-                      activeView === 'collection'
-                        ? labels.removeFromList
-                        : labels.removeFromLibrary
-                    }
+                    aria-label={labels.removeFromLibrary}
                     disabled={busy || isRefreshing}
-                    onClick={() => removePaper(paper.id)}
+                    onClick={() => removeFromLibrary(paper.id)}
+                    className="hover:text-[#b42318]"
                   >
                     <Trash2 aria-hidden className="h-[18px] w-[18px]" />
                   </button>
-                  <MoreVertical aria-hidden className="h-[18px] w-[18px]" />
                 </div>
               </article>
             ))
           )}
         </section>
       </section>
+
+      <Dialog
+        open={renameTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setRenameTarget(null);
+        }}
+      >
+        <DialogContent className="max-w-sm gap-5 rounded-[12px] border-[#e0e6ef] bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#101828]">{labels.renameList}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitRename} className="grid gap-4">
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(event) => setRenameValue(event.target.value)}
+              placeholder={labels.newListPlaceholder}
+              maxLength={80}
+              className="h-10 w-full rounded-lg border border-[#d9e0ea] bg-white px-3 text-sm text-[#344054] outline-none focus:border-[#5b4df1]"
+            />
+            <DialogFooter className="gap-2">
+              <button
+                type="button"
+                onClick={() => setRenameTarget(null)}
+                className="inline-flex h-9 items-center rounded-[7px] border border-[#d9e0ea] bg-white px-4 text-[13px] font-bold text-[#667085] hover:text-[#392ee5]"
+              >
+                {labels.cancel}
+              </button>
+              <button
+                type="submit"
+                disabled={busy || isRefreshing || !renameValue.trim()}
+                className="inline-flex h-9 items-center rounded-[7px] bg-[#5848f5] px-4 text-[13px] font-bold text-white hover:bg-[#4a3de0] disabled:opacity-50"
+              >
+                {labels.renameList}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent className="max-w-md gap-5 rounded-[12px] border-[#e0e6ef] bg-white">
+          <DialogHeader className="flex-row items-start gap-3 space-y-0 text-left">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#fff1f0] text-[#d92d20]">
+              <AlertTriangle aria-hidden className="h-5 w-5" />
+            </span>
+            <div className="grid gap-1.5">
+              <DialogTitle className="text-[#101828]">{labels.deleteList}</DialogTitle>
+              <DialogDescription className="text-[#667085]">
+                {deleteTarget ? labels.deleteListWarning.replace('{name}', deleteTarget.name) : ''}
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="inline-flex h-9 items-center rounded-[7px] border border-[#d9e0ea] bg-white px-4 text-[13px] font-bold text-[#667085] hover:text-[#392ee5]"
+            >
+              {labels.cancel}
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              disabled={busy || isRefreshing}
+              className="inline-flex h-9 items-center gap-1.5 rounded-[7px] bg-[#d92d20] px-4 text-[13px] font-bold text-white hover:bg-[#b42318] disabled:opacity-50"
+            >
+              <Trash2 aria-hidden className="h-4 w-4" />
+              {labels.deleteList}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
