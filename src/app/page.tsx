@@ -1,6 +1,7 @@
 import 'server-only';
 
 import Link from 'next/link';
+import Form from 'next/form';
 import { Suspense } from 'react';
 import {
   ArrowRight,
@@ -328,59 +329,16 @@ function FeedResultsLoading({ messages }: { messages: Messages }) {
   );
 }
 
-function HeroArt() {
-  return (
-    <div className="relative min-h-[176px]" aria-hidden>
-      <div className="absolute top-1 left-[8%] h-[157px] w-[188px] overflow-hidden rounded-[9px] bg-white shadow-[0_22px_55px_rgba(83,88,135,0.16)] max-sm:left-0 max-sm:w-[205px]">
-        <div className="h-5 bg-[#dbc9ff]" />
-        <div className="absolute top-2.5 left-4 flex gap-2">
-          <i className="h-1.5 w-1.5 rounded-full bg-[#6c63ff]" />
-          <i className="h-1.5 w-1.5 rounded-full bg-[#77d5cc]" />
-          <i className="h-1.5 w-1.5 rounded-full bg-[#99a2ff]" />
-        </div>
-        <div className="absolute top-[34px] left-[19px] grid h-7 w-7 place-items-center rounded-lg bg-[#eef0ff] text-[#8174ff]">
-          <Shield aria-hidden className="h-4 w-4" />
-        </div>
-        <div className="absolute top-9 right-5 left-[58px] grid gap-[13px]">
-          <i className="h-[7px] w-[62px] rounded-full bg-[#b8a4ff]" />
-          <i className="h-[7px] w-[108px] rounded-full bg-[#e4e7f1]" />
-          <i className="h-[7px] w-[83px] rounded-full bg-[#e4e7f1]" />
-          <i className="h-[7px] w-[96px] rounded-full bg-[#e4e7f1]" />
-        </div>
-        <div className="absolute bottom-[31px] left-[19px] flex h-11 items-end gap-1">
-          {[29, 38, 26, 44, 33].map((height) => (
-            <i
-              key={height}
-              className="w-[9px] rounded-t-[3px] bg-gradient-to-b from-[#9cb2ff] to-[#6f7df7]"
-              style={{ height }}
-            />
-          ))}
-        </div>
-      </div>
-      <div className="absolute top-[77px] right-[5%] grid min-h-[66px] w-[178px] grid-cols-[38px_1fr] items-center gap-3 rounded-[9px] bg-white/90 p-3.5 shadow-[0_18px_42px_rgba(83,88,135,0.14)] max-sm:right-0 max-sm:w-[190px]">
-        <div className="grid h-[38px] w-[38px] place-items-center rounded-[13px] bg-[#eef0ff] text-[#5b4df1]">
-          <Sparkles aria-hidden className="h-6 w-6" />
-        </div>
-        <div className="grid gap-[9px]">
-          <i className="h-[7px] rounded-full bg-[#dfe3ef]" />
-          <i className="h-[7px] rounded-full bg-[#dfe3ef]" />
-          <i className="h-[7px] rounded-full bg-[#dfe3ef]" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function TopicChips({ tags, label }: { tags: TagCount[]; label: string }) {
   const topics = tags.length > 0 ? tags.map((t) => t.tag) : TOPIC_FALLBACKS;
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[#5f6b7a]">
+    <div className="mt-4 flex max-h-[62px] flex-wrap items-center gap-2 overflow-hidden text-sm text-[#5f6b7a]">
       <span>{label}</span>
       {topics.slice(0, 7).map((topic) => (
         <Link
           key={topic}
-          href={`/library?tags=${encodeURIComponent(topic)}`}
-          className="inline-flex min-h-[27px] items-center rounded-full bg-[#dfe4ff] px-3.5 text-[13px] font-bold text-[#2734b7]"
+          href={`/papers?tag=${encodeURIComponent(topic)}`}
+          className="inline-flex min-h-[27px] items-center rounded-full bg-[#dfe4ff] px-3.5 text-[13px] font-bold whitespace-nowrap text-[#2734b7]"
         >
           {topic}
         </Link>
@@ -393,10 +351,10 @@ function Hero({ summary, messages }: { summary: RunSummary; messages: Messages }
   const t = messages.home;
   return (
     <section
-      className="grid min-h-[216px] items-center gap-10 rounded-[10px] bg-[radial-gradient(circle_at_68%_30%,rgba(151,124,255,0.22),transparent_22%),linear-gradient(100deg,#edf7ff_0%,#f8f0ff_51%,#eaf4ff_100%)] px-5 py-6 shadow-[0_18px_50px_rgba(31,42,68,0.08)] md:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:px-24 xl:px-44"
+      className="relative min-h-[216px] overflow-hidden rounded-[10px] bg-[#e9e6fb] bg-[url(/main-page-hero.png)] bg-cover bg-center bg-no-repeat px-5 py-7 shadow-[0_18px_50px_rgba(31,42,68,0.08)] sm:px-10 sm:py-9 lg:px-16"
       aria-labelledby="hero-title"
     >
-      <div className="max-w-[700px]">
+      <div className="relative max-w-[560px] sm:ml-6 lg:ml-12">
         <h1
           id="hero-title"
           className="mb-3.5 text-[29px] leading-[1.12] font-extrabold tracking-normal text-[#111827] md:text-[34px]"
@@ -404,27 +362,29 @@ function Hero({ summary, messages }: { summary: RunSummary; messages: Messages }
           {t.heroTitle}
         </h1>
         <p className="mb-5 text-sm text-[#273142]">{t.heroSubtitle}</p>
-        <label className="grid min-h-[54px] grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-[9px] border border-[#d9deea] bg-white pr-2 pl-5 shadow-[0_12px_26px_rgba(45,52,88,0.14)] max-sm:grid-cols-[auto_1fr] max-sm:p-3">
+        <Form
+          action="/papers"
+          className="grid min-h-[54px] grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-[9px] border border-[#d9deea] bg-white pr-2 pl-5 shadow-[0_12px_26px_rgba(45,52,88,0.14)] max-sm:grid-cols-[auto_1fr] max-sm:p-3"
+        >
           <Sparkles aria-hidden className="h-5 w-5 text-[#5b4df1]" />
           <input
             type="text"
+            name="q"
             aria-label={t.heroSearchAria}
             placeholder={t.heroSearchPlaceholder}
             className="min-w-0 border-0 bg-transparent text-[15px] text-[#475467] outline-none placeholder:text-[#98a2b3]"
           />
           <button
-            type="button"
-            disabled
+            type="submit"
             aria-label={t.heroSubmitAria}
             title={t.heroSubmitTitle}
-            className="grid h-[38px] w-[38px] cursor-not-allowed place-items-center rounded-[7px] bg-gradient-to-br from-[#7868ff] to-[#4437e7] text-white shadow-[0_10px_24px_rgba(91,77,241,0.28)] max-sm:col-span-2 max-sm:w-full"
+            className="grid h-[38px] w-[38px] place-items-center rounded-[7px] bg-gradient-to-br from-[#7868ff] to-[#4437e7] text-white shadow-[0_10px_24px_rgba(91,77,241,0.28)] transition hover:brightness-110 max-sm:col-span-2 max-sm:w-full"
           >
             <ArrowRight aria-hidden className="h-5 w-5" />
           </button>
-        </label>
+        </Form>
         <TopicChips tags={summary.topTags} label={t.heroTopicsLabel} />
       </div>
-      <HeroArt />
     </section>
   );
 }

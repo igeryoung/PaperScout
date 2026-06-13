@@ -8,7 +8,7 @@ import {
   XCircle,
 } from 'lucide-react';
 
-import { ScoreBreakdown } from '@/components/score-breakdown';
+import { PaperComments, type PaperCommentItem } from '@/components/paper-comments';
 import { PaperDetailActions } from '@/components/paper-detail-actions';
 import { PaperDigest, type DigestShape } from '@/components/paper-digest';
 import { StickySidebar } from '@/components/sticky-sidebar';
@@ -25,6 +25,8 @@ interface PaperDetailProps {
   messages: Messages;
   userPaper: { liked: boolean; status: UserPaperStatus; note: string } | null;
   signedIn: boolean;
+  comments: PaperCommentItem[];
+  currentUserId: string | null;
 }
 
 const SECTION_LABEL = 'text-[11px] font-bold uppercase tracking-[0.08em] text-[#5848f5]';
@@ -54,7 +56,15 @@ function decisionTone(decision: 'RECOMMEND' | 'STORE_ONLY' | 'LOW_QUALITY') {
   return 'border-[#e2e7ef] bg-[#f2f4f8] text-[#475467]';
 }
 
-export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: PaperDetailProps) {
+export function PaperDetail({
+  paper,
+  locale,
+  messages,
+  userPaper,
+  signedIn,
+  comments,
+  currentUserId,
+}: PaperDetailProps) {
   const evaluation = selectBestEvaluation(paper.evaluations);
   const summary = pickLocalized(evaluation?.summary, locale);
   const strengths = evaluation ? pickLocalizedList(evaluation.strengths, locale) : [];
@@ -68,9 +78,6 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
     sourceLabels,
   });
   const t = messages.paperDetail;
-
-  const score =
-    evaluation !== null ? Math.max(0, Math.min(100, evaluation.totalScore)) : null;
 
   const arxivSource = paper.sources.find((s) => s.source === 'ARXIV');
   const openReviewSource = paper.sources.find((s) => s.source === 'OPENREVIEW');
@@ -131,7 +138,7 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
             'radial-gradient(circle at 88% 30%, rgba(124,101,255,0.14), transparent 26%), #fff',
         }}
       >
-        <div className="grid items-start gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="p-5 sm:p-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-[#f7f9ff] px-2.5 py-0.5 text-xs font-bold text-[#475467]">
@@ -168,26 +175,6 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
               ) : null}
             </p>
           </div>
-
-          {score !== null && evaluation ? (
-            <div
-              role="img"
-              aria-label={`${t.scoreOverall}: ${evaluation.totalScore} / 100`}
-              className="grid h-24 w-24 shrink-0 place-items-center rounded-full max-md:justify-self-start"
-              style={{
-                background: `radial-gradient(circle at center, #fff 0 59%, transparent 60%), conic-gradient(#5b4df1 0 ${score}%, #e8ecf5 ${score}% 100%)`,
-              }}
-            >
-              <div className="text-center">
-                <strong className="block text-[26px] leading-none text-[#392ee5]">
-                  {(score / 10).toFixed(1)}
-                </strong>
-                <span className="mt-1 block text-[11px] font-semibold text-[#667085]">
-                  / 10
-                </span>
-              </div>
-            </div>
-          ) : null}
         </div>
 
         {paper.tags.length > 0 ? (
@@ -321,11 +308,26 @@ export function PaperDetail({ paper, locale, messages, userPaper, signedIn }: Pa
         </div>
 
         <StickySidebar className="space-y-4 lg:self-start">
-          {evaluation ? (
-            <section className={`${CARD} p-5`}>
-              <ScoreBreakdown evaluation={evaluation} messages={messages} />
-            </section>
-          ) : null}
+          <section className={`${CARD} p-5`}>
+            <PaperComments
+              paperId={paper.id}
+              signedIn={signedIn}
+              currentUserId={currentUserId}
+              initialComments={comments}
+              labels={{
+                commentsHeader: t.commentsHeader,
+                commentsEmpty: t.commentsEmpty,
+                commentPlaceholder: t.commentPlaceholder,
+                commentPost: t.commentPost,
+                commentPosting: t.commentPosting,
+                commentFailed: t.commentFailed,
+                commentDelete: t.commentDelete,
+                commentAnonymous: t.commentAnonymous,
+                commentSignInCta: t.commentSignInCta,
+                commentSignInBody: t.commentSignInBody,
+              }}
+            />
+          </section>
 
           {sidebarLinks.length > 0 ? (
             <section className={`${CARD} p-5`}>

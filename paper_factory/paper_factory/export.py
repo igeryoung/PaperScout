@@ -2,7 +2,8 @@
 
 Produces ``data/factory/exports/<batch>/`` with:
 - ``candidates.json``  — the batch's ``CandidateRecord[]`` (validates against candidate.ts)
-- ``<id>-main.pdf``    — the GUI-truncated PDFs
+- ``<id>-main.pdf``    — the batch PDFs (downloads land here directly; the GUI
+                         truncates them in place)
 - ``figures/<id>.png`` — the GUI-cropped figures (figure caption filled by the eval agent)
 - ``crop-hints.json``  — per-paper {figure_label, figure_page, truncated_pdf} so the
                          trimmed eval skill knows what was pre-cropped.
@@ -36,8 +37,14 @@ def export_batch(store: Store, batch_id: int) -> Path:
     hints = []
     for p in papers:
         sid = safe_id(p.id)
-        if p.truncated_pdf_path and Path(p.truncated_pdf_path).exists():
-            shutil.copy2(p.truncated_pdf_path, out_dir / f"{sid}-main.pdf")
+        # PDFs downloaded after the batch-folder change already live at
+        # out_dir/<sid>-main.pdf (truncation rewrites them in place); only
+        # legacy files from pdfs/ or truncated/ still need copying in.
+        pdf_src = p.truncated_pdf_path or p.pdf_path
+        if pdf_src and Path(pdf_src).exists():
+            pdf_dest = out_dir / f"{sid}-main.pdf"
+            if Path(pdf_src).resolve() != pdf_dest.resolve():
+                shutil.copy2(pdf_src, pdf_dest)
         if p.figure_path and Path(p.figure_path).exists():
             shutil.copy2(p.figure_path, figures_dir / f"{sid}.png")
         hints.append(

@@ -87,6 +87,7 @@ model Paper {
   pdfUrl               String?   @map("pdf_url")
   primarySource        Source    @map("primary_source")
   duplicateFingerprint String    @unique @map("duplicate_fingerprint")
+  codeSearchedAt       DateTime? @map("code_searched_at") // set when we've searched for a code repo; null = not yet searched, set + no codeLinks = none found
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
@@ -97,6 +98,7 @@ model Paper {
   tags            PaperTag[]
   codeLinks       PaperCodeLink[]
   userPapers      UserPaper[]
+  comments        PaperComment[]
   collectionItems PaperCollectionItem[]
   viewHistory     PaperViewHistory[]
   asCanonical     PaperDuplicate[]      @relation("Canonical")
@@ -253,6 +255,7 @@ model User {
   runs         DailyRun[]
   feedback     PaperFeedback[]
   papers       UserPaper[]
+  comments     PaperComment[]
   collections  PaperCollection[]
   paperHistory PaperViewHistory[]
 
@@ -275,6 +278,22 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+model PaperComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  paperId   String   @map("paper_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  paper Paper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([paperId, createdAt])
+  @@index([userId])
+  @@map("paper_comments")
 }
 
 model PaperTag {

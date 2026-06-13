@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 const ALL = '__all__';
 
@@ -23,6 +24,8 @@ export type PapersToolbarLabels = {
   conferenceAria: string;
   tagAll: string;
   tagAria: string;
+  tagSearchPlaceholder: string;
+  tagNoResults: string;
   sortAria: string;
   sortNewest: string;
   sortOldest: string;
@@ -57,6 +60,13 @@ export function PapersToolbar({
   const [query, setQuery] = useState(initialQuery);
 
   const hasFilters = Boolean(initialQuery || venue || tag) || sort !== 'newest';
+
+  const tagTriggerLabel = !tag
+    ? labels.tagAll
+    : (() => {
+        const facet = tags.find((item) => item.tag === tag);
+        return facet ? `${facet.tag} · ${facet.count}` : tag;
+      })();
 
   const navigate = (overrides: {
     q?: string;
@@ -127,22 +137,18 @@ export function PapersToolbar({
           </SelectContent>
         </Select>
 
-        <Select
+        <SearchableSelect
+          ariaLabel={labels.tagAria}
           value={tag ?? ALL}
           onValueChange={(value) => navigate({ tag: value === ALL ? '' : value })}
-        >
-          <SelectTrigger className={triggerClass} aria-label={labels.tagAria}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{labels.tagAll}</SelectItem>
-            {tags.map((item) => (
-              <SelectItem key={item.tag} value={item.tag}>
-                {item.tag} · {item.count}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: labels.tagAll },
+            ...tags.map((item) => ({ value: item.tag, label: `${item.tag} · ${item.count}` })),
+          ]}
+          triggerLabel={tagTriggerLabel}
+          searchPlaceholder={labels.tagSearchPlaceholder}
+          noResultsLabel={labels.tagNoResults}
+        />
 
         <Select value={sort} onValueChange={(value) => navigate({ sort: value as PaperSort })}>
           <SelectTrigger className={triggerClass} aria-label={labels.sortAria}>

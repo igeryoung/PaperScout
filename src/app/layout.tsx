@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { Suspense } from 'react';
 import './globals.css';
 import { AppHeader, AppHeaderPlaceholder } from '@/components/app-header';
+import { AppFooter } from '@/components/app-footer';
 import { getLocale } from '@/lib/locale';
 import { getMessages } from '@/i18n';
 
@@ -41,6 +42,7 @@ export default async function RootLayout({
           <AppHeader locale={locale} />
         </Suspense>
         <div className="flex-1">{children}</div>
+        <AppFooter locale={locale} />
       </body>
     </html>
   );

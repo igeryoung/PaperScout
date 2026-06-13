@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
 
 from .. import config, eval_import, export, importer, ingest, pdf as pdfops
 from ..db import Store
-from ..models import Batch, Bucket, Paper, ReviewDecision, Stage
+from ..models import Batch, Bucket, Paper, ReviewDecision, Stage, dumps
 from .db_page import DbPage
 from .paper_panel import PaperPanel
 
@@ -507,9 +507,9 @@ class MainWindow(QMainWindow):
         batch = self.store.create_batch(dlg.batch_name())
         self.store.assign_batch(ids, batch.id)
         if dlg.auto_download():
-            id_set = set(ids)
-            picked = [p for p in self.store.list_papers() if p.id in id_set]
-            self._download_batch_pdfs(picked)
+            # refetch so each paper carries its new batch_id (downloads land in
+            # the batch folder)
+            self._download_batch_pdfs(self.store.list_papers(batch_id=batch.id))
         self.refresh_batches()
         self.refresh_tree()
 
@@ -532,7 +532,9 @@ class MainWindow(QMainWindow):
         batch = self.store.create_batch(dlg.batch_name())
         self.store.assign_batch([p.id for p in picked], batch.id)
         if dlg.auto_download():
-            self._download_batch_pdfs(picked)
+            # refetch so each paper carries its new batch_id (downloads land in
+            # the batch folder)
+            self._download_batch_pdfs(self.store.list_papers(batch_id=batch.id))
         self.refresh_batches()
         self.refresh_tree()
 
@@ -555,22 +557,28 @@ class MainWindow(QMainWindow):
         progress.setWindowModality(Qt.WindowModal)
         progress.setMinimumDuration(0)
 
-        def _job(p: Paper) -> tuple[Paper, Optional[Path], Optional[str]]:
-            dest = config.PDF_DIR / f"{pdfops.safe_id(p.id)}.pdf"
+        def _job(p: Paper) -> tuple[Paper, Optional[Path], Optional[list[str]], Optional[str]]:
+            dest = pdfops.pdf_dest(p.id, p.batch_id)
             try:
                 pdfops.download_pdf(p.pdf_url, dest)
-                return p, dest, None
+                # Enrich code_urls with GitHub repos found in the abstract/PDF
+                # (CPU work stays on the pool; the DB write happens below on the
+                # GUI thread).
+                merged = pdfops.merge_code_urls(p.code_urls, p.abstract, dest, title=p.title)
+                return p, dest, merged, None
             except Exception as e:  # noqa: BLE001 — report per-paper, keep going
-                return p, None, str(e)
+                return p, None, None, str(e)
 
         done = 0
         failures: list[tuple[Paper, str]] = []
         with ThreadPoolExecutor(max_workers=8) as ex:
             futures = [ex.submit(_job, p) for p in targets]
             for fut in as_completed(futures):
-                p, dest, err = fut.result()
+                p, dest, merged, err = fut.result()
                 if err is None:
                     fields: dict = {"pdf_path": str(dest), "failed_step": None}
+                    if merged is not None:
+                        fields["code_urls"] = dumps(merged)
                     if p.stage.order < Stage.DOWNLOADED.order:
                         fields["stage"] = Stage.DOWNLOADED
                     self.store.update_fields(p.id, **fields)
