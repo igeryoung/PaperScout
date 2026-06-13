@@ -48,23 +48,28 @@ export function UserMenu({ user, labels }: { user: UserMenuUser; labels: UserMen
 
   return (
     <DropdownMenu.Root>
-      {user.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={user.avatarUrl}
-          alt={labels.avatarAria}
-          title={labels.signedInTitle}
-          aria-hidden
-          className="h-8 w-8 rounded-full object-cover shadow-[inset_0_0_0_1px_rgba(17,24,39,0.08)]"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <span
-          aria-hidden
-          title={labels.signedInTitle}
-          className="h-8 w-8 rounded-full bg-[radial-gradient(circle_at_50%_36%,#f7c7b5_0_22%,transparent_23%),radial-gradient(circle_at_50%_78%,#263238_0_31%,transparent_32%),linear-gradient(#dfe8ff,#f9f5ff)] shadow-[inset_0_0_0_1px_rgba(17,24,39,0.08)]"
-        />
-      )}
+      <Link
+        href="/account"
+        aria-label={labels.avatarAria}
+        title={labels.signedInTitle}
+        className="grid h-8 w-8 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#392ee5] focus-visible:ring-offset-2"
+      >
+        {user.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.avatarUrl}
+            alt=""
+            aria-hidden
+            className="h-8 w-8 rounded-full object-cover shadow-[inset_0_0_0_1px_rgba(17,24,39,0.08)]"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="h-8 w-8 rounded-full bg-[radial-gradient(circle_at_50%_36%,#f7c7b5_0_22%,transparent_23%),radial-gradient(circle_at_50%_78%,#263238_0_31%,transparent_32%),linear-gradient(#dfe8ff,#f9f5ff)] shadow-[inset_0_0_0_1px_rgba(17,24,39,0.08)]"
+          />
+        )}
+      </Link>
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
