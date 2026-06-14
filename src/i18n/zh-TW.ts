@@ -314,7 +314,7 @@ export const messages: Messages = {
   },
   metadata: {
     title: 'PaperScout',
-    description: '由 agent 收集的論文趨勢唯讀檢視器。',
+    description: 'PaperScout 是一個論文推薦與管理平台，幫助研究人員更快找到值得閱讀的論文。AI 會依摘要、評分與研究結果，為你篩選最相關的研究。',
   },
   account: {
     title: '帳戶',
