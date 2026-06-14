@@ -9,6 +9,8 @@ import {
   BookMarked,
   BookOpen,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   ExternalLink,
   FileText,
@@ -123,7 +125,21 @@ export type LibraryWorkspaceProps = {
     statusLabel: string;
     likedLabel: string;
     lastViewed: string;
+    paginationPrev: string;
+    paginationNext: string;
+    paginationRange: string;
+    libraryHeading: string;
+    readingStatusHeading: string;
+    aiSummary: string;
+    updateFailed: string;
     metrics: {
+      total: string;
+      unread: string;
+      reading: string;
+      read: string;
+      notes: string;
+    };
+    metricsHelp: {
       total: string;
       unread: string;
       reading: string;
@@ -150,6 +166,8 @@ export type LibraryWorkspaceProps = {
 };
 
 const STATUS_OPTIONS: UserPaperStatus[] = ['UNREAD', 'READING', 'READ', 'ARCHIVED'];
+
+const PAGE_SIZE = 10;
 
 const ALL = '__all__';
 
@@ -251,6 +269,7 @@ export function LibraryWorkspace({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(ALL);
   const [tagFilter, setTagFilter] = useState<string>(ALL);
   const [sort, setSort] = useState<LibrarySort>('recent');
+  const [page, setPage] = useState(1);
   const [newListName, setNewListName] = useState('');
   const [renameTarget, setRenameTarget] = useState<CollectionView | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -301,6 +320,24 @@ export function LibraryWorkspace({
     });
   }, [papers, query, statusFilter, tagFilter, sort]);
 
+  // Reset to the first page whenever the filters or active view change
+  // (render-time state adjustment, per the React "you might not need an effect" guidance).
+  const filterKey = `${query}|${statusFilter}|${tagFilter}|${sort}|${activeView}|${activeCollectionId}`;
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey);
+  if (filterKey !== lastFilterKey) {
+    setLastFilterKey(filterKey);
+    setPage(1);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filteredPapers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedPapers = useMemo(
+    () => filteredPapers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredPapers, currentPage],
+  );
+  const rangeFrom = filteredPapers.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const rangeTo = Math.min(currentPage * PAGE_SIZE, filteredPapers.length);
+
   const hasFilters =
     query.trim().length > 0 || statusFilter !== ALL || tagFilter !== ALL || sort !== 'recent';
 
@@ -324,7 +361,7 @@ export function LibraryWorkspace({
       await mutate();
       refresh();
     } catch {
-      setError('Update failed. Please retry.');
+      setError(labels.updateFailed);
     } finally {
       setBusy(false);
     }
@@ -419,7 +456,7 @@ export function LibraryWorkspace({
           refresh();
         }
       } catch {
-        setError('Update failed. Please retry.');
+        setError(labels.updateFailed);
       } finally {
         setBusy(false);
       }
@@ -430,7 +467,9 @@ export function LibraryWorkspace({
     <main className="grid min-h-[calc(100vh-73px)] min-w-[1180px] grid-cols-[282px_1fr] bg-[#f8faff] text-[#121826]">
       <aside className="border-r border-[#dde3ee] bg-white/60 px-[21px] py-[29px]">
         <section className="mb-[19px] border-b border-[#e4e9f2] pb-[22px]">
-          <h2 className="mx-[14px] mb-[14px] text-sm font-extrabold text-[#334155]">我的圖書館</h2>
+          <h2 className="mx-[14px] mb-[14px] text-sm font-extrabold text-[#334155]">
+            {labels.libraryHeading}
+          </h2>
           <div className="grid gap-1">
             <SidebarItem
               href="/library"
@@ -457,7 +496,9 @@ export function LibraryWorkspace({
         </section>
 
         <section className="mb-[19px] border-b border-[#e4e9f2] pb-[22px]">
-          <h2 className="mx-[14px] mb-[14px] text-sm font-extrabold text-[#334155]">閱讀狀態</h2>
+          <h2 className="mx-[14px] mb-[14px] text-sm font-extrabold text-[#334155]">
+            {labels.readingStatusHeading}
+          </h2>
           <div className="grid gap-1">
             <SidebarItem
               href={statusHref()}
@@ -642,11 +683,11 @@ export function LibraryWorkspace({
 
         <section className="mb-5 grid grid-cols-5 gap-4">
           {[
-            [labels.metrics.total, stats.total, '所有收藏的論文總數', <BookMarked key="total" />],
-            [labels.metrics.unread, stats.unread, '尚未開始閱讀', <BookOpen key="unread" />],
-            [labels.metrics.reading, stats.reading, '正在閱讀的論文', <BookOpen key="reading" />],
-            [labels.metrics.read, stats.read, '已完成閱讀', <CheckCircle2 key="read" />],
-            [labels.metrics.notes, stats.notes, '所有論文筆記總數', <MessageSquare key="notes" />],
+            [labels.metrics.total, stats.total, labels.metricsHelp.total, <BookMarked key="total" />],
+            [labels.metrics.unread, stats.unread, labels.metricsHelp.unread, <BookOpen key="unread" />],
+            [labels.metrics.reading, stats.reading, labels.metricsHelp.reading, <BookOpen key="reading" />],
+            [labels.metrics.read, stats.read, labels.metricsHelp.read, <CheckCircle2 key="read" />],
+            [labels.metrics.notes, stats.notes, labels.metricsHelp.notes, <MessageSquare key="notes" />],
           ].map(([label, value, help, icon]) => (
             <div
               key={String(label)}
@@ -676,7 +717,7 @@ export function LibraryWorkspace({
               </div>
             </div>
           ) : (
-            filteredPapers.map((paper) => (
+            pagedPapers.map((paper) => (
               <article
                 key={paper.id}
                 className="relative grid min-h-[214px] grid-cols-[210px_minmax(0,1fr)] gap-[22px] rounded-[10px] border border-[#dfe5ef] bg-white py-5 pr-4 pl-[14px] shadow-[0_12px_32px_rgba(24,34,64,0.055)]"
@@ -749,7 +790,7 @@ export function LibraryWorkspace({
                     <div className="flex min-h-0 flex-col justify-end">
                       <div className="h-[95%] min-h-[128px] overflow-hidden rounded-lg border border-[#d8ebe5] bg-[linear-gradient(135deg,#f9fffc,#edf8f5)] px-4 py-3">
                         <div className="mb-1 text-[13px] font-extrabold text-[#087d6c]">
-                          ✧ AI 摘要
+                          ✧ {labels.aiSummary}
                         </div>
                         <p className="line-clamp-6 text-xs leading-relaxed text-[#536276]">
                           {paper.summary}
@@ -825,6 +866,40 @@ export function LibraryWorkspace({
             ))
           )}
         </section>
+
+        {filteredPapers.length > 0 ? (
+          <nav className="mt-5 flex items-center justify-between gap-4 text-[13px] text-[#667085]">
+            <span>
+              {labels.paginationRange
+                .replace('{from}', String(rangeFrom))
+                .replace('{to}', String(rangeTo))
+                .replace('{total}', String(filteredPapers.length))}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+                disabled={currentPage <= 1}
+                className="inline-flex h-9 items-center gap-1 rounded-[7px] border border-[#d9e0ea] bg-white px-3 font-bold text-[#344054] hover:text-[#392ee5] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-[#344054]"
+              >
+                <ChevronLeft aria-hidden className="h-4 w-4" />
+                {labels.paginationPrev}
+              </button>
+              <span className="px-1 font-bold text-[#344054]">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+                disabled={currentPage >= totalPages}
+                className="inline-flex h-9 items-center gap-1 rounded-[7px] border border-[#d9e0ea] bg-white px-3 font-bold text-[#344054] hover:text-[#392ee5] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-[#344054]"
+              >
+                {labels.paginationNext}
+                <ChevronRight aria-hidden className="h-4 w-4" />
+              </button>
+            </div>
+          </nav>
+        ) : null}
       </section>
 
       <Dialog

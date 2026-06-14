@@ -16,11 +16,16 @@ const AddPaperSchema = z.object({
 const UpdatePaperSchema = z
   .object({
     liked: z.boolean().optional(),
+    readLater: z.boolean().optional(),
     status: PaperStatusSchema.optional(),
     note: z.string().max(20000).optional().nullable(),
   })
   .refine(
-    (v) => v.liked !== undefined || v.status !== undefined || v.note !== undefined,
+    (v) =>
+      v.liked !== undefined ||
+      v.readLater !== undefined ||
+      v.status !== undefined ||
+      v.note !== undefined,
     { message: 'No fields to update' },
   );
 

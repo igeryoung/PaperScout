@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bookmark, Star } from 'lucide-react';
+import { Bookmark, Heart } from 'lucide-react';
 
 type HomePaperActionsProps = {
   paperId: string;
@@ -57,36 +57,18 @@ export function HomePaperActions({
   };
 
   const toggleReadLater = async () => {
+    const next = !readLater;
     setPending('readLater');
     setFailed(false);
     try {
-      if (readLater) {
-        // Cancel "read later". The flag is derived from status === 'UNREAD',
-        // so we must move the status off UNREAD. Keep liked papers (archive
-        // them) so the star isn't lost; otherwise drop the paper entirely.
-        const ok = liked
-          ? await libraryRequest(`/api/library/papers/${paperId}`, {
-              method: 'PATCH',
-              body: JSON.stringify({ status: 'ARCHIVED' }),
-            })
-          : await libraryRequest(`/api/library/papers/${paperId}`, {
-              method: 'DELETE',
-              body: JSON.stringify({}),
-            });
-        if (ok) setReadLater(false);
-        return;
-      }
-
-      const added = await libraryRequest(`/api/library/papers/${paperId}`, {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
-      if (!added) return;
-      const updated = await libraryRequest(`/api/library/papers/${paperId}`, {
+      // "Read later" is an explicit flag on the paper, independent of the
+      // read status. Toggling it never adds/removes the paper from the
+      // library on its own — only this button sets the flag.
+      const ok = await libraryRequest(`/api/library/papers/${paperId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'UNREAD' }),
+        body: JSON.stringify({ readLater: next }),
       });
-      if (updated) setReadLater(true);
+      if (ok) setReadLater(next);
     } catch {
       setFailed(true);
     } finally {
@@ -105,7 +87,7 @@ export function HomePaperActions({
         className="inline-flex min-h-[33px] items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] hover:border-[#c9c8ff] hover:text-[#392ee5] disabled:cursor-wait disabled:opacity-70"
         aria-pressed={liked}
       >
-        <Star aria-hidden className={liked ? 'h-4 w-4 fill-[#5b4df1] text-[#5b4df1]' : 'h-4 w-4'} />
+        <Heart aria-hidden className={liked ? 'h-4 w-4 fill-[#5b4df1] text-[#5b4df1]' : 'h-4 w-4'} />
         {favoriteLabel}
       </button>
       <button

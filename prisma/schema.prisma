@@ -328,6 +328,7 @@ model UserPaper {
   userId       String          @map("user_id") @db.Uuid
   paperId      String          @map("paper_id") @db.Uuid
   liked        Boolean         @default(false)
+  readLater    Boolean         @default(false) @map("read_later")
   status       UserPaperStatus @default(UNREAD)
   note         String?
   lastViewedAt DateTime?       @map("last_viewed_at")

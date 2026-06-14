@@ -24,12 +24,11 @@ import {
 } from '@/server/repos/trends';
 import { formatDate } from '@/lib/format';
 import { getLocale, type Locale } from '@/lib/locale';
-import { formatConferenceLabel, formatSourceLabel } from '@/lib/source-label';
+import { formatSourceLabel } from '@/lib/source-label';
 import { getMessages, type Messages } from '@/i18n';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { libraryRepo } from '@/server/repos/library';
 import { PaperFeedCard } from '@/components/paper-feed-card';
-import { FeedControls, type FeedControlsLabels } from '@/components/feed-controls';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,21 +48,12 @@ const HOME_FEED_COUNT = 5;
 // stored totalScore is on a 0-100 scale (the card shows totalScore / 10).
 const HIGH_SCORE_MIN = 75;
 
-type TimeKey = 'all' | 'week' | 'month' | 'year';
-
 // The four home-feed tabs: 為你推薦 / 熱門趨勢 / 最新發佈 / 高分推薦.
 type FeedTab = 'recommended' | 'trending' | 'latest' | 'top';
-
-interface FeedFilters {
-  domain: string;
-  time: TimeKey;
-}
 
 interface HomePageProps {
   searchParams: Promise<{
     locale?: string;
-    domain?: string;
-    time?: string;
     tab?: string;
   }>;
 }
@@ -76,46 +66,13 @@ interface HomeDataPromises {
   session: ReturnType<typeof getCurrentSession>;
 }
 
-function parseTimeParam(value: string | undefined): TimeKey {
-  return value === 'week' || value === 'month' || value === 'year' ? value : 'all';
-}
-
 function parseTab(value: string | undefined): FeedTab {
   return value === 'trending' || value === 'latest' || value === 'top' ? value : 'recommended';
-}
-
-function timeCutoff(time: TimeKey): Date | null {
-  if (time === 'all') return null;
-  const days = time === 'week' ? 7 : time === 'month' ? 30 : 365;
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
 function paperDate(paper: PaperCardPayload): Date | null {
   const raw = paper.publishedDate ?? paper.createdAt;
   return raw ? new Date(raw) : null;
-}
-
-function paperConference(paper: PaperCardPayload): string | null {
-  const venue = paper.venue?.trim();
-  return venue ? formatConferenceLabel(venue) : null;
-}
-
-function applyFeedFilters(
-  papers: PaperCardPayload[],
-  filters: FeedFilters,
-): PaperCardPayload[] {
-  let out = papers;
-  if (filters.domain) {
-    out = out.filter((p) => paperConference(p) === filters.domain);
-  }
-  const cutoff = timeCutoff(filters.time);
-  if (cutoff) {
-    out = out.filter((p) => {
-      const date = paperDate(p);
-      return date != null && date >= cutoff;
-    });
-  }
-  return out;
 }
 
 /** Fisher-Yates shuffle, then take the first `count` items. */
@@ -129,29 +86,29 @@ function sampleRandom<T>(items: T[], count: number): T[] {
 }
 
 /**
- * Resolve the papers shown for the active feed tab (post domain/time filter):
+ * Resolve the papers shown for the active feed tab:
  * - recommended (為你推薦): a random handful of the latest run, reshuffled each request.
- * - latest (最新發佈): newest published date first, from the latest run.
+ * - latest (最新發佈): all papers from the latest run, newest published date first.
  * - top (高分推薦): a random handful of all papers scoring >= 7.5.
  * - trending (熱門趨勢): not yet available (needs reader views) — handled by the
  *   coming-soon panel, never reaches here.
  */
-async function papersForTab(runId: string, tab: FeedTab, filters: FeedFilters) {
+async function papersForTab(runId: string, tab: FeedTab) {
   if (tab === 'top') {
-    const pool = applyFeedFilters(await papersRepo.listHighScoreCards(HIGH_SCORE_MIN), filters);
+    const pool = await papersRepo.listHighScoreCards(HIGH_SCORE_MIN);
     return sampleRandom(pool, HOME_FEED_COUNT);
   }
   const runCards = (
     await runResultsRepo.findByRunWithDetail(runId, { recommendedOnly: false })
   ).map((result) => result.paper);
-  const matched = applyFeedFilters(runCards, filters);
   if (tab === 'latest') {
-    return [...matched]
-      .sort((a, b) => (paperDate(b)?.getTime() ?? 0) - (paperDate(a)?.getTime() ?? 0))
-      .slice(0, HOME_FEED_COUNT);
+    // 最新發佈: show every paper from the latest run, newest published date first.
+    return [...runCards].sort(
+      (a, b) => (paperDate(b)?.getTime() ?? 0) - (paperDate(a)?.getTime() ?? 0),
+    );
   }
   // recommended (default)
-  return sampleRandom(matched, HOME_FEED_COUNT);
+  return sampleRandom(runCards, HOME_FEED_COUNT);
 }
 
 function buildFeedHref(
@@ -160,8 +117,6 @@ function buildFeedHref(
 ): string {
   const params = new URLSearchParams();
   if (searchParams.locale) params.set('locale', searchParams.locale);
-  if (searchParams.domain) params.set('domain', searchParams.domain);
-  if (searchParams.time) params.set('time', searchParams.time);
   if (tab !== 'recommended') params.set('tab', tab);
   const qs = params.toString();
   return qs ? `/?${qs}` : '/';
@@ -452,30 +407,14 @@ function FeedTabs({
   );
 }
 
-function feedControlLabels(messages: Messages): FeedControlsLabels {
-  const t = messages.home;
-  return {
-    controlsAria: t.feedControlsAria,
-    domainAria: t.feedFilterDomain,
-    domainAll: t.feedFilterDomain,
-    timeAria: t.feedFilterTime,
-    timeAll: t.feedFilterTime,
-    timeWeek: t.feedTimeWeek,
-    timeMonth: t.feedTimeMonth,
-    timeYear: t.feedTimeYear,
-  };
-}
-
 const FEED_TOOLBAR_CLASS =
   'flex items-center justify-between gap-4 border-b border-[#e5e9f3] px-5 pt-2.5 max-lg:flex-col max-lg:items-stretch';
 
-function FeedToolbarFallback({
-  filters,
+function FeedToolbar({
   activeTab,
   searchParams,
   messages,
 }: {
-  filters: FeedFilters;
   activeTab: FeedTab;
   searchParams: Awaited<HomePageProps['searchParams']>;
   messages: Messages;
@@ -483,39 +422,6 @@ function FeedToolbarFallback({
   return (
     <div className={FEED_TOOLBAR_CLASS}>
       <FeedTabs activeTab={activeTab} searchParams={searchParams} messages={messages} />
-      <FeedControls
-        domain={filters.domain}
-        time={filters.time}
-        domainOptions={[]}
-        labels={feedControlLabels(messages)}
-      />
-    </div>
-  );
-}
-
-async function FeedToolbar({
-  summary,
-  filters,
-  activeTab,
-  searchParams,
-  messages,
-}: {
-  summary: Promise<RunSummary>;
-  filters: FeedFilters;
-  activeTab: FeedTab;
-  searchParams: Awaited<HomePageProps['searchParams']>;
-  messages: Messages;
-}) {
-  const domainOptions = (await summary).topConferences.map((c) => c.tag);
-  return (
-    <div className={FEED_TOOLBAR_CLASS}>
-      <FeedTabs activeTab={activeTab} searchParams={searchParams} messages={messages} />
-      <FeedControls
-        domain={filters.domain}
-        time={filters.time}
-        domainOptions={domainOptions}
-        labels={feedControlLabels(messages)}
-      />
     </div>
   );
 }
@@ -541,7 +447,7 @@ function HotTagsCard({ tags, messages }: { tags: TagCount[]; messages: Messages 
           {visible.map((tag) => (
             <Link
               key={tag.tag}
-              href={`/library?tags=${encodeURIComponent(tag.tag)}`}
+              href={`/papers?tag=${encodeURIComponent(tag.tag)}`}
               className="inline-flex min-h-[30px] items-center gap-1.5 rounded-full bg-[#eef0ff] px-3.5 text-[13px] font-bold text-[#2734b7]"
             >
               {tag.tag}
@@ -635,6 +541,8 @@ function SourceMixCard({
   );
 }
 
+// Hidden: personalized recommendation settings card.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function PersonalCard({ messages }: { messages: Messages }) {
   const t = messages.home;
   return (
@@ -673,14 +581,12 @@ async function HeroSection({
 
 async function FeedResults({
   runId,
-  filters,
   tab,
   session,
   locale,
   messages,
 }: {
   runId: string;
-  filters: FeedFilters;
   tab: FeedTab;
   session: HomeDataPromises['session'];
   locale: Locale;
@@ -698,14 +604,14 @@ async function FeedResults({
     );
   }
 
-  const papers = await papersForTab(runId, tab, filters);
+  const papers = await papersForTab(runId, tab);
   const resolvedSession = await session;
   const paperStates = resolvedSession
     ? await libraryRepo.findPaperStates({
         userId: resolvedSession.user.id,
         paperIds: papers.map((paper) => paper.id),
       })
-    : new Map<string, { liked: boolean; status: string }>();
+    : new Map<string, { liked: boolean; readLater: boolean; status: string }>();
 
   return (
     <>
@@ -723,7 +629,7 @@ async function FeedResults({
             messages={messages}
             userState={{
               liked: paperStates.get(paper.id)?.liked ?? false,
-              readLater: paperStates.get(paper.id)?.status === 'UNREAD',
+              readLater: paperStates.get(paper.id)?.readLater ?? false,
             }}
           />
         ))
@@ -735,7 +641,6 @@ async function FeedResults({
 function FeedSection({
   run,
   data,
-  filters,
   activeTab,
   searchParams,
   locale,
@@ -743,7 +648,6 @@ function FeedSection({
 }: {
   run: NonNullable<Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>>;
   data: HomeDataPromises;
-  filters: FeedFilters;
   activeTab: FeedTab;
   searchParams: Awaited<HomePageProps['searchParams']>;
   locale: Locale;
@@ -754,24 +658,7 @@ function FeedSection({
       className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
       aria-labelledby="feed-title"
     >
-      <Suspense
-        fallback={
-          <FeedToolbarFallback
-            filters={filters}
-            activeTab={activeTab}
-            searchParams={searchParams}
-            messages={messages}
-          />
-        }
-      >
-        <FeedToolbar
-          summary={data.summary}
-          filters={filters}
-          activeTab={activeTab}
-          searchParams={searchParams}
-          messages={messages}
-        />
-      </Suspense>
+      <FeedToolbar activeTab={activeTab} searchParams={searchParams} messages={messages} />
       <div className="sr-only" id="feed-title">
         {messages.home.feedTitleSr}
       </div>
@@ -779,7 +666,6 @@ function FeedSection({
         <Suspense key={activeTab} fallback={<FeedResultsLoading messages={messages} />}>
           <FeedResults
             runId={run.id}
-            filters={filters}
             tab={activeTab}
             session={data.session}
             locale={locale}
@@ -841,10 +727,6 @@ async function HomePageContent({
   const messages = getMessages(locale);
   if (!run) return <EmptyState messages={messages} />;
 
-  const filters: FeedFilters = {
-    domain: searchParams.domain ?? '',
-    time: parseTimeParam(searchParams.time),
-  };
   const activeTab = parseTab(searchParams.tab);
   const data: HomeDataPromises = {
     summary: trendsRepo.getRunSummary(run.id),
@@ -867,7 +749,6 @@ async function HomePageContent({
         <FeedSection
           run={run}
           data={data}
-          filters={filters}
           activeTab={activeTab}
           searchParams={searchParams}
           locale={locale}

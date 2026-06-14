@@ -1,4 +1,4 @@
-import type { PaperEvaluation, UserPaperStatus } from '@prisma/client';
+import type { UserPaperStatus } from '@prisma/client';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -16,7 +16,6 @@ import type { PaperWithDetail } from '@/server/repos/papers';
 import { selectBestEvaluation } from '@/server/lib/select-evaluation';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { pickLocalized, pickLocalizedList, type Locale } from '@/lib/locale';
-import { formatSourceLabel } from '@/lib/source-label';
 import type { Messages } from '@/i18n';
 
 interface PaperDetailProps {
@@ -38,24 +37,6 @@ function sourceIcon(source: 'ARXIV' | 'OPENREVIEW' | 'HUGGINGFACE' | 'OPENACCESS
   return <ExternalLink aria-hidden className="h-4 w-4" />;
 }
 
-function stageLabel(evaluation: PaperEvaluation, messages: Messages) {
-  const stage =
-    evaluation.evaluationStage === 'FULL_PDF'
-      ? messages.paperDetail.stageFullPdf
-      : messages.paperDetail.stageAbstract;
-  if (evaluation.evaluationStage === 'FULL_PDF') {
-    const status = evaluation.pdfAnalysisStatus ?? 'UNAVAILABLE';
-    return `${stage} · ${status}`;
-  }
-  return stage;
-}
-
-function decisionTone(decision: 'RECOMMEND' | 'STORE_ONLY' | 'LOW_QUALITY') {
-  if (decision === 'RECOMMEND') return 'border-[#cfe9df] bg-[#e9f7f2] text-[#087d6c]';
-  if (decision === 'LOW_QUALITY') return 'border-[#f4cdd2] bg-[#fff5f5] text-[#b42318]';
-  return 'border-[#e2e7ef] bg-[#f2f4f8] text-[#475467]';
-}
-
 export function PaperDetail({
   paper,
   locale,
@@ -72,11 +53,6 @@ export function PaperDetail({
   const figureCaption = pickLocalized(paper.figure?.caption, locale);
   const digest = (evaluation?.digest ?? null) as DigestShape | null;
   const sourceLabels = messages.common.sources;
-  const primarySourceLabel = formatSourceLabel({
-    source: paper.primarySource,
-    venue: paper.venue,
-    sourceLabels,
-  });
   const t = messages.paperDetail;
 
   const arxivSource = paper.sources.find((s) => s.source === 'ARXIV');
@@ -140,24 +116,7 @@ export function PaperDetail({
       >
         <div className="p-5 sm:p-6">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-[#f7f9ff] px-2.5 py-0.5 text-xs font-bold text-[#475467]">
-                {primarySourceLabel}
-              </span>
-              {evaluation ? (
-                <span className="inline-flex items-center rounded-full border border-[#e2e7ef] bg-white px-2.5 py-0.5 text-xs font-medium text-[#667085]">
-                  {stageLabel(evaluation, messages)}
-                </span>
-              ) : null}
-              {evaluation?.recommendationDecision ? (
-                <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${decisionTone(evaluation.recommendationDecision)}`}
-                >
-                  {messages.common.decisions[evaluation.recommendationDecision]}
-                </span>
-              ) : null}
-            </div>
-            <h1 className="mt-4 text-[26px] font-extrabold leading-tight tracking-tight text-[#111827] sm:text-[30px] md:text-[32px]">
+            <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-[#111827] sm:text-[30px] md:text-[32px]">
               {paper.title}
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-[#475467]">

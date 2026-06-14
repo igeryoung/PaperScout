@@ -51,10 +51,7 @@ function toPaperView(entry: LibraryUserPaper, locale: 'en' | 'zh-TW', messages: 
     viewedAt: entry.lastViewedAt ? entry.lastViewedAt.getTime() : 0,
     pdfUrl: entry.paper.pdfUrl,
     score: evaluation?.totalScore ?? null,
-    summary:
-      summary ??
-      entry.paper.abstract ??
-      'This paper is in your personal workspace. Add notes and status as you read.',
+    summary: summary ?? entry.paper.abstract ?? messages.library.personalSummaryFallback,
     tags: entry.paper.tags.slice(0, 5).map((tag) => tag.tag),
     hasFigure: Boolean(entry.paper.figure),
     liked: entry.liked,
@@ -65,7 +62,7 @@ function toPaperView(entry: LibraryUserPaper, locale: 'en' | 'zh-TW', messages: 
   };
 }
 
-function SignInRequired() {
+function SignInRequired({ messages }: { messages: ReturnType<typeof getMessages> }) {
   return (
     <main className="mx-auto grid min-h-[520px] max-w-3xl place-items-center px-6 py-12">
       <section className="w-full rounded-[10px] border border-[#dfe5ef] bg-white p-8 text-center shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
@@ -73,13 +70,13 @@ function SignInRequired() {
           <BookmarkPlus aria-hidden className="h-7 w-7" />
         </div>
         <h1 className="text-2xl font-extrabold tracking-normal text-[#111827]">
-          Sign in to use your paper collection
+          {messages.library.signInTitle}
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#667085]">
-          Lists, likes, notes, status, and reading history are stored per user.
+          {messages.library.signInBody}
         </p>
         <Button asChild className="mt-6">
-          <Link href="/api/auth/google">Sign in with Google</Link>
+          <Link href="/api/auth/google">{messages.library.signInCta}</Link>
         </Button>
       </section>
     </main>
@@ -92,9 +89,9 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
     getLocale(),
     getCurrentSession(),
   ]);
-  if (!session) return <SignInRequired />;
-
   const messages = getMessages(locale);
+  if (!session) return <SignInRequired messages={messages} />;
+
   const view = parseView(params.view);
   const status = parseStatus(params.status);
   const collections = await libraryRepo.listCollections(session.user.id);
@@ -160,12 +157,26 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
       statusLabel: messages.library.statusLabel,
       likedLabel: messages.library.likedLabel,
       lastViewed: messages.library.lastViewed,
+      paginationPrev: messages.library.paginationPrev,
+      paginationNext: messages.library.paginationNext,
+      paginationRange: messages.library.paginationRange,
+      libraryHeading: messages.library.libraryHeading,
+      readingStatusHeading: messages.library.readingStatusHeading,
+      aiSummary: messages.library.aiSummary,
+      updateFailed: messages.library.updateFailed,
       metrics: {
         total: messages.library.metricTotal,
         unread: messages.library.metricUnread,
         reading: messages.library.metricReading,
         read: messages.library.metricRead,
         notes: messages.library.metricNotes,
+      },
+      metricsHelp: {
+        total: messages.library.metricTotalHelp,
+        unread: messages.library.metricUnreadHelp,
+        reading: messages.library.metricReadingHelp,
+        read: messages.library.metricReadHelp,
+        notes: messages.library.metricNotesHelp,
       },
       statuses: messages.library.statuses,
       sources: messages.common.sources,
