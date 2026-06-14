@@ -263,7 +263,7 @@ export const messages = {
     signedOutBody: 'Save papers, set reading status, and keep notes once you sign in.',
     signedOutCta: 'Sign in with Google',
     aiDigest: 'AI Digest',
-    digestTldr: 'TL;DR',
+    digestTldr: 'Read it in one sentence.',
     digestProblemMotivation: 'Problem & Motivation',
     digestKeyContributions: 'Key Contributions',
     digestMethodOverview: 'Method Overview',

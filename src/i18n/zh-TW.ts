@@ -258,7 +258,7 @@ export const messages: Messages = {
     signedOutBody: '登入後即可收藏論文、標記閱讀狀態，並寫下筆記。',
     signedOutCta: '使用 Google 登入',
     aiDigest: 'AI 解讀',
-    digestTldr: 'TL;DR',
+    digestTldr: '一句話看完',
     digestProblemMotivation: '問題與動機',
     digestKeyContributions: '核心貢獻',
     digestMethodOverview: '方法概述',

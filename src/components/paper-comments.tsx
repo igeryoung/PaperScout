@@ -135,7 +135,7 @@ export function PaperComments({
       {comments.length === 0 ? (
         <p className="mt-4 text-[13px] text-[#98a2b3]">{t.commentsEmpty}</p>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <ul className="mt-4 max-h-[420px] space-y-3 overflow-y-auto pr-1">
           {comments.map((comment) => (
             <li
               key={comment.id}

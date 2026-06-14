@@ -1,7 +1,6 @@
 import 'server-only';
 
 import Link from 'next/link';
-import { Bell } from 'lucide-react';
 import type { Locale } from '@/lib/locale';
 import { getMessages } from '@/i18n';
 import { LocaleSwitcher } from '@/components/locale-switcher';
@@ -101,28 +100,12 @@ export async function AppHeader({ locale }: { locale: Locale }) {
             {t.navLibrary}
           </Link>
           <span aria-hidden className="hidden h-[22px] w-px bg-[#cfd6e3] sm:block" />
-          <span
-            aria-disabled="true"
-            className="cursor-not-allowed text-[#667085]"
-            title={t.navUploadTitle}
-          >
-            {t.navUpload}
-          </span>
-          <span aria-hidden className="hidden h-[22px] w-px bg-[#cfd6e3] sm:block" />
           <LocaleSwitcher
             current={locale}
             ariaLabel={t.localeSwitcherAria}
             optionEn={t.localeSwitcherOptionEn}
             optionZhTw={t.localeSwitcherOptionZhTw}
           />
-          <button
-            type="button"
-            disabled
-            aria-label={t.notificationsAria}
-            className="grid h-9 w-9 cursor-not-allowed place-items-center rounded-[10px] text-[#111827] opacity-75"
-          >
-            <Bell aria-hidden className="h-5 w-5" />
-          </button>
           {session ? (
             <UserMenu
               user={{

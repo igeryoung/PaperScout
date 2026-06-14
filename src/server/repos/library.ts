@@ -190,7 +190,7 @@ export const libraryRepo = {
 
   findPaperStates: async (input: { userId: string; paperIds: string[] }) => {
     if (input.paperIds.length === 0)
-      return new Map<string, { liked: boolean; status: UserPaperStatus }>();
+      return new Map<string, { liked: boolean; readLater: boolean; status: UserPaperStatus }>();
     const rows = await db.userPaper.findMany({
       where: {
         userId: input.userId,
@@ -199,10 +199,16 @@ export const libraryRepo = {
       select: {
         paperId: true,
         liked: true,
+        readLater: true,
         status: true,
       },
     });
-    return new Map(rows.map((row) => [row.paperId, { liked: row.liked, status: row.status }]));
+    return new Map(
+      rows.map((row) => [
+        row.paperId,
+        { liked: row.liked, readLater: row.readLater, status: row.status },
+      ]),
+    );
   },
 
   findUserPaperDetail: (input: { userId: string; paperId: string }) =>
@@ -289,6 +295,7 @@ export const libraryRepo = {
     userId: string;
     paperId: string;
     liked?: boolean;
+    readLater?: boolean;
     status?: UserPaperStatus;
     note?: string | null;
   }) =>
@@ -296,6 +303,7 @@ export const libraryRepo = {
       where: { userId_paperId: { userId: input.userId, paperId: input.paperId } },
       update: {
         ...(input.liked !== undefined ? { liked: input.liked } : {}),
+        ...(input.readLater !== undefined ? { readLater: input.readLater } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
         ...(input.note !== undefined ? { note: input.note } : {}),
       },
@@ -303,6 +311,7 @@ export const libraryRepo = {
         userId: input.userId,
         paperId: input.paperId,
         liked: input.liked ?? false,
+        readLater: input.readLater ?? false,
         status: input.status ?? 'UNREAD',
         note: input.note ?? null,
       },
