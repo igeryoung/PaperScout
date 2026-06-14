@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bookmark, Star } from 'lucide-react';
+import { Bookmark, Heart } from 'lucide-react';
 
 type HomePaperActionsProps = {
   paperId: string;
@@ -87,7 +87,7 @@ export function HomePaperActions({
         className="inline-flex min-h-[33px] items-center gap-2 rounded-[7px] border border-[#d9e1ee] bg-white px-3 text-[13px] text-[#344054] hover:border-[#c9c8ff] hover:text-[#392ee5] disabled:cursor-wait disabled:opacity-70"
         aria-pressed={liked}
       >
-        <Star aria-hidden className={liked ? 'h-4 w-4 fill-[#5b4df1] text-[#5b4df1]' : 'h-4 w-4'} />
+        <Heart aria-hidden className={liked ? 'h-4 w-4 fill-[#5b4df1] text-[#5b4df1]' : 'h-4 w-4'} />
         {favoriteLabel}
       </button>
       <button

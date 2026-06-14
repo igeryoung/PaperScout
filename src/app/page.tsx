@@ -88,7 +88,7 @@ function sampleRandom<T>(items: T[], count: number): T[] {
 /**
  * Resolve the papers shown for the active feed tab:
  * - recommended (為你推薦): a random handful of the latest run, reshuffled each request.
- * - latest (最新發佈): newest published date first, from the latest run.
+ * - latest (最新發佈): all papers from the latest run, newest published date first.
  * - top (高分推薦): a random handful of all papers scoring >= 7.5.
  * - trending (熱門趨勢): not yet available (needs reader views) — handled by the
  *   coming-soon panel, never reaches here.
@@ -102,9 +102,10 @@ async function papersForTab(runId: string, tab: FeedTab) {
     await runResultsRepo.findByRunWithDetail(runId, { recommendedOnly: false })
   ).map((result) => result.paper);
   if (tab === 'latest') {
-    return [...runCards]
-      .sort((a, b) => (paperDate(b)?.getTime() ?? 0) - (paperDate(a)?.getTime() ?? 0))
-      .slice(0, HOME_FEED_COUNT);
+    // 最新發佈: show every paper from the latest run, newest published date first.
+    return [...runCards].sort(
+      (a, b) => (paperDate(b)?.getTime() ?? 0) - (paperDate(a)?.getTime() ?? 0),
+    );
   }
   // recommended (default)
   return sampleRandom(runCards, HOME_FEED_COUNT);
@@ -540,6 +541,8 @@ function SourceMixCard({
   );
 }
 
+// Hidden: personalized recommendation settings card.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function PersonalCard({ messages }: { messages: Messages }) {
   const t = messages.home;
   return (

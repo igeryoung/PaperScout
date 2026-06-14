@@ -127,7 +127,7 @@ export type LibraryWorkspaceProps = {
     lastViewed: string;
     paginationPrev: string;
     paginationNext: string;
-    paginationRange: (from: number, to: number, total: number) => string;
+    paginationRange: string;
     libraryHeading: string;
     readingStatusHeading: string;
     aiSummary: string;
@@ -869,7 +869,12 @@ export function LibraryWorkspace({
 
         {filteredPapers.length > 0 ? (
           <nav className="mt-5 flex items-center justify-between gap-4 text-[13px] text-[#667085]">
-            <span>{labels.paginationRange(rangeFrom, rangeTo, filteredPapers.length)}</span>
+            <span>
+              {labels.paginationRange
+                .replace('{from}', String(rangeFrom))
+                .replace('{to}', String(rangeTo))
+                .replace('{total}', String(filteredPapers.length))}
+            </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"

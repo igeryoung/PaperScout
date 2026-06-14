@@ -27,7 +27,7 @@ export function AppFooter({ locale }: { locale: Locale }) {
       aria-label={t.ariaLabel}
       className="mt-12 border-t border-[#e5e9f3] bg-white"
     >
-      <div className="mx-auto max-w-[1760px] px-4 py-12 sm:px-6 lg:px-12">
+      <div className="mx-auto max-w-[1760px] px-4 pt-12 pb-5 sm:px-6 lg:px-12">
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 lg:grid-cols-[1.6fr_1fr_1.1fr_1.3fr] lg:gap-x-0">
           {/* Brand */}
           <div className="col-span-2 max-w-sm space-y-4 lg:col-span-1">
@@ -102,7 +102,7 @@ export function AppFooter({ locale }: { locale: Locale }) {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-[#eef1f7] pt-6 text-xs text-[#98a2b3] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-2 border-t border-[#eef1f7] pt-4 text-xs text-[#98a2b3] sm:flex-row sm:items-center sm:justify-between">
           <p>{t.copyright}</p>
           <div className="flex items-center gap-3">
             <Link href="/privacy" className="transition-colors hover:text-[#392ee5]">

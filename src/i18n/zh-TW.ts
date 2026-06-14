@@ -106,7 +106,7 @@ export const messages: Messages = {
     sourceMixTitle: '來源分布',
     sourceMixEmpty: '尚無來源資料。',
     personalTitle: '個人化推薦設定',
-    personalBody: '讓 AI 更了解你，獲得更精準的推薦',
+    personalBody: '讓我們更了解你，獲得更精準的推薦',
     personalCta: '設定我的研究興趣',
     paginationAllShown: (n: number) => `已顯示全部 ${n} 篇論文`,
     paginationStatus: (current: number, total: number, items: number) =>
@@ -160,8 +160,7 @@ export const messages: Messages = {
     lastViewed: '瀏覽',
     paginationPrev: '上一頁',
     paginationNext: '下一頁',
-    paginationRange: (from: number, to: number, total: number) =>
-      `顯示第 ${from}–${to} 篇，共 ${total} 篇`,
+    paginationRange: '顯示第 {from}–{to} 篇，共 {total} 篇',
     metricTotal: '總數',
     metricLiked: '收藏',
     metricUnread: '未讀',

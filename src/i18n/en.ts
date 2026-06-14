@@ -109,7 +109,7 @@ export const messages = {
     sourceMixTitle: 'Source mix',
     sourceMixEmpty: 'No source data yet.',
     personalTitle: 'Personalize your feed',
-    personalBody: 'Let the AI learn your taste for sharper recommendations.',
+    personalBody: 'Let the we learn your taste for sharper recommendations.',
     personalCta: 'Set my research interests',
     paginationAllShown: (n: number) => `All ${n} paper(s) shown`,
     paginationStatus: (current: number, total: number, items: number) =>
@@ -164,8 +164,7 @@ export const messages = {
     lastViewed: 'Viewed',
     paginationPrev: 'Previous',
     paginationNext: 'Next',
-    paginationRange: (from: number, to: number, total: number) =>
-      `Showing ${from}–${to} of ${total}`,
+    paginationRange: 'Showing {from}–{to} of {total}',
     metricTotal: 'Total',
     metricLiked: 'Liked',
     metricUnread: 'Unread',
