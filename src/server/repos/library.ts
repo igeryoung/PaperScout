@@ -84,7 +84,9 @@ export const libraryRepo = {
       db.userPaper.count({
         where: { userId, AND: [{ note: { not: null } }, { note: { not: '' } }] },
       }),
-      db.paperViewHistory.count({ where: { userId } }),
+      db.paperViewHistory
+        .findMany({ where: { userId }, distinct: ['paperId'], select: { paperId: true } })
+        .then((rows) => rows.length),
     ]);
     return { total, liked, unread, reading, read, notes, history };
   },
@@ -96,7 +98,7 @@ export const libraryRepo = {
     status?: UserPaperStatus;
     limit?: number;
   }): Promise<LibraryUserPaper[]> => {
-    const limit = input.limit ?? 60;
+    const limit = input.limit ?? 300;
     if (input.view === 'collection' && input.collectionId) {
       const collection = await db.paperCollection.findFirst({
         where: { id: input.collectionId, userId: input.userId },
