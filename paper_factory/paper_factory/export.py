@@ -4,9 +4,12 @@ Produces ``data/factory/exports/<batch>/`` with:
 - ``candidates.json``  — the batch's ``CandidateRecord[]`` (validates against candidate.ts)
 - ``<id>-main.pdf``    — the batch PDFs (downloads land here directly; the GUI
                          truncates them in place)
+- ``<id>-main.txt``    — plain-text body extracted from the main PDF at export
+                         time, so the trimmed eval skill reads text instead of
+                         rendering pages (≈half the eval tokens). Best-effort.
 - ``figures/<id>.png`` — the GUI-cropped figures (figure caption filled by the eval agent)
-- ``crop-hints.json``  — per-paper {figure_label, figure_page, truncated_pdf} so the
-                         trimmed eval skill knows what was pre-cropped.
+- ``crop-hints.json``  — per-paper {figure_label, figure_page, truncated_pdf, text_path}
+                         so the trimmed eval skill knows what was pre-cropped/extracted.
 """
 
 from __future__ import annotations
@@ -18,7 +21,7 @@ from pathlib import Path
 from . import config
 from .db import Store
 from .models import Paper, Stage, dumps
-from .pdf import safe_id
+from .pdf import extract_text, safe_id
 
 
 def export_batch(store: Store, batch_id: int) -> Path:
@@ -41,10 +44,21 @@ def export_batch(store: Store, batch_id: int) -> Path:
         # out_dir/<sid>-main.pdf (truncation rewrites them in place); only
         # legacy files from pdfs/ or truncated/ still need copying in.
         pdf_src = p.truncated_pdf_path or p.pdf_path
+        text_name = None
         if pdf_src and Path(pdf_src).exists():
             pdf_dest = out_dir / f"{sid}-main.pdf"
             if Path(pdf_src).resolve() != pdf_dest.resolve():
                 shutil.copy2(pdf_src, pdf_dest)
+            # Pre-extract the main-body text next to the PDF so the trimmed eval
+            # skill reads a ready .txt instead of rendering pages. Best-effort:
+            # a bad PDF must not fail the export — the PDF itself is still there.
+            try:
+                (out_dir / f"{sid}-main.txt").write_text(
+                    extract_text(pdf_dest), encoding="utf-8"
+                )
+                text_name = f"{sid}-main.txt"
+            except Exception:  # noqa: BLE001 — text export is best-effort
+                text_name = None
         if p.figure_path and Path(p.figure_path).exists():
             shutil.copy2(p.figure_path, figures_dir / f"{sid}.png")
         hints.append(
@@ -53,6 +67,7 @@ def export_batch(store: Store, batch_id: int) -> Path:
                 "joinKey": {"source": p.source, "sourcePaperId": p.source_paper_id},
                 "safeId": sid,
                 "truncatedPdf": f"{sid}-main.pdf" if p.truncated_pdf_path else None,
+                "textPath": text_name,
                 "figure": (
                     {
                         "label": p.figure_label,

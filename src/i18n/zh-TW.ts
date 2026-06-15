@@ -54,6 +54,8 @@ export const messages: Messages = {
     feedTabTrending: '熱門趨勢',
     feedTabLatest: '最新發佈',
     feedTabTop: 'AI 推薦',
+    feedLatestCountAria: (count: number) => `本次更新 ${count} 篇論文`,
+    feedLatestUpdatedTooltip: (time: string) => `更新時間：${time}`,
     feedTablistAria: '論文列表篩選',
     feedFilterDomain: '會議',
     feedFilterTime: '時間',
@@ -82,8 +84,6 @@ export const messages: Messages = {
     summaryFallback: '此論文已匯入 PaperScout，可點入查看來源、摘要與詳細評估。',
     reasonFallback: '此論文在本次 agent 評估中被標記為推薦閱讀。',
     cardFigureFallback: '主要圖表',
-    cardFigurePreviewAria: '放大圖表',
-    cardFigureNoCaption: '此圖表沒有說明文字。',
     cardViewSummary: '查看摘要',
     cardSummaryDialogAiLabel: 'AI 摘要',
     cardSummaryDialogAbstractLabel: '摘要原文',
@@ -247,6 +247,18 @@ export const messages: Messages = {
     stageFullPdf: '完整 PDF 分析',
     publishedPrefix: '發佈於',
     figureFallback: '主要圖表',
+    figureCredit: (parts: {
+      title: string;
+      authors: string;
+      venue: string | null;
+      figureLabel: string | null;
+    }) => {
+      const segs = [`《${parts.title}》`, parts.authors];
+      if (parts.venue) segs.push(parts.venue);
+      if (parts.figureLabel) segs.push(parts.figureLabel);
+      return `圖片來源：${segs.join('，')}。著作權歸原作者／權利人所有；本站僅作學術介紹與評論使用。`;
+    },
+    figureCreditSourceLabel: '原文連結',
     summary: '摘要',
     whyRecommended: '推薦原因',
     strengths: '優點',

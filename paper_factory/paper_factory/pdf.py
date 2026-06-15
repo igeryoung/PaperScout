@@ -80,6 +80,19 @@ def page_count(pdf_path: Path) -> int:
         return doc.page_count
 
 
+def extract_text(pdf_path: Path) -> str:
+    """Plain-text body of a PDF in reading order, one page after another.
+
+    Mirrors what the trimmed ``evaluate-papers-lite`` skill would otherwise get
+    from the ``pdftotext`` CLI: each page's text concatenated in page order.
+    Numeric tables come through cell-per-line in row order, which the scorer
+    reads fine. No page is rendered to an image — this is the cheap text the
+    eval agent consumes instead of opening the PDF (≈half the eval tokens).
+    """
+    with fitz.open(pdf_path) as doc:
+        return "\n".join(page.get_text() for page in doc)
+
+
 def render_page_png(pdf_path: Path, page_index: int, zoom: float = 1.5) -> bytes:
     """Render one page to PNG bytes at the given zoom (1.0 == 72 dpi)."""
     with fitz.open(pdf_path) as doc:

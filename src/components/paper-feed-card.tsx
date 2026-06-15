@@ -87,10 +87,6 @@ function PaperThumb({
     <HomeFigurePreview
       src={`/api/papers/${paper.id}/figure`}
       alt={`${labelPart}${captionPart}`}
-      label={labelPart}
-      caption={captionText}
-      zoomLabel={messages.home.cardFigurePreviewAria}
-      noCaptionLabel={messages.home.cardFigureNoCaption}
     />
   );
 }

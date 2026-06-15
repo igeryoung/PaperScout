@@ -22,6 +22,20 @@ export function formatDateISO(d: Date | null | undefined): string {
   return d ? ISO_DATE_FMT.format(d) : '—';
 }
 
+const DATE_TIME_FMT = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: 'short',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: 'UTC',
+});
+
+export function formatDateTime(d: Date | null | undefined): string {
+  return d ? `${DATE_TIME_FMT.format(d)} UTC` : '—';
+}
+
 export function authorsFromJson(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((v): v is string => typeof v === 'string');

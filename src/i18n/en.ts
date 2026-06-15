@@ -56,6 +56,8 @@ export const messages = {
     feedTabTrending: 'Trending',
     feedTabLatest: 'Latest',
     feedTabTop: 'Top scored',
+    feedLatestCountAria: (count: number) => `${count} papers in the latest update`,
+    feedLatestUpdatedTooltip: (time: string) => `Updated: ${time}`,
     feedTablistAria: 'Paper feed filters',
     feedFilterDomain: 'Conference',
     feedFilterTime: 'Time',
@@ -85,8 +87,6 @@ export const messages = {
       'This paper is ingested into PaperScout — open it to see sources, summary, and full evaluation.',
     reasonFallback: 'This paper was flagged as recommended in the agent evaluation.',
     cardFigureFallback: 'Highlight figure',
-    cardFigurePreviewAria: 'Enlarge figure',
-    cardFigureNoCaption: 'No caption provided.',
     cardViewSummary: 'View summary',
     cardSummaryDialogAiLabel: 'AI summary',
     cardSummaryDialogAbstractLabel: 'Abstract',
@@ -253,6 +253,18 @@ export const messages = {
     stageFullPdf: 'Full PDF analysis',
     publishedPrefix: 'Published',
     figureFallback: 'Highlight figure',
+    figureCredit: (parts: {
+      title: string;
+      authors: string;
+      venue: string | null;
+      figureLabel: string | null;
+    }) => {
+      const segs = [`“${parts.title}”`, parts.authors];
+      if (parts.venue) segs.push(parts.venue);
+      if (parts.figureLabel) segs.push(parts.figureLabel);
+      return `Image source: ${segs.join(', ')}. Copyright remains with the original author(s)/rights holder(s); reproduced here for academic introduction and commentary only.`;
+    },
+    figureCreditSourceLabel: 'Original paper',
     summary: 'Summary',
     whyRecommended: 'Why recommended',
     strengths: 'Strengths',
