@@ -22,7 +22,7 @@ import {
   type SourceCount,
   type TagCount,
 } from '@/server/repos/trends';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { getLocale, type Locale } from '@/lib/locale';
 import { formatSourceLabel } from '@/lib/source-label';
 import { getMessages, type Messages } from '@/i18n';
@@ -348,10 +348,14 @@ function FeedTabs({
   activeTab,
   searchParams,
   messages,
+  latestCount,
+  latestUpdatedAt,
 }: {
   activeTab: FeedTab;
   searchParams: Awaited<HomePageProps['searchParams']>;
   messages: Messages;
+  latestCount: number;
+  latestUpdatedAt: string;
 }) {
   const t = messages.home;
   // 熱門趨勢 needs reader-view data we don't collect yet — disabled for now.
@@ -386,6 +390,7 @@ function FeedTabs({
           );
         }
         const active = key === activeTab;
+        const showLatestBadge = key === 'latest' && latestCount > 0;
         return (
           <Link
             key={key}
@@ -400,6 +405,15 @@ function FeedTabs({
           >
             <Icon aria-hidden className="h-4 w-4" />
             {label}
+            {showLatestBadge && (
+              <span
+                title={t.feedLatestUpdatedTooltip(latestUpdatedAt)}
+                aria-label={t.feedLatestCountAria(latestCount)}
+                className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[#eef0ff] px-1.5 py-0.5 text-[10px] font-bold text-[#6570e8] tabular-nums"
+              >
+                {latestCount}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -414,14 +428,24 @@ function FeedToolbar({
   activeTab,
   searchParams,
   messages,
+  latestCount,
+  latestUpdatedAt,
 }: {
   activeTab: FeedTab;
   searchParams: Awaited<HomePageProps['searchParams']>;
   messages: Messages;
+  latestCount: number;
+  latestUpdatedAt: string;
 }) {
   return (
     <div className={FEED_TOOLBAR_CLASS}>
-      <FeedTabs activeTab={activeTab} searchParams={searchParams} messages={messages} />
+      <FeedTabs
+        activeTab={activeTab}
+        searchParams={searchParams}
+        messages={messages}
+        latestCount={latestCount}
+        latestUpdatedAt={latestUpdatedAt}
+      />
     </div>
   );
 }
@@ -645,6 +669,8 @@ function FeedSection({
   searchParams,
   locale,
   messages,
+  latestCount,
+  latestUpdatedAt,
 }: {
   run: NonNullable<Awaited<ReturnType<typeof runsRepo.latestCompletedForDisplay>>>;
   data: HomeDataPromises;
@@ -652,13 +678,21 @@ function FeedSection({
   searchParams: Awaited<HomePageProps['searchParams']>;
   locale: Locale;
   messages: Messages;
+  latestCount: number;
+  latestUpdatedAt: string;
 }) {
   return (
     <section
       className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]"
       aria-labelledby="feed-title"
     >
-      <FeedToolbar activeTab={activeTab} searchParams={searchParams} messages={messages} />
+      <FeedToolbar
+        activeTab={activeTab}
+        searchParams={searchParams}
+        messages={messages}
+        latestCount={latestCount}
+        latestUpdatedAt={latestUpdatedAt}
+      />
       <div className="sr-only" id="feed-title">
         {messages.home.feedTitleSr}
       </div>
@@ -728,6 +762,9 @@ async function HomePageContent({
   if (!run) return <EmptyState messages={messages} />;
 
   const activeTab = parseTab(searchParams.tab);
+  // 最新發佈 badge: how many papers the latest run surfaced, and when it landed.
+  const latestCount = await runResultsRepo.countByRun(run.id);
+  const latestUpdatedAt = formatDateTime(run.completedAt ?? run.createdAt);
   const data: HomeDataPromises = {
     summary: trendsRepo.getRunSummary(run.id),
     sourceDistribution: trendsRepo.getSourceDistribution(),
@@ -753,6 +790,8 @@ async function HomePageContent({
           searchParams={searchParams}
           locale={locale}
           messages={messages}
+          latestCount={latestCount}
+          latestUpdatedAt={latestUpdatedAt}
         />
 
         <aside className="grid content-start gap-3" aria-label={messages.home.sidebarAria}>

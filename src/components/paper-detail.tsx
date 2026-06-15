@@ -59,6 +59,15 @@ export function PaperDetail({
   const openReviewSource = paper.sources.find((s) => s.source === 'OPENREVIEW');
   const huggingFaceSource = paper.sources.find((s) => s.source === 'HUGGINGFACE');
 
+  // Prefer a landing page over the raw PDF for the figure attribution link.
+  const figureSourceUrl =
+    arxivSource?.sourceUrl ??
+    openReviewSource?.sourceUrl ??
+    huggingFaceSource?.sourceUrl ??
+    paper.sources[0]?.sourceUrl ??
+    paper.pdfUrl ??
+    null;
+
   const sidebarLinks: Array<{ key: string; href: string; label: string; icon: React.ReactNode }> = [];
   if (paper.pdfUrl) {
     sidebarLinks.push({
@@ -202,6 +211,27 @@ export function PaperDetail({
                   {figureCaption}
                 </figcaption>
               ) : null}
+              <p className="border-t border-[#eef1f7] pt-3 text-center text-[11px] leading-relaxed text-[#98a2b3]">
+                {t.figureCredit({
+                  title: paper.title,
+                  authors: formatAuthors(paper.authors, 1),
+                  venue: paper.venue,
+                  figureLabel: paper.figure.figureLabel,
+                })}
+                {figureSourceUrl ? (
+                  <>
+                    {' '}
+                    <a
+                      href={figureSourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[#6457f6] hover:underline"
+                    >
+                      {t.figureCreditSourceLabel}
+                    </a>
+                  </>
+                ) : null}
+              </p>
             </figure>
           ) : null}
 
