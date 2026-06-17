@@ -6,6 +6,7 @@ import { AppHeader, AppHeaderPlaceholder } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
 import { getLocale } from '@/lib/locale';
 import { getMessages } from '@/i18n';
+import { env } from '@/lib/env';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -20,9 +21,25 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   const t = getMessages(locale);
+  // OG/Twitter image tags emitted by app/opengraph-image.tsx need an absolute
+  // base URL to resolve against; APP_BASE_URL in prod, localhost in dev.
+  const baseUrl = env.APP_BASE_URL ?? 'http://localhost:3000';
   return {
+    metadataBase: new URL(baseUrl),
     title: t.metadata.title,
     description: t.metadata.description,
+    openGraph: {
+      type: 'website',
+      siteName: t.metadata.title,
+      title: t.metadata.title,
+      description: t.metadata.description,
+      locale,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t.metadata.title,
+      description: t.metadata.description,
+    },
   };
 }
 
