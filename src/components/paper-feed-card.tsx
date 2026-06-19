@@ -193,7 +193,7 @@ export function PaperFeedCard({
         </div>
       </div>
 
-      <div className="grid gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-2 xl:grid-cols-[280px_minmax(0,6fr)_minmax(0,4fr)] xl:items-start">
+      <div className="grid grid-cols-1 gap-3 border-t border-[#edf1f7] pt-3 xl:col-span-2 xl:grid-cols-[280px_minmax(0,6fr)_minmax(0,4fr)] xl:items-start">
         {paper.tags.length > 0 ? (
           <div className="paper-tag-marquee overflow-hidden py-0.5">
             <div className="paper-tag-marquee__track flex w-max gap-2">

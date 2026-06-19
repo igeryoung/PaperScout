@@ -175,7 +175,7 @@ type StatusFilter = UserPaperStatus | typeof ALL;
 type LibrarySort = 'recent' | 'added' | 'score';
 
 const filterTriggerClass =
-  'h-9 gap-2 rounded-[7px] border-[#d9e0ea] bg-white px-[13px] text-[13px] font-bold text-[#344054]';
+  'h-9 shrink-0 gap-2 rounded-[7px] border-[#d9e0ea] bg-white px-[13px] text-[13px] font-bold text-[#344054]';
 
 function statusHref(status?: UserPaperStatus) {
   return status ? `/library?status=${status}` : '/library';
@@ -595,15 +595,15 @@ export function LibraryWorkspace({
       </aside>
 
       <section className="min-w-0 px-[39px] pt-[29px] pr-[82px] pb-6">
-        <header className="mb-3 flex items-end justify-between gap-8">
+        <header className="mb-3 flex flex-col gap-4">
           <div>
             <h1 className="mb-1 text-[27px] leading-tight font-extrabold tracking-normal">
               {title}
             </h1>
             <p className="text-sm text-[#576173]">{labels.subtitle}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-[14px]">
-            <label className="flex h-9 w-[264px] items-center gap-2.5 rounded-[7px] border border-[#d9e0ea] bg-white px-[13px] text-[#98a2b3] focus-within:border-[#5b4df1]">
+          <div className="flex items-center gap-[14px]">
+            <label className="flex h-9 min-w-[200px] max-w-[320px] flex-1 items-center gap-2.5 rounded-[7px] border border-[#d9e0ea] bg-white px-[13px] text-[#98a2b3] focus-within:border-[#5b4df1]">
               <Search aria-hidden className="h-4 w-4" />
               <input
                 type="search"
@@ -663,7 +663,7 @@ export function LibraryWorkspace({
               <button
                 type="button"
                 onClick={resetFilters}
-                className="inline-flex h-9 items-center gap-1.5 rounded-[7px] border border-[#d9e0ea] bg-white px-3 text-[13px] font-bold text-[#667085] hover:text-[#392ee5]"
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[7px] border border-[#d9e0ea] bg-white px-3 text-[13px] font-bold text-[#667085] hover:text-[#392ee5]"
               >
                 <X aria-hidden className="h-4 w-4" />
                 {labels.reset}
