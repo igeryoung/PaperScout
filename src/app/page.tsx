@@ -166,7 +166,7 @@ function HomePagePlaceholder() {
         <div className="hidden min-h-[176px] animate-pulse rounded-[10px] bg-white/50 md:block" />
       </section>
 
-      <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="mt-5 grid grid-cols-1 gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
         <section className="rounded-[10px] border border-[#e5e9f3] bg-white shadow-[0_18px_50px_rgba(31,42,68,0.08)]">
           <div className="border-b border-[#e5e9f3] px-5 pt-2.5">
             <div className="mb-3 h-5 w-60 animate-pulse rounded bg-[#edf1f7]" />
@@ -696,7 +696,7 @@ function FeedSection({
       <div className="sr-only" id="feed-title">
         {messages.home.feedTitleSr}
       </div>
-      <div className="grid gap-3.5 px-5 py-4">
+      <div className="grid grid-cols-1 gap-3.5 px-5 py-4">
         <Suspense key={activeTab} fallback={<FeedResultsLoading messages={messages} />}>
           <FeedResults
             runId={run.id}
@@ -782,7 +782,7 @@ async function HomePageContent({
         <HeroSection summary={data.summary} messages={messages} />
       </Suspense>
 
-      <div className="mt-5 grid gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="mt-5 grid grid-cols-1 gap-9 xl:grid-cols-[minmax(0,1fr)_390px]">
         <FeedSection
           run={run}
           data={data}
