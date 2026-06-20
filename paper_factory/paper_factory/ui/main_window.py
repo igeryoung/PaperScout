@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFileDialog,
     QFormLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -38,7 +39,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import config, eval_import, export, importer, ingest, pdf as pdfops
+from .. import config, eval_import, export, importer, ingest, pdf as pdfops, upload
 from ..db import Store
 from ..models import Batch, Bucket, Paper, ReviewDecision, Stage, dumps
 from .db_page import DbPage
@@ -279,6 +280,7 @@ class MainWindow(QMainWindow):
         tb.addSeparator()
         actions = [
             ("Import inbox", self.import_inbox),
+            ("Upload folder", self.upload_folder),
             ("Export for eval", self.export_batch),
             ("Import eval results", self.import_eval),
             ("Ingest passed", self.ingest_passed),
@@ -495,6 +497,40 @@ class MainWindow(QMainWindow):
                 self, "Import inbox",
                 f"{len(results)} file(s): {total_ins} new, {total_skip} already known.",
             )
+
+    def upload_folder(self) -> None:
+        """Import a folder of locally-collected PDFs (+ candidates.json from the
+        collect-pdf-metadata skill) as a new batch, PDFs already attached."""
+        folder = QFileDialog.getExistingDirectory(
+            self, "Pick a folder of PDFs (with candidates.json)", str(Path.home())
+        )
+        if not folder:
+            return
+        folder_path = Path(folder)
+        if not (folder_path / "candidates.json").exists():
+            QMessageBox.warning(
+                self, "Upload folder",
+                "That folder has no candidates.json.\n\n"
+                "Run the collect-pdf-metadata skill on it first.",
+            )
+            return
+        name, ok = QInputDialog.getText(
+            self, "Upload folder", "Batch name:", text=folder_path.name
+        )
+        if not ok or not name.strip():
+            return
+        try:
+            result = upload.import_folder(self.store, folder_path, name.strip())
+        except ValueError as e:
+            QMessageBox.warning(self, "Upload folder", str(e))
+            return
+        self.refresh_batches()
+        for i in range(self.batch_list.count()):
+            if self.batch_list.item(i).data(Qt.UserRole) == result.batch.id:
+                self.batch_list.setCurrentRow(i)
+                break
+        self.refresh_tree()
+        QMessageBox.information(self, "Upload folder", result.summary())
 
     def new_batch(self) -> None:
         ids = self.selected_paper_ids()
