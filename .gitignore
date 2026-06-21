@@ -74,6 +74,7 @@ Thumbs.db
 
 # Paper Factory (Python GUI) working data + venv
 /data/factory/factory.db
+/data/factory/factory.db.bak-*
 /data/factory/pdfs/
 /data/factory/truncated/
 /data/factory/figures/

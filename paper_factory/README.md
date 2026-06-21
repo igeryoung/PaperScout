@@ -8,11 +8,19 @@ and tracks every paper's state in a global SQLite store.
 ## Pipeline
 
 ```
-crawl skill ─▶ PENDING ─select▶ batch ─▶ DOWNLOADED ─▶ TRUNCATED ─▶ CROPPED ─▶ EXPORTED
-                                                                                   │
-                                                       (eval agent, out-of-GUI)    ▼
-           INGESTED ◀─ingest─ REVIEWED(pass) ◀─review─ EVALUATED ◀─import results──┘
+crawl skill ───────────────┐
+titles ▸ New from titles ──┴▶ PENDING ─select▶ batch ┐
+                                                     ├─▶ DOWNLOADED ─▶ TRUNCATED ─▶ CROPPED ─▶ EXPORTED
+PDFs ▸ collect-pdf-metadata ▸ Upload folder ─────────┘   (PDF already attached)                 │
+                                                              (eval agent, out-of-GUI)          ▼
+                INGESTED ◀─ingest─ REVIEWED(pass) ◀─review─ EVALUATED ◀─import results──────────┘
 ```
+
+Three ways in: the **crawl** path (metadata first, PDFs downloaded later), the **titles**
+path (paste paper titles — **New from titles** resolves each against arXiv into a `PENDING`
+paper), and the **manual-upload** path (you bring the PDFs; the `collect-pdf-metadata` skill
+resolves their metadata, and **Upload folder** imports both at once so they start at
+`DOWNLOADED`). All converge on the same truncate → crop → export → eval → ingest pipeline.
 
 Coarse buckets shown in the table: **pending** (`PENDING`), **processing**
 (`DOWNLOADED…EVALUATED`), **finish** (`REVIEWED`, `INGESTED`).
@@ -45,6 +53,46 @@ Working data lives in `../data/factory/` (override with `PAPER_FACTORY_DATA`).
 7. **Import eval results** → review each paper → **Pass / Reject**.
 8. **Ingest passed** — bundles PASS papers and runs `npm run ingest` into the app's Postgres.
 
+### Bring your own titles (New from titles)
+
+When you have a list of paper titles but no PDFs or metadata, skip steps 1–2 and seed the
+batch straight from titles:
+
+1. **New from titles** (toolbar) → paste one title per line (a trailing `.pdf` is stripped, so
+   filenames work too). Name the batch and keep **Auto-download** ticked.
+2. Each line is **matched against the existing library first** (punctuation-insensitive, and
+   tolerant of a truncated/dropped subtitle). A hit is *reused* — pulled into the new batch with
+   its existing source, conference/venue and progress intact — so a paper already crawled (e.g.
+   the CVF `OPENACCESS` record that knows it's `CVPR 2026`) is never duplicated by a fresh arXiv
+   copy. When one title matches several stored rows, the richest is kept (venue first, then
+   furthest stage).
+3. Only titles with **no** library match are resolved against the **arXiv** API; the best title
+   match becomes a `PENDING` paper carrying its `pdfUrl` (its venue read from the arXiv comment
+   when present). Titles matched nowhere are reported and skipped — fix the wording and re-run.
+4. With **Auto-download** on, the batch's PDFs download immediately, so it lands at `DOWNLOADED`.
+   Continue from **step 4** above (truncate → crop → export → eval → ingest).
+
+### Bring your own PDFs (manual upload)
+
+When you already have PDFs in hand (not from a conference crawl), skip steps 1–4 and use the
+upload path instead:
+
+1. **Gather a folder** of PDFs anywhere, e.g. `~/my-papers/`.
+2. **Run the `collect-pdf-metadata` skill** on that folder:
+   ```bash
+   python3 .claude/skills/collect-pdf-metadata/resolve_metadata.py ~/my-papers
+   ```
+   For each PDF it reads the title off page 1, searches **Semantic Scholar** (then **arXiv**),
+   and writes `~/my-papers/candidates.json` — a `CandidateRecord[]` where every record carries
+   an extra `pdfFile` field (its filename). Papers it can't confidently match are still emitted,
+   flagged `needsReview` for you to fix (run the full skill to have the agent repair them via
+   web search). Confirm with `npm run validate:candidates ~/my-papers/candidates.json`.
+3. **Upload folder** (toolbar) → pick `~/my-papers/`. It creates a batch named after the folder,
+   copies each PDF into the batch folder, and creates the papers at `DOWNLOADED` (no
+   re-download). Re-uploading is safe: an existing paper keeps its PDF; a PDF-less one gets the
+   uploaded file attached.
+4. Continue from **step 4** above (truncate → crop → export → eval → ingest).
+
 ## Live DB tab
 
 A second tab, **Live DB**, views and maintains the papers that are actually live in
@@ -74,6 +122,7 @@ through Prisma, the same way ingest does.
 | `models.py` | `Stage`/`Bucket`/`Paper`/`Batch` + CandidateRecord mapping |
 | `db.py` | SQLite store (papers + batches), row↔dataclass mapping |
 | `importer.py` | inbox `CandidateRecord[]` → `PENDING` papers (dedup) |
+| `upload.py` | folder `candidates.json` + local PDFs → new batch of `DOWNLOADED` papers (attach-or-skip dedup) |
 | `pdf.py` | PyMuPDF: download, render, truncate, crop (GUI-free, testable) |
 | `export.py` | batch → eval bundle (`candidates.json` + truncated PDFs + figures) |
 | `eval_import.py` | `evaluations.json` → attach to papers by `joinKey`, `EVALUATED` |

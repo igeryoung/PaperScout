@@ -103,6 +103,9 @@ export const messages = {
     sidebarAria: 'Auxiliary information',
     hotTagsTitle: 'Hot tags',
     hotTagsLink: 'View all',
+    hotTagsDialogTitle: 'All tags',
+    hotTagsSearchPlaceholder: 'Search tags',
+    hotTagsNoMatch: 'No tags match your search.',
     hotTagsEmpty: 'No tags yet.',
     recentTitle: 'Recent recommendations',
     recentLink: 'View all',
@@ -265,6 +268,7 @@ export const messages = {
       return `Image source: ${segs.join(', ')}. Copyright remains with the original author(s)/rights holder(s); reproduced here for academic introduction and commentary only.`;
     },
     figureCreditSourceLabel: 'Original paper',
+    figureZoomHint: 'Click to enlarge',
     summary: 'Summary',
     whyRecommended: 'Why recommended',
     strengths: 'Strengths',

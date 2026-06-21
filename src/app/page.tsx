@@ -29,6 +29,7 @@ import { getMessages, type Messages } from '@/i18n';
 import { getCurrentSession } from '@/server/auth/current-user';
 import { libraryRepo } from '@/server/repos/library';
 import { PaperFeedCard } from '@/components/paper-feed-card';
+import { HomeHotTagsDialog } from '@/components/home-hot-tags-dialog';
 
 export const dynamic = 'force-dynamic';
 
@@ -361,9 +362,9 @@ function FeedTabs({
   // 熱門趨勢 needs reader-view data we don't collect yet — disabled for now.
   const tabs = [
     { key: 'recommended' as const, label: t.feedTabRecommended, icon: Star, comingSoon: false },
-    { key: 'trending' as const, label: t.feedTabTrending, icon: TrendingUp, comingSoon: true },
     { key: 'latest' as const, label: t.feedTabLatest, icon: Shield, comingSoon: false },
     { key: 'top' as const, label: t.feedTabTop, icon: BarChart3, comingSoon: false },
+    { key: 'trending' as const, label: t.feedTabTrending, icon: TrendingUp, comingSoon: true },
   ];
   return (
     <div
@@ -460,9 +461,14 @@ function HotTagsCard({ tags, messages }: { tags: TagCount[]; messages: Messages 
         <h3 className="text-[17px] font-semibold tracking-normal text-[#111827]">
           {t.hotTagsTitle}
         </h3>
-        <Link href="/library" className="text-xs font-bold text-[#5b4df1]">
-          {t.hotTagsLink}
-        </Link>
+        <HomeHotTagsDialog
+          tags={tags}
+          triggerLabel={t.hotTagsLink}
+          title={t.hotTagsDialogTitle}
+          searchPlaceholder={t.hotTagsSearchPlaceholder}
+          noMatchLabel={t.hotTagsNoMatch}
+          emptyLabel={t.hotTagsEmpty}
+        />
       </div>
       {visible.length === 0 ? (
         <p className="text-sm text-[#667085]">{t.hotTagsEmpty}</p>

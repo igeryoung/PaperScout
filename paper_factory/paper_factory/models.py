@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
@@ -120,6 +121,16 @@ class Paper:
             "codeUrls": self.code_urls,
             "additionalSources": self.additional_sources,
         }
+
+
+def normalize_title(s: str) -> str:
+    """Punctuation/case-insensitive key for matching the same paper across sources.
+
+    Lowercases and collapses every run of non-alphanumerics to a single space, so
+    ``"HTTM: Head-wise…"`` and ``"HTTM Head-wise…"`` (or a crawl title vs a pasted
+    one) compare equal.
+    """
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", s.lower())).strip()
 
 
 def make_paper_id(source: str, source_paper_id: Optional[str], source_url: str) -> str:

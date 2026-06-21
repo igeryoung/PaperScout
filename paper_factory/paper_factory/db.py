@@ -12,8 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+from difflib import SequenceMatcher
+
 from . import config
-from .models import Batch, Paper, ReviewDecision, Stage, dumps
+from .models import Batch, Paper, ReviewDecision, Stage, dumps, normalize_title
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS batches (
@@ -197,6 +199,67 @@ class Store:
         if bucket is not None:
             papers = [p for p in papers if p.bucket.value == bucket]
         return papers
+
+    def match_titles(self, titles: Iterable[str], *, min_ratio: float = 0.92) -> dict[str, Paper]:
+        """Map input titles to an already-stored paper of the same title, if any.
+
+        Lets the "new batch from titles" path reuse a known paper instead of minting
+        a duplicate source. Matching is punctuation/case-insensitive: an exact
+        normalized hit wins; otherwise the best fuzzy match at/above ``min_ratio``
+        (so a dropped subtitle word still resolves). When several rows share a title
+        (e.g. the same paper crawled from two sources), the *richest* is returned —
+        one that carries a venue first, then the furthest-along pipeline stage — so
+        the conference label is preserved. Titles with no match are absent.
+        """
+        rows = self.conn.execute("SELECT id, title, venue, stage FROM papers").fetchall()
+        index: dict[str, list[sqlite3.Row]] = {}
+        for r in rows:
+            index.setdefault(normalize_title(r["title"]), []).append(r)
+
+        def richness(row: sqlite3.Row) -> tuple[int, int]:
+            return (1 if row["venue"] else 0, Stage(row["stage"]).order)
+
+        out: dict[str, Paper] = {}
+        for title in titles:
+            key = normalize_title(title)
+            if not key:
+                continue
+            candidates = index.get(key)
+            if candidates is None:
+                candidates = self._fuzzy_candidates(key, index, min_ratio)
+            if not candidates:
+                continue
+            paper = self.get_paper(max(candidates, key=richness)["id"])
+            if paper:
+                out[title] = paper
+        return out
+
+    @staticmethod
+    def _fuzzy_candidates(
+        key: str, index: dict[str, list[sqlite3.Row]], min_ratio: float
+    ) -> list[sqlite3.Row]:
+        """Best stored rows for a normalized title that isn't an exact hit.
+
+        Scores every stored title by sequence similarity, but treats a distinctive
+        token-aligned prefix as a near-certain match — pasted titles are often
+        truncated (a dropped subtitle), which plain similarity under-scores. Returns
+        the rows behind the best-scoring title(s), or ``[]`` if nothing clears the bar.
+        """
+        best_score, best_keys = min_ratio, []
+        for k in index:
+            if not k:
+                continue
+            score = SequenceMatcher(None, key, k).ratio()
+            shorter, longer = sorted((key, k), key=len)
+            # one title is the leading slice of the other, on a word boundary, and
+            # long enough to be distinctive -> almost certainly the same paper.
+            if len(shorter) >= 20 and (longer == shorter or longer.startswith(shorter + " ")):
+                score = max(score, 0.97)
+            if score > best_score:
+                best_score, best_keys = score, [k]
+            elif score == best_score:
+                best_keys.append(k)
+        return [r for k in best_keys for r in index[k]]
 
     def update_fields(self, paper_id: str, **fields: Any) -> None:
         """Update arbitrary columns. Stage/review enums are coerced; json columns dumped."""

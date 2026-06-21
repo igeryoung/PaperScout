@@ -100,6 +100,9 @@ export const messages: Messages = {
     sidebarAria: '輔助資訊',
     hotTagsTitle: '熱門標籤',
     hotTagsLink: '查看全部',
+    hotTagsDialogTitle: '所有標籤',
+    hotTagsSearchPlaceholder: '搜尋標籤',
+    hotTagsNoMatch: '沒有符合搜尋的標籤。',
     hotTagsEmpty: '尚無標籤。',
     recentTitle: '最近推薦',
     recentLink: '查看全部',
@@ -259,6 +262,7 @@ export const messages: Messages = {
       return `圖片來源：${segs.join('，')}。著作權歸原作者／權利人所有；本站僅作學術介紹與評論使用。`;
     },
     figureCreditSourceLabel: '原文連結',
+    figureZoomHint: '點擊放大',
     summary: '摘要',
     whyRecommended: '推薦原因',
     strengths: '優點',

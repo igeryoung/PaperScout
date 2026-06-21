@@ -127,7 +127,9 @@ const getCachedSourceDistribution = unstable_cache(
 export const TAG_DISTRIBUTION_TAG = 'tag-distribution';
 
 // Statistic over EVERY paper in the database, not a single run. Counted once per
-// PaperTag row across all papers, top 10 by frequency. Cached so it is computed
+// PaperTag row across all papers, ordered by frequency. Returns EVERY distinct
+// tag (not just the top N) so the "all tags" dialog can list them all; the home
+// card slices the leading entries for its visible chips. Cached so it is computed
 // once and reused across reloads instead of recalculated each request.
 const getCachedTagDistribution = unstable_cache(
   async (): Promise<TagCount[]> => {
@@ -135,7 +137,6 @@ const getCachedTagDistribution = unstable_cache(
       by: ['tag'],
       _count: { tag: true },
       orderBy: [{ _count: { tag: 'desc' } }, { tag: 'asc' }],
-      take: 10,
     });
     return rows.map((r) => ({ tag: r.tag, count: r._count.tag }));
   },
