@@ -8,6 +8,7 @@ import {
   XCircle,
 } from 'lucide-react';
 
+import { FigureZoom } from '@/components/figure-zoom';
 import { PaperComments, type PaperCommentItem } from '@/components/paper-comments';
 import { PaperDetailActions } from '@/components/paper-detail-actions';
 import { PaperDigest, type DigestShape } from '@/components/paper-digest';
@@ -190,17 +191,14 @@ export function PaperDetail({
               id="figure"
               className={`${CARD} scroll-mt-[120px] space-y-3 p-5`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- served from our own /api/papers/[id]/figure route. */}
-              <img
+              <FigureZoom
                 src={`/api/papers/${paper.id}/figure`}
                 alt={
                   paper.figure.figureLabel
                     ? `${paper.figure.figureLabel}${figureCaption ? `: ${figureCaption}` : ''}`
                     : t.figureFallback
                 }
-                loading="eager"
-                decoding="async"
-                className="mx-auto max-h-[28rem] w-auto max-w-full rounded-lg border border-[#e5e9f3] bg-[#fbfcff] object-contain"
+                zoomHint={t.figureZoomHint}
               />
               {figureCaption ? (
                 <figcaption className="text-center text-xs leading-relaxed text-[#667085]">

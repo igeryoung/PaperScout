@@ -262,6 +262,7 @@ export const messages: Messages = {
       return `圖片來源：${segs.join('，')}。著作權歸原作者／權利人所有；本站僅作學術介紹與評論使用。`;
     },
     figureCreditSourceLabel: '原文連結',
+    figureZoomHint: '點擊放大',
     summary: '摘要',
     whyRecommended: '推薦原因',
     strengths: '優點',

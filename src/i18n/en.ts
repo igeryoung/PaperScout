@@ -268,6 +268,7 @@ export const messages = {
       return `Image source: ${segs.join(', ')}. Copyright remains with the original author(s)/rights holder(s); reproduced here for academic introduction and commentary only.`;
     },
     figureCreditSourceLabel: 'Original paper',
+    figureZoomHint: 'Click to enlarge',
     summary: 'Summary',
     whyRecommended: 'Why recommended',
     strengths: 'Strengths',

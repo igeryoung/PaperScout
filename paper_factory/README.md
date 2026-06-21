@@ -8,17 +8,19 @@ and tracks every paper's state in a global SQLite store.
 ## Pipeline
 
 ```
-crawl skill ─────────▶ PENDING ─select▶ batch ┐
-                                              ├─▶ DOWNLOADED ─▶ TRUNCATED ─▶ CROPPED ─▶ EXPORTED
-PDFs ▸ collect-pdf-metadata ▸ Upload folder ──┘   (PDF already attached)                 │
-                                                       (eval agent, out-of-GUI)          ▼
-           INGESTED ◀─ingest─ REVIEWED(pass) ◀─review─ EVALUATED ◀─import results────────┘
+crawl skill ───────────────┐
+titles ▸ New from titles ──┴▶ PENDING ─select▶ batch ┐
+                                                     ├─▶ DOWNLOADED ─▶ TRUNCATED ─▶ CROPPED ─▶ EXPORTED
+PDFs ▸ collect-pdf-metadata ▸ Upload folder ─────────┘   (PDF already attached)                 │
+                                                              (eval agent, out-of-GUI)          ▼
+                INGESTED ◀─ingest─ REVIEWED(pass) ◀─review─ EVALUATED ◀─import results──────────┘
 ```
 
-Two ways in: the **crawl** path (metadata first, PDFs downloaded later) and the
-**manual-upload** path (you bring the PDFs; the `collect-pdf-metadata` skill resolves their
-metadata, and **Upload folder** imports both at once so they start at `DOWNLOADED`). Both
-converge on the same truncate → crop → export → eval → ingest pipeline.
+Three ways in: the **crawl** path (metadata first, PDFs downloaded later), the **titles**
+path (paste paper titles — **New from titles** resolves each against arXiv into a `PENDING`
+paper), and the **manual-upload** path (you bring the PDFs; the `collect-pdf-metadata` skill
+resolves their metadata, and **Upload folder** imports both at once so they start at
+`DOWNLOADED`). All converge on the same truncate → crop → export → eval → ingest pipeline.
 
 Coarse buckets shown in the table: **pending** (`PENDING`), **processing**
 (`DOWNLOADED…EVALUATED`), **finish** (`REVIEWED`, `INGESTED`).
@@ -50,6 +52,25 @@ Working data lives in `../data/factory/` (override with `PAPER_FACTORY_DATA`).
 6. Run the `evaluate-papers` skill on that dir → `evaluations.json`.
 7. **Import eval results** → review each paper → **Pass / Reject**.
 8. **Ingest passed** — bundles PASS papers and runs `npm run ingest` into the app's Postgres.
+
+### Bring your own titles (New from titles)
+
+When you have a list of paper titles but no PDFs or metadata, skip steps 1–2 and seed the
+batch straight from titles:
+
+1. **New from titles** (toolbar) → paste one title per line (a trailing `.pdf` is stripped, so
+   filenames work too). Name the batch and keep **Auto-download** ticked.
+2. Each line is **matched against the existing library first** (punctuation-insensitive, and
+   tolerant of a truncated/dropped subtitle). A hit is *reused* — pulled into the new batch with
+   its existing source, conference/venue and progress intact — so a paper already crawled (e.g.
+   the CVF `OPENACCESS` record that knows it's `CVPR 2026`) is never duplicated by a fresh arXiv
+   copy. When one title matches several stored rows, the richest is kept (venue first, then
+   furthest stage).
+3. Only titles with **no** library match are resolved against the **arXiv** API; the best title
+   match becomes a `PENDING` paper carrying its `pdfUrl` (its venue read from the arXiv comment
+   when present). Titles matched nowhere are reported and skipped — fix the wording and re-run.
+4. With **Auto-download** on, the batch's PDFs download immediately, so it lands at `DOWNLOADED`.
+   Continue from **step 4** above (truncate → crop → export → eval → ingest).
 
 ### Bring your own PDFs (manual upload)
 

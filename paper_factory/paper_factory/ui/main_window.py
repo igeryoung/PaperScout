@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QPlainTextEdit,
     QProgressDialog,
     QPushButton,
     QSpinBox,
@@ -39,7 +40,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import config, eval_import, export, importer, ingest, pdf as pdfops, upload
+from .. import config, eval_import, export, importer, ingest, pdf as pdfops, resolve, upload
 from ..db import Store
 from ..models import Batch, Bucket, Paper, ReviewDecision, Stage, dumps
 from .db_page import DbPage
@@ -181,6 +182,50 @@ class NewBatchDialog(QDialog):
         return self.autodl_check.isChecked()
 
 
+class TitlesBatchDialog(QDialog):
+    """Paste paper titles (one per line); each is resolved to an arXiv paper and
+    dropped into a new PENDING batch ready for Download PDF / auto-download."""
+
+    def __init__(self, default_name: str, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("New batch from titles")
+        self.resize(560, 420)
+
+        self.name_edit = QLineEdit(default_name)
+        self.titles_edit = QPlainTextEdit()
+        self.titles_edit.setPlaceholderText(
+            "One paper title per line, e.g.\n"
+            "VGGT-Det Mining VGGT Internal Priors for Sensor-Geometry-Free…\n"
+            "PE3R Perception-Efficient 3D Reconstruction"
+        )
+        self.autodl_check = QCheckBox("Auto-download all PDFs (parallel)")
+        self.autodl_check.setChecked(True)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        form = QFormLayout(self)
+        form.addRow("Name", self.name_edit)
+        form.addRow(QLabel("Titles (one per line)"))
+        form.addRow(self.titles_edit)
+        form.addRow(self.autodl_check)
+        form.addRow(buttons)
+
+    def titles_text(self) -> str:
+        return self.titles_edit.toPlainText()
+
+    def batch_name(self) -> str:
+        return self.name_edit.text().strip()
+
+    def auto_download(self) -> bool:
+        return self.autodl_check.isChecked()
+
+
+class _Cancelled(Exception):
+    """Raised out of a progress callback when the user cancels a long lookup."""
+
+
 class MainWindow(QMainWindow):
     def __init__(self, store: Store) -> None:
         super().__init__()
@@ -207,6 +252,10 @@ class MainWindow(QMainWindow):
         new_batch_btn.clicked.connect(self.new_batch)
         random_batch_btn = QPushButton("New random batch…")
         random_batch_btn.clicked.connect(self.new_random_batch)
+        upload_folder_btn = QPushButton("Upload folder")
+        upload_folder_btn.clicked.connect(self.upload_folder)
+        titles_batch_btn = QPushButton("New from titles")
+        titles_batch_btn.clicked.connect(self.new_titles_batch)
 
         self.sidebar = QWidget()
         sl = QVBoxLayout(self.sidebar)
@@ -217,6 +266,8 @@ class MainWindow(QMainWindow):
         sl.addWidget(self.bucket_filter)
         sl.addWidget(new_batch_btn)
         sl.addWidget(random_batch_btn)
+        sl.addWidget(upload_folder_btn)
+        sl.addWidget(titles_batch_btn)
         sl.addWidget(self.counts_label)
         self.sidebar.setVisible(False)  # hidden by default; toggled from the toolbar
 
@@ -280,7 +331,6 @@ class MainWindow(QMainWindow):
         tb.addSeparator()
         actions = [
             ("Import inbox", self.import_inbox),
-            ("Upload folder", self.upload_folder),
             ("Export for eval", self.export_batch),
             ("Import eval results", self.import_eval),
             ("Ingest passed", self.ingest_passed),
@@ -532,6 +582,93 @@ class MainWindow(QMainWindow):
         self.refresh_tree()
         QMessageBox.information(self, "Upload folder", result.summary())
 
+    def new_titles_batch(self) -> None:
+        """Build a batch from pasted titles. Each title is matched against the
+        existing paper library first and reused (keeping its venue/stage/files);
+        only titles with no library match are resolved fresh from arXiv. The batch
+        is then optionally auto-downloaded."""
+        dlg = TitlesBatchDialog(datetime.now().strftime("%Y-%m-%d"), self)
+        if dlg.exec() != QDialog.Accepted:
+            return
+        titles = resolve.parse_titles(dlg.titles_text())
+        name = dlg.batch_name()
+        if not titles or not name:
+            QMessageBox.information(
+                self, "New from titles", "Paste at least one title and name the batch."
+            )
+            return
+
+        # 1) Reuse what we already have — never mint a duplicate source for a paper
+        #    already in the library (preserves its conference/venue and progress).
+        existing = self.store.match_titles(titles)
+        to_resolve = [t for t in titles if t not in existing]
+
+        # 2) Resolve only the genuinely-new titles against arXiv.
+        result = self._resolve_titles_with_progress(to_resolve) if to_resolve else None
+        if to_resolve and result is None:  # cancelled mid-lookup
+            return
+        resolved = result.papers if result else []
+        unresolved = result.unresolved if result else []
+
+        if not existing and not resolved:
+            QMessageBox.warning(
+                self, "New from titles",
+                "Nothing to add — no library match and no arXiv match.\n\n"
+                + (result.summary() if result else ""),
+            )
+            return
+
+        batch = self.store.create_batch(name)
+        if existing:
+            # assign_batch pulls them into the batch without regressing stage/files
+            self.store.assign_batch([p.id for p in existing.values()], batch.id)
+        for paper in resolved:
+            if self.store.get_paper(paper.id) is None:
+                paper.batch_id = batch.id
+                self.store.upsert_paper(paper)
+            else:
+                self.store.assign_batch([paper.id], batch.id)
+
+        if dlg.auto_download():
+            self._download_batch_pdfs(self.store.list_papers(batch_id=batch.id))
+
+        self.refresh_batches()
+        for i in range(self.batch_list.count()):
+            if self.batch_list.item(i).data(Qt.UserRole) == batch.id:
+                self.batch_list.setCurrentRow(i)
+                break
+        self.refresh_tree()
+        QMessageBox.information(
+            self, "New from titles", _titles_summary(existing, resolved, unresolved)
+        )
+
+    def _resolve_titles_with_progress(
+        self, titles: list[str]
+    ) -> Optional[resolve.ResolveResult]:
+        """Resolve titles serially while showing a cancellable progress dialog.
+        Returns None if the user cancelled before any batch was created."""
+        progress = QProgressDialog(
+            "Resolving titles on arXiv…", "Cancel", 0, len(titles), self
+        )
+        progress.setWindowTitle("New from titles")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+
+        def _on_progress(done: int, total: int, title: str) -> None:
+            progress.setLabelText(f"Resolving {done + 1}/{total} on arXiv…\n{title}")
+            progress.setValue(done)
+            QApplication.processEvents()
+            if progress.wasCanceled():
+                raise _Cancelled
+
+        try:
+            result = resolve.resolve_titles(titles, delay=1.0, on_progress=_on_progress)
+        except _Cancelled:
+            return None
+        finally:
+            progress.close()
+        return result
+
     def new_batch(self) -> None:
         ids = self.selected_paper_ids()
         if not ids:
@@ -707,3 +844,18 @@ def _status_tag(p: Paper) -> str:
 
 def _score_text(p: Paper) -> str:
     return "" if p.total_score is None else str(p.total_score)
+
+
+def _titles_summary(
+    existing: dict[str, Paper],
+    resolved: list[Paper],
+    unresolved: list[tuple[str, str]],
+) -> str:
+    lines = [f"{len(existing)} reused from the library, {len(resolved)} new from arXiv."]
+    if existing:
+        with_venue = sum(1 for p in existing.values() if p.venue)
+        lines.append(f"  ({with_venue} of the reused carry a conference/venue.)")
+    if unresolved:
+        lines.append(f"{len(unresolved)} could not be matched anywhere:")
+        lines += [f"  • {t}  ({why})" for t, why in unresolved]
+    return "\n".join(lines)
